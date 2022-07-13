@@ -15,17 +15,19 @@
 package models
 
 const (
-	// ConfigURL is the configuration name of the connection string to connect to Oracle database.
+	// ConfigURL is the configuration name of the url.
 	ConfigURL = "url"
-
 	// ConfigTable is the configuration name of the table.
 	ConfigTable = "table"
+	// ConfigKeyColumn is the configuration name of the key column.
+	ConfigKeyColumn = "keyColumn"
 )
 
 // ConfigKeyName returns a configuration key name by struct field.
 func ConfigKeyName(fieldName string) string {
 	return map[string]string{
-		"URL":   ConfigURL,
-		"Table": ConfigTable,
+		"URL":       ConfigURL,
+		"Table":     ConfigTable,
+		"KeyColumn": ConfigKeyColumn,
 	}[fieldName]
 }

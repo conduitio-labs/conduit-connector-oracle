@@ -23,8 +23,7 @@ import (
 type General struct {
 	// URL is the configuration of the connection string to connect to Oracle database.
 	URL string `json:"url" validate:"required"`
-
-	// Table is the configuration of the table.
+	// Table is the configuration of the table name.
 	Table string `json:"table" validate:"required,lte=128,oracle"`
 }
 
