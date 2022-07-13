@@ -1,7 +1,7 @@
 # Conduit Connector Oracle
 
 ### General
-The Oracle connector is one of [Conduit](https://github.com/ConduitIO/conduit) plugins. It provides both, a source and destination Oracle connector.
+Oracle connector is one of [Conduit](https://github.com/ConduitIO/conduit) plugins. It provides both, a source and destination Oracle connector.
 
 ### Prerequisites
 - [Go](https://go.dev/) 1.18

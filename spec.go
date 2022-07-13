@@ -22,8 +22,8 @@ import (
 func Specification() sdk.Specification {
 	return sdk.Specification{
 		Name:    "oracle",
-		Summary: "An Oracle source and destination plugin for Conduit, written in Go.",
-		Description: "The Oracle connector is one of Conduit plugins. " +
+		Summary: "Oracle source and destination plugin for Conduit, written in Go.",
+		Description: "Oracle connector is one of Conduit plugins. " +
 			"It provides a source and a destination Oracle connector.",
 		Version:           "v0.1.0",
 		Author:            "Meroxa, Inc.",

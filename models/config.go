@@ -15,13 +15,7 @@
 package models
 
 const (
-	// ConfigUsername is the configuration name of the username to connect to Oracle database.
-	ConfigUsername = "username"
-
-	// ConfigPassword is the configuration name of the password to connect to Oracle database.
-	ConfigPassword = "password"
-
-	// ConfigURL is the configuration name of the path to connect to Oracle database.
+	// ConfigURL is the configuration name of the connection string to connect to Oracle database.
 	ConfigURL = "url"
 
 	// ConfigTable is the configuration name of the table.
@@ -31,9 +25,7 @@ const (
 // ConfigKeyName returns a configuration key name by struct field.
 func ConfigKeyName(fieldName string) string {
 	return map[string]string{
-		"Username": ConfigUsername,
-		"Password": ConfigPassword,
-		"URL":      ConfigURL,
-		"Table":    ConfigTable,
+		"URL":   ConfigURL,
+		"Table": ConfigTable,
 	}[fieldName]
 }

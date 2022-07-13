@@ -21,13 +21,7 @@ import (
 
 // A General represents a general configuration needed to connect to Oracle database.
 type General struct {
-	// Username is the configuration of the username to connect to Oracle database.
-	Username string `json:"username" validate:"required,lte=128,oracle"`
-
-	// Password is the configuration of the password to connect to Oracle database.
-	Password string `json:"password" validate:"required,lte=30,oracle"`
-
-	// URL is the configuration of the path to the Oracle database.
+	// URL is the configuration of the connection string to connect to Oracle database.
 	URL string `json:"url" validate:"required"`
 
 	// Table is the configuration of the table.
@@ -36,10 +30,8 @@ type General struct {
 
 func parseGeneral(cfg map[string]string) (General, error) {
 	config := General{
-		Username: cfg[models.ConfigUsername],
-		Password: cfg[models.ConfigPassword],
-		URL:      cfg[models.ConfigURL],
-		Table:    cfg[models.ConfigTable],
+		URL:   cfg[models.ConfigURL],
+		Table: cfg[models.ConfigTable],
 	}
 
 	err := validator.Validate(config)

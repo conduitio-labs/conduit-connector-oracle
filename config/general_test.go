@@ -34,139 +34,37 @@ func TestParseGeneral(t *testing.T) {
 		{
 			name: "valid config",
 			in: map[string]string{
-				models.ConfigUsername: "test_user",
-				models.ConfigPassword: "test_pass_123",
-				models.ConfigURL:      "localhost:1521/ORCLCDB",
-				models.ConfigTable:    "test_table",
+				models.ConfigURL:   "test_user/test_pass_123@localhost:1521/db_name",
+				models.ConfigTable: "test_table",
 			},
 			want: General{
-				Username: "test_user",
-				Password: "test_pass_123",
-				URL:      "localhost:1521/ORCLCDB",
-				Table:    "test_table",
+				URL:   "test_user/test_pass_123@localhost:1521/db_name",
+				Table: "test_table",
 			},
-		},
-		{
-			name: "valid config with the shorter username",
-			in: map[string]string{
-				models.ConfigUsername: "t",
-				models.ConfigPassword: "test_pass_123",
-				models.ConfigURL:      "localhost:1521/ORCLCDB",
-				models.ConfigTable:    "test_table",
-			},
-			want: General{
-				Username: "t",
-				Password: "test_pass_123",
-				URL:      "localhost:1521/ORCLCDB",
-				Table:    "test_table",
-			},
-		},
-		{
-			name: "username is required",
-			in: map[string]string{
-				models.ConfigPassword: "test_pass_123",
-				models.ConfigURL:      "localhost:1521/ORCLCDB",
-				models.ConfigTable:    "test_table",
-			},
-			wantErr:     true,
-			expectedErr: validator.RequiredErr(models.ConfigUsername).Error(),
-		},
-		{
-			name: "password is required",
-			in: map[string]string{
-				models.ConfigUsername: "test_user",
-				models.ConfigURL:      "localhost:1521/ORCLCDB",
-				models.ConfigTable:    "test_table",
-			},
-			wantErr:     true,
-			expectedErr: validator.RequiredErr(models.ConfigPassword).Error(),
 		},
 		{
 			name: "url is required",
 			in: map[string]string{
-				models.ConfigUsername: "test_user",
-				models.ConfigPassword: "test_pass_123",
-				models.ConfigTable:    "test_table",
+				models.ConfigTable: "test_table",
 			},
 			wantErr:     true,
 			expectedErr: validator.RequiredErr(models.ConfigURL).Error(),
 		},
 		{
-			name: "table is required",
-			in: map[string]string{
-				models.ConfigUsername: "test_user",
-				models.ConfigPassword: "test_pass_123",
-				models.ConfigURL:      "localhost:1521/ORCLCDB",
-			},
-			wantErr:     true,
-			expectedErr: validator.RequiredErr(models.ConfigTable).Error(),
-		},
-		{
-			name: "a couple required fields are empty (a password and an url)",
-			in: map[string]string{
-				models.ConfigUsername: "test_user",
-				models.ConfigTable:    "test_table",
-			},
+			name:    "a couple required fields are empty (a password and an url)",
+			in:      map[string]string{},
 			wantErr: true,
-			expectedErr: multierr.Combine(validator.RequiredErr(models.ConfigPassword),
-				validator.RequiredErr(models.ConfigURL)).Error(),
+			expectedErr: multierr.Combine(validator.RequiredErr(models.ConfigURL),
+				validator.RequiredErr(models.ConfigTable)).Error(),
 		},
 		{
-			name: "username is too long",
+			name: "table begins with a number",
 			in: map[string]string{
-				models.ConfigUsername: "test_user_test_user_test_user_test_user_test_user_test_user_test_" +
-					"user_test_user_test_user_test_user_test_user_test_user_test_user",
-				models.ConfigPassword: "test_pass_123",
-				models.ConfigURL:      "localhost:1521/ORCLCDB",
-				models.ConfigTable:    "test_table",
+				models.ConfigURL:   "test_user/test_pass_123@localhost:1521/db_name",
+				models.ConfigTable: "1_test_table",
 			},
 			wantErr:     true,
-			expectedErr: validator.OutOfRangeErr(models.ConfigUsername).Error(),
-		},
-		{
-			name: "password is too long",
-			in: map[string]string{
-				models.ConfigUsername: "test_user",
-				models.ConfigPassword: "test_pass_123_test_pass_123_tes",
-				models.ConfigURL:      "localhost:1521/ORCLCDB",
-				models.ConfigTable:    "test_table",
-			},
-			wantErr:     true,
-			expectedErr: validator.OutOfRangeErr(models.ConfigPassword).Error(),
-		},
-		{
-			name: "username is too long",
-			in: map[string]string{
-				models.ConfigUsername: "test_user",
-				models.ConfigPassword: "test_pass_123",
-				models.ConfigURL:      "localhost:1521/ORCLCDB",
-				models.ConfigTable: "test_table_test_table_test_table_test_table_test_table_test_table_" +
-					"test_table_test_table_test_table_test_table_test_table_test_tab",
-			},
-			wantErr:     true,
-			expectedErr: validator.OutOfRangeErr(models.ConfigTable).Error(),
-		},
-		{
-			name: "username contains unsupported characters",
-			in: map[string]string{
-				models.ConfigUsername: "test+user",
-				models.ConfigPassword: "test_pass_123",
-				models.ConfigURL:      "localhost:1521/ORCLCDB",
-				models.ConfigTable:    "test_table",
-			},
-			wantErr:     true,
-			expectedErr: validator.InvalidOracleObjectErr(models.ConfigUsername).Error(),
-		},
-		{
-			name: "username begins with a number",
-			in: map[string]string{
-				models.ConfigUsername: "1_test_user",
-				models.ConfigPassword: "test_pass_123",
-				models.ConfigURL:      "localhost:1521/ORCLCDB",
-				models.ConfigTable:    "test_table",
-			},
-			wantErr:     true,
-			expectedErr: validator.InvalidOracleObjectErr(models.ConfigUsername).Error(),
+			expectedErr: validator.InvalidOracleObjectErr(models.ConfigTable).Error(),
 		},
 	}
 
