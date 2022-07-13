@@ -12,22 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package oracle
+package models
 
-import (
-	sdk "github.com/conduitio/conduit-connector-sdk"
+const (
+	// ConfigURL is the configuration name of the connection string to connect to Oracle database.
+	ConfigURL = "url"
+
+	// ConfigTable is the configuration name of the table.
+	ConfigTable = "table"
 )
 
-// Specification returns specification of the connector.
-func Specification() sdk.Specification {
-	return sdk.Specification{
-		Name:    "oracle",
-		Summary: "Oracle source and destination plugin for Conduit, written in Go.",
-		Description: "Oracle connector is one of Conduit plugins. " +
-			"It provides a source and a destination Oracle connector.",
-		Version:           "v0.1.0",
-		Author:            "Meroxa, Inc.",
-		SourceParams:      map[string]sdk.Parameter{},
-		DestinationParams: map[string]sdk.Parameter{},
-	}
+// ConfigKeyName returns a configuration key name by struct field.
+func ConfigKeyName(fieldName string) string {
+	return map[string]string{
+		"URL":   ConfigURL,
+		"Table": ConfigTable,
+	}[fieldName]
 }
