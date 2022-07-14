@@ -15,8 +15,8 @@
 package config
 
 import (
-	"github.com/conduitio/conduit-connector-oracle/config/validator"
-	"github.com/conduitio/conduit-connector-oracle/models"
+	"github.com/conduitio-labs/conduit-connector-oracle/config/validator"
+	"github.com/conduitio-labs/conduit-connector-oracle/models"
 )
 
 // A Destination represents a destination configuration needed for the destination connector.

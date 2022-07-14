@@ -18,8 +18,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/conduitio/conduit-connector-oracle/config/validator"
-	"github.com/conduitio/conduit-connector-oracle/models"
+	"github.com/conduitio-labs/conduit-connector-oracle/config/validator"
+	"github.com/conduitio-labs/conduit-connector-oracle/models"
 	"go.uber.org/multierr"
 )
 

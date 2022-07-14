@@ -19,7 +19,7 @@ import (
 	"regexp"
 	"sync"
 
-	"github.com/conduitio/conduit-connector-oracle/models"
+	"github.com/conduitio-labs/conduit-connector-oracle/models"
 	v "github.com/go-playground/validator/v10"
 	"go.uber.org/multierr"
 )
