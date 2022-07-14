@@ -15,7 +15,7 @@
 package oracle
 
 import (
-	"github.com/conduitio/conduit-connector-oracle/models"
+	"github.com/conduitio-labs/conduit-connector-oracle/models"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 )
 
