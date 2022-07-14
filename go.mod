@@ -3,7 +3,7 @@ module github.com/conduitio/conduit-connector-oracle
 go 1.18
 
 require (
-	github.com/conduitio/conduit-connector-sdk v0.2.1-0.20220530152250-733149cddc0b
+	github.com/conduitio/conduit-connector-sdk v0.2.1-0.20220607154716-0655cdd93a58
 	github.com/go-playground/validator/v10 v10.11.0
 	go.uber.org/multierr v1.8.0
 )
