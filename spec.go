@@ -15,6 +15,7 @@
 package oracle
 
 import (
+	"github.com/conduitio/conduit-connector-oracle/models"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 )
 
@@ -25,9 +26,24 @@ func Specification() sdk.Specification {
 		Summary: "Oracle source and destination plugin for Conduit, written in Go.",
 		Description: "Oracle connector is one of Conduit plugins. " +
 			"It provides a source and a destination Oracle connector.",
-		Version:           "v0.1.0",
-		Author:            "Meroxa, Inc.",
-		SourceParams:      map[string]sdk.Parameter{},
-		DestinationParams: map[string]sdk.Parameter{},
+		Version:      "v0.1.0",
+		Author:       "Meroxa, Inc.",
+		SourceParams: map[string]sdk.Parameter{},
+		DestinationParams: map[string]sdk.Parameter{
+			models.ConfigURL: {
+				Default:     "",
+				Required:    true,
+				Description: "The connection string to connect to Oracle database.",
+			},
+			models.ConfigTable: {
+				Default:     "",
+				Required:    true,
+				Description: "The table name of the table in Oracle that the connector should write to, by default.",
+			},
+			models.ConfigKeyColumn: {
+				Default:     "",
+				Required:    false,
+				Description: "A column name that used to detect if the target table already contains the record.",
+			}},
 	}
 }
