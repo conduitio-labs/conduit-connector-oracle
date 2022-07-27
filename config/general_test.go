@@ -25,11 +25,10 @@ import (
 
 func TestParseGeneral(t *testing.T) {
 	tests := []struct {
-		name        string
-		in          map[string]string
-		want        General
-		wantErr     bool
-		expectedErr string
+		name string
+		in   map[string]string
+		want General
+		err  error
 	}{
 		{
 			name: "valid config",
@@ -47,15 +46,12 @@ func TestParseGeneral(t *testing.T) {
 			in: map[string]string{
 				models.ConfigTable: "test_table",
 			},
-			wantErr:     true,
-			expectedErr: validator.RequiredErr(models.ConfigURL).Error(),
+			err: validator.RequiredErr(models.ConfigURL),
 		},
 		{
-			name:    "a couple required fields are empty (a password and an url)",
-			in:      map[string]string{},
-			wantErr: true,
-			expectedErr: multierr.Combine(validator.RequiredErr(models.ConfigURL),
-				validator.RequiredErr(models.ConfigTable)).Error(),
+			name: "a couple required fields are empty (a password and an url)",
+			in:   map[string]string{},
+			err:  multierr.Combine(validator.RequiredErr(models.ConfigURL), validator.RequiredErr(models.ConfigTable)),
 		},
 		{
 			name: "table begins with a number",
@@ -63,8 +59,7 @@ func TestParseGeneral(t *testing.T) {
 				models.ConfigURL:   "test_user/test_pass_123@localhost:1521/db_name",
 				models.ConfigTable: "1_test_table",
 			},
-			wantErr:     true,
-			expectedErr: validator.InvalidOracleObjectErr(models.ConfigTable).Error(),
+			err: validator.InvalidOracleObjectErr(models.ConfigTable),
 		},
 	}
 
@@ -72,14 +67,14 @@ func TestParseGeneral(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := parseGeneral(tt.in)
 			if err != nil {
-				if !tt.wantErr {
-					t.Errorf("parse error = \"%s\", wantErr %t", err.Error(), tt.wantErr)
+				if tt.err == nil {
+					t.Errorf("unexpected error: %s", err.Error())
 
 					return
 				}
 
-				if err.Error() != tt.expectedErr {
-					t.Errorf("expected error \"%s\", got \"%s\"", tt.expectedErr, err.Error())
+				if err.Error() != tt.err.Error() {
+					t.Errorf("unexpected error, got: %s, want: %s", err.Error(), tt.err.Error())
 
 					return
 				}
@@ -88,7 +83,7 @@ func TestParseGeneral(t *testing.T) {
 			}
 
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("parse = %v, want %v", got, tt.want)
+				t.Errorf("got: %v, want: %v", got, tt.want)
 			}
 		})
 	}
