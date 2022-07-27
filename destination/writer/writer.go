@@ -84,6 +84,8 @@ func (w *Writer) insert(ctx context.Context, record sdk.Record) error {
 
 	columns, values := w.extractColumnsAndValues(payload)
 
+	w.convertValues(values)
+
 	query, err := w.buildInsertQuery(tableName, columns, values)
 	if err != nil {
 		return fmt.Errorf("build insert query: %w", err)
@@ -128,6 +130,8 @@ func (w *Writer) update(ctx context.Context, record sdk.Record) error {
 	}
 
 	columns, values := w.extractColumnsAndValues(payload)
+
+	w.convertValues(values)
 
 	query, err := w.buildUpdateQuery(tableName, keyColumn, keyValue, columns, values)
 	if err != nil {
@@ -280,46 +284,34 @@ func (w *Writer) structurizeData(data sdk.Data) (sdk.StructuredData, error) {
 		return nil, fmt.Errorf("unmarshal data into structured data: %w", err)
 	}
 
-	// convert keys to lower case
-	structuredDataLower := make(sdk.StructuredData)
-	for key, value := range structuredData {
-		if parsedValue, ok := value.(map[string]any); ok {
-			jsonValue, err := json.Marshal(parsedValue)
-			if err != nil {
-				return nil, fmt.Errorf("marshal map into json: %w", err)
-			}
-
-			structuredDataLower[strings.ToLower(key)] = string(jsonValue)
-
-			continue
-		}
-
-		structuredDataLower[strings.ToLower(key)] = value
-	}
-
-	return structuredDataLower, nil
+	return structuredData, nil
 }
 
 // turns the payload into slices of columns and values for use in queries to Oracle.
 func (w *Writer) extractColumnsAndValues(payload sdk.StructuredData) ([]string, []any) {
 	var (
-		columns []string
-		values  []any
+		columns = make([]string, 0, len(payload))
+		values  = make([]any, 0, len(payload))
 	)
 
 	for key, value := range payload {
-		// convert the boolean type to the Oracle type NUMBER(1,0)
-		if value != nil && reflect.TypeOf(value).Kind() == reflect.Bool {
-			if value.(bool) {
-				value = 1
-			} else {
-				value = 0
-			}
-		}
-
 		columns = append(columns, key)
 		values = append(values, value)
 	}
 
 	return columns, values
+}
+
+// converts values to right Oracle's types.
+func (w *Writer) convertValues(values []any) {
+	for i := range values {
+		// convert the boolean type to the Oracle type NUMBER(1,0)
+		if values[i] != nil && reflect.TypeOf(values[i]).Kind() == reflect.Bool {
+			if values[i].(bool) {
+				values[i] = 1
+			} else {
+				values[i] = 0
+			}
+		}
+	}
 }
