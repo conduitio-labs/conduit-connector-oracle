@@ -15,6 +15,7 @@
 package oracle
 
 import (
+	"github.com/conduitio-labs/conduit-connector-oracle/destination"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 )
 
@@ -22,5 +23,5 @@ import (
 var Connector = sdk.Connector{
 	NewSpecification: Specification,
 	NewSource:        nil,
-	NewDestination:   nil,
+	NewDestination:   destination.New,
 }
