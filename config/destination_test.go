@@ -24,11 +24,10 @@ import (
 
 func TestParseDestination(t *testing.T) {
 	tests := []struct {
-		name        string
-		in          map[string]string
-		want        Destination
-		wantErr     bool
-		expectedErr string
+		name string
+		in   map[string]string
+		want Destination
+		err  error
 	}{
 		{
 			name: "valid config",
@@ -81,8 +80,7 @@ func TestParseDestination(t *testing.T) {
 				models.ConfigKeyColumn: "test_column_test_column_test_column_test_column_test_column_" +
 					"test_column_test_column_test_column_test_column_test_column_test_colu",
 			},
-			wantErr:     true,
-			expectedErr: validator.OutOfRangeErr(models.ConfigKeyColumn).Error(),
+			err: validator.OutOfRangeErr(models.ConfigKeyColumn),
 		},
 	}
 
@@ -90,14 +88,14 @@ func TestParseDestination(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := ParseDestination(tt.in)
 			if err != nil {
-				if !tt.wantErr {
-					t.Errorf("parse error = \"%s\", wantErr %t", err.Error(), tt.wantErr)
+				if tt.err == nil {
+					t.Errorf("unexpected error: %s", err.Error())
 
 					return
 				}
 
-				if err.Error() != tt.expectedErr {
-					t.Errorf("expected error \"%s\", got \"%s\"", tt.expectedErr, err.Error())
+				if err.Error() != tt.err.Error() {
+					t.Errorf("unexpected error, got: %s, want: %s", err.Error(), tt.err.Error())
 
 					return
 				}
@@ -106,7 +104,7 @@ func TestParseDestination(t *testing.T) {
 			}
 
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("parse = %v, want %v", got, tt.want)
+				t.Errorf("got: %v, want: %v", got, tt.want)
 			}
 		})
 	}
