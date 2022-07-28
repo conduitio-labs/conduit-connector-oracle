@@ -33,8 +33,11 @@ const (
 	metadataAction = "action"
 
 	// action names.
-	actionUpdate = "update"
 	actionDelete = "delete"
+
+	// upsert sql format.
+	upsertFmt = "MERGE INTO %s USING DUAL ON (%s = ?) " +
+		"WHEN MATCHED THEN UPDATE SET %s WHEN NOT MATCHED THEN INSERT (%s) VALUES (%s)"
 )
 
 // Writer implements a writer logic for Oracle destination.
@@ -54,12 +57,10 @@ func New(db *sql.DB, cfg config.Destination) *Writer {
 // Write writes a sdk.Record into a Destination.
 func (w *Writer) Write(ctx context.Context, record sdk.Record) error {
 	switch record.Metadata[metadataAction] {
-	case actionUpdate:
-		return w.update(ctx, record)
 	case actionDelete:
 		return w.delete(ctx, record)
 	default:
-		return w.insert(ctx, record)
+		return w.upsert(ctx, record)
 	}
 }
 
@@ -68,39 +69,8 @@ func (w *Writer) Close(ctx context.Context) error {
 	return w.db.Close()
 }
 
-// inserts a record.
-func (w *Writer) insert(ctx context.Context, record sdk.Record) error {
-	tableName := w.getTableName(record.Metadata)
-
-	payload, err := w.structurizeData(record.Payload)
-	if err != nil {
-		return fmt.Errorf("structurize payload: %w", err)
-	}
-
-	// if payload is empty return empty payload error
-	if payload == nil {
-		return errEmptyPayload
-	}
-
-	columns, values := w.extractColumnsAndValues(payload)
-
-	w.convertValues(values)
-
-	query, err := w.buildInsertQuery(tableName, columns, values)
-	if err != nil {
-		return fmt.Errorf("build insert query: %w", err)
-	}
-
-	_, err = w.db.ExecContext(ctx, query)
-	if err != nil {
-		return fmt.Errorf("exec insert: %w", err)
-	}
-
-	return nil
-}
-
-// updates a record.
-func (w *Writer) update(ctx context.Context, record sdk.Record) error {
+// insert or update a record.
+func (w *Writer) upsert(ctx context.Context, record sdk.Record) error {
 	tableName := w.getTableName(record.Metadata)
 
 	payload, err := w.structurizeData(record.Payload)
@@ -131,9 +101,7 @@ func (w *Writer) update(ctx context.Context, record sdk.Record) error {
 
 	columns, values := w.extractColumnsAndValues(payload)
 
-	w.convertValues(values)
-
-	query, err := w.buildUpdateQuery(tableName, keyColumn, keyValue, columns, values)
+	query, err := w.buildUpsertQuery(tableName, keyColumn, keyValue, columns, values)
 	if err != nil {
 		return fmt.Errorf("build upsert query: %w", err)
 	}
@@ -180,50 +148,51 @@ func (w *Writer) delete(ctx context.Context, record sdk.Record) error {
 	return nil
 }
 
-// generates an SQL INSERT statement query.
-func (w *Writer) buildInsertQuery(table string, columns []string, values []any) (string, error) {
-	if len(columns) != len(values) {
-		return "", errColumnsValuesLenMismatch
-	}
-
-	ib := sqlbuilder.NewInsertBuilder()
-
-	ib.InsertInto(table)
-	ib.Cols(columns...)
-	ib.Values(values...)
-
-	sql, args := ib.Build()
-
-	query, err := sqlbuilder.DefaultFlavor.Interpolate(sql, args)
-	if err != nil {
-		return "", fmt.Errorf("interpolate arguments to SQL: %w", err)
-	}
-
-	return query, nil
-}
-
-// generates an SQL UPDATE statement query.
-func (w *Writer) buildUpdateQuery(
+// generates an SQL INSERT or UPDATE statement query via MERGE.
+func (w *Writer) buildUpsertQuery(
 	table string, keyColumn string, keyValue any, columns []string, values []any,
 ) (string, error) {
 	if len(columns) != len(values) {
 		return "", errColumnsValuesLenMismatch
 	}
 
-	ub := sqlbuilder.NewUpdateBuilder()
-
-	ub.Update(table)
-	ub.Where(
-		ub.Equal(keyColumn, keyValue),
-	)
-
-	assignments := make([]string, len(columns))
-	for i := 0; i < len(columns); i++ {
-		assignments[i] = ub.Assign(columns[i], values[i])
+	err := w.encodeValues(values)
+	if err != nil {
+		return "", fmt.Errorf("convert values: %w", err)
 	}
-	ub.Set(assignments...)
 
-	query, err := sqlbuilder.DefaultFlavor.Interpolate(ub.Build())
+	// arguments for the query
+	args := make([]any, 0, len(values)*2)
+
+	// table name
+	args = append(args, keyValue)
+
+	updateData := make([]string, 0, len(columns))
+	for i := 0; i < len(columns); i++ {
+		if columns[i] == keyColumn {
+			continue
+		}
+
+		updateData = append(updateData, columns[i]+" = ?")
+
+		// all values except the keyValue for update
+		args = append(args, values[i])
+	}
+
+	// all values for insert
+	for i := range values {
+		args = append(args, values[i])
+	}
+
+	qms := make([]string, 0, len(values))
+	for range values {
+		qms = append(qms, "?")
+	}
+
+	sql := fmt.Sprintf(upsertFmt, table, keyColumn,
+		strings.Join(updateData, ", "), strings.Join(columns, ", "), strings.Join(qms, ", "))
+
+	query, err := sqlbuilder.DefaultFlavor.Interpolate(sql, args)
 	if err != nil {
 		return "", fmt.Errorf("interpolate arguments to SQL: %w", err)
 	}
@@ -302,16 +271,27 @@ func (w *Writer) extractColumnsAndValues(payload sdk.StructuredData) ([]string, 
 	return columns, values
 }
 
-// converts values to right Oracle's types.
-func (w *Writer) convertValues(values []any) {
+// encodes values to right Oracle's types.
+func (w *Writer) encodeValues(values []any) error {
 	for i := range values {
-		// convert the boolean type to the Oracle type NUMBER(1,0)
-		if values[i] != nil && reflect.TypeOf(values[i]).Kind() == reflect.Bool {
-			if values[i].(bool) {
-				values[i] = 1
-			} else {
-				values[i] = 0
+		if values[i] != nil {
+			switch reflect.TypeOf(values[i]).Kind() {
+			case reflect.Bool: // convert the boolean type to the int, for the NUMBER(1,0) Oracle type
+				if values[i].(bool) {
+					values[i] = 1
+				} else {
+					values[i] = 0
+				}
+			case reflect.Map: // convert the map type to the string, for the VARCHAR2 Oracle type
+				bs, err := json.Marshal(values[i])
+				if err != nil {
+					return fmt.Errorf("marshal map: %w", err)
+				}
+
+				values[i] = string(bs)
 			}
 		}
 	}
+
+	return nil
 }

@@ -20,73 +20,7 @@ import (
 	"time"
 )
 
-func TestWriter_buildInsertQuery(t *testing.T) {
-	t.Parallel()
-
-	type args struct {
-		table   string
-		columns []string
-		values  []any
-	}
-
-	tests := []struct {
-		name string
-		args args
-		want string
-		err  error
-	}{
-		{
-			name: "success",
-			args: args{
-				table:   "users",
-				columns: []string{"name", "age", "created_at"},
-				values:  []any{"John", 42, time.Unix(1257894000, 0).UTC()},
-			},
-			want: "INSERT INTO users (name, age, created_at) VALUES ('John', 42, '2009-11-10 23:00:00')",
-		},
-		{
-			name: "mismatch columns and values length",
-			args: args{
-				table:   "users",
-				columns: []string{"name"},
-				values:  []any{"John", 42},
-			},
-			err: errColumnsValuesLenMismatch,
-		},
-	}
-
-	for _, tt := range tests {
-		tt := tt
-
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			w := &Writer{}
-			got, err := w.buildInsertQuery(tt.args.table, tt.args.columns, tt.args.values)
-			if err != nil {
-				if tt.err == nil {
-					t.Errorf("unexpected error: %s", err.Error())
-
-					return
-				}
-
-				if err.Error() != tt.err.Error() {
-					t.Errorf("unexpected error, got: %s, want: %s", err.Error(), tt.err.Error())
-
-					return
-				}
-
-				return
-			}
-
-			if got != tt.want {
-				t.Errorf("got: %v, want: %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestWriter_buildUpdateQuery(t *testing.T) {
+func TestWriter_buildUpsertQuery(t *testing.T) {
 	t.Parallel()
 
 	type args struct {
@@ -108,11 +42,17 @@ func TestWriter_buildUpdateQuery(t *testing.T) {
 			args: args{
 				table:     "users",
 				keyColumn: "id",
-				keyValue:  1,
-				columns:   []string{"name", "age", "created_at"},
-				values:    []any{"John", 42, time.Unix(1257894000, 0).UTC()},
+				keyValue:  "someId",
+				columns:   []string{"name", "age", "created", "metadata"},
+				values:    []any{"John", 42, time.Unix(1257894000, 0).UTC(), map[string]string{"action": "insert"}},
 			},
-			want: "UPDATE users SET name = 'John', age = 42, created_at = '2009-11-10 23:00:00' WHERE id = 1",
+			want: "MERGE INTO users USING DUAL ON (id = 'someId') " +
+				"WHEN MATCHED THEN " +
+				"UPDATE SET name = 'John', age = 42, created = '2009-11-10 23:00:00', " +
+				"metadata = '{\\\"action\\\":\\\"insert\\\"}' " +
+				"WHEN NOT MATCHED THEN " +
+				"INSERT (name, age, created, metadata) " +
+				"VALUES ('John', 42, '2009-11-10 23:00:00', '{\\\"action\\\":\\\"insert\\\"}')",
 		},
 		{
 			name: "mismatch columns and values length",
@@ -132,7 +72,7 @@ func TestWriter_buildUpdateQuery(t *testing.T) {
 			t.Parallel()
 
 			w := &Writer{}
-			got, err := w.buildUpdateQuery(
+			got, err := w.buildUpsertQuery(
 				tt.args.table, tt.args.keyColumn, tt.args.keyValue, tt.args.columns, tt.args.values)
 			if err != nil {
 				if tt.err == nil {
@@ -211,13 +151,18 @@ func TestWriter_convertValues(t *testing.T) {
 	}{
 		{
 			name:   "success with true value",
-			values: []any{"John", 42, true},
-			want:   []any{"John", 42, 1},
+			values: []any{"John", true},
+			want:   []any{"John", 1},
 		},
 		{
 			name:   "success with false value",
-			values: []any{"John", 42, false},
-			want:   []any{"John", 42, 0},
+			values: []any{"John", false},
+			want:   []any{"John", 0},
+		},
+		{
+			name:   "success with map type",
+			values: []any{"John", map[string]string{"action": "insert"}},
+			want:   []any{"John", "{\"action\":\"insert\"}"},
 		},
 	}
 	for _, tt := range tests {
@@ -227,7 +172,11 @@ func TestWriter_convertValues(t *testing.T) {
 			t.Parallel()
 
 			w := &Writer{}
-			w.convertValues(tt.values)
+
+			err := w.encodeValues(tt.values)
+			if err != nil {
+				t.Errorf("unexpected error %s", err.Error())
+			}
 
 			if len(tt.values) != len(tt.want) {
 				t.Error("values length must stay the same")

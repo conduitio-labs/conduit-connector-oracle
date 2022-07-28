@@ -27,6 +27,8 @@ import (
 	_ "github.com/godror/godror"
 )
 
+const driverName = "godror"
+
 // Writer defines a writer interface needed for the Destination.
 type Writer interface {
 	Write(context.Context, sdk.Record) error
@@ -60,8 +62,6 @@ func (d *Destination) Configure(ctx context.Context, cfg map[string]string) erro
 
 // Open initializes a publisher client.
 func (d *Destination) Open(ctx context.Context) error {
-	const driverName = "godror"
-
 	db, err := sql.Open(driverName, d.cfg.URL)
 	if err != nil {
 		return fmt.Errorf("open connection: %w", err)
