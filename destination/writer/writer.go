@@ -150,7 +150,10 @@ func (w *Writer) delete(ctx context.Context, record sdk.Record) error {
 
 // generates an SQL INSERT or UPDATE statement query via MERGE.
 func (w *Writer) buildUpsertQuery(
-	table string, keyColumn string, keyValue any, columns []string, values []any,
+	table, keyColumn string,
+	keyValue any,
+	columns []string,
+	values []any,
 ) (string, error) {
 	if len(columns) != len(values) {
 		return "", errColumnsValuesLenMismatch
@@ -164,7 +167,7 @@ func (w *Writer) buildUpsertQuery(
 	// arguments for the query
 	args := make([]any, 0, len(values)*2)
 
-	// table name
+	// append a key value as an argument
 	args = append(args, keyValue)
 
 	updateData := make([]string, 0, len(columns))
@@ -225,7 +228,7 @@ func (w *Writer) getTableName(metadata map[string]string) string {
 		return w.cfg.Table
 	}
 
-	return strings.ToLower(tableName)
+	return tableName
 }
 
 // returns either the first key within the Key structured data
@@ -259,13 +262,17 @@ func (w *Writer) structurizeData(data sdk.Data) (sdk.StructuredData, error) {
 // turns the payload into slices of columns and values for use in queries to Oracle.
 func (w *Writer) extractColumnsAndValues(payload sdk.StructuredData) ([]string, []any) {
 	var (
-		columns = make([]string, 0, len(payload))
-		values  = make([]any, 0, len(payload))
+		i = 0
+
+		columns = make([]string, len(payload))
+		values  = make([]any, len(payload))
 	)
 
 	for key, value := range payload {
-		columns = append(columns, key)
-		values = append(values, value)
+		columns[i] = key
+		values[i] = value
+
+		i++
 	}
 
 	return columns, values
