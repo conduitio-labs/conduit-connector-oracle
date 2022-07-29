@@ -178,18 +178,15 @@ func (w *Writer) buildUpsertQuery(
 
 		updateData = append(updateData, columns[i]+" = ?")
 
-		// all values except the keyValue for update
+		// append all values for update (except the keyValue for update)
 		args = append(args, values[i])
 	}
 
-	// all values for insert
+	// append all values and question marks for insert
+	qms := make([]string, len(values))
 	for i := range values {
 		args = append(args, values[i])
-	}
-
-	qms := make([]string, 0, len(values))
-	for range values {
-		qms = append(qms, "?")
+		qms[i] = "?"
 	}
 
 	sql := fmt.Sprintf(upsertFmt, table, keyColumn,
