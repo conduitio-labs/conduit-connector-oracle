@@ -183,14 +183,14 @@ func (w *Writer) buildUpsertQuery(
 	}
 
 	// append all values and question marks for insert
-	qms := make([]string, len(values))
+	placeholders := make([]string, len(values))
 	for i := range values {
 		args = append(args, values[i])
-		qms[i] = "?"
+		placeholders[i] = "?"
 	}
 
 	sql := fmt.Sprintf(upsertFmt, table, keyColumn,
-		strings.Join(updateData, ", "), strings.Join(columns, ", "), strings.Join(qms, ", "))
+		strings.Join(updateData, ", "), strings.Join(columns, ", "), strings.Join(placeholders, ", "))
 
 	query, err := sqlbuilder.DefaultFlavor.Interpolate(sql, args)
 	if err != nil {
