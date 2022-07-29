@@ -17,8 +17,9 @@ package writer
 import "errors"
 
 var (
-	// errEmptyPayload occurs when there's no payload to insert.
-	errEmptyPayload = errors.New("payload is empty")
+	// ErrEmptyPayload occurs when there's no payload to insert.
+	ErrEmptyPayload = errors.New("payload is empty")
+
 	// errEmptyKey occurs when there is no value for key.
 	errEmptyKey = errors.New("key value must be provided")
 	// errCompositeKeysNotSupported occurs when there are more than one key in a Key map.

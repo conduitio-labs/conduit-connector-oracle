@@ -80,7 +80,7 @@ func (w *Writer) upsert(ctx context.Context, record sdk.Record) error {
 
 	// if payload is empty return empty payload error
 	if payload == nil {
-		return errEmptyPayload
+		return ErrEmptyPayload
 	}
 
 	key, err := w.structurizeData(record.Key)
