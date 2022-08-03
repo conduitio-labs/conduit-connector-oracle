@@ -8,7 +8,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	conduit_connector_sdk "github.com/conduitio/conduit-connector-sdk"
+	sdk "github.com/conduitio/conduit-connector-sdk"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -50,7 +50,7 @@ func (mr *MockWriterMockRecorder) Close(arg0 interface{}) *gomock.Call {
 }
 
 // Write mocks base method.
-func (m *MockWriter) Write(arg0 context.Context, arg1 conduit_connector_sdk.Record) error {
+func (m *MockWriter) Write(arg0 context.Context, arg1 sdk.Record) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Write", arg0, arg1)
 	ret0, _ := ret[0].(error)

@@ -24,6 +24,8 @@ import (
 )
 
 func TestParseGeneral(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		in   map[string]string
@@ -64,7 +66,11 @@ func TestParseGeneral(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
+
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got, err := parseGeneral(tt.in)
 			if err != nil {
 				if tt.err == nil {
