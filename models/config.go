@@ -21,13 +21,23 @@ const (
 	ConfigTable = "table"
 	// ConfigKeyColumn is the configuration name of the key column.
 	ConfigKeyColumn = "keyColumn"
+
+	// ConfigOrderingColumn is a config name for an ordering column.
+	ConfigOrderingColumn = "orderingColumn"
+	// ConfigColumns is a config name for columns.
+	ConfigColumns = "columns"
+	// ConfigBatchSize is a config name for a batch size.
+	ConfigBatchSize = "batchSize"
 )
 
 // ConfigKeyName returns a configuration key name by struct field.
 func ConfigKeyName(fieldName string) string {
 	return map[string]string{
-		"URL":       ConfigURL,
-		"Table":     ConfigTable,
-		"KeyColumn": ConfigKeyColumn,
+		"URL":            ConfigURL,
+		"Table":          ConfigTable,
+		"KeyColumn":      ConfigKeyColumn,
+		"OrderingColumn": ConfigOrderingColumn,
+		"Columns":        ConfigColumns,
+		"BatchSize":      ConfigBatchSize,
 	}[fieldName]
 }

@@ -15,13 +15,16 @@
 package validator
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
+	"strings"
 	"sync"
 
-	"github.com/conduitio-labs/conduit-connector-oracle/models"
 	v "github.com/go-playground/validator/v10"
 	"go.uber.org/multierr"
+
+	"github.com/conduitio-labs/conduit-connector-oracle/models"
 )
 
 var (
@@ -72,4 +75,29 @@ func Validate(s interface{}) error {
 
 func validateOracleObject(fl v.FieldLevel) bool {
 	return isOracleObjectValid(fl.Field().String())
+}
+
+func ValidateColumns(orderingColumn, keyColumn, columns string) error {
+	var orderingColumnIsExist bool
+	var keyColumnIsExist bool
+
+	if orderingColumn == "" || keyColumn == "" || columns == "" {
+		return nil
+	}
+
+	for _, val := range strings.Split(columns, ",") {
+		if orderingColumn == val {
+			orderingColumnIsExist = true
+		}
+
+		if keyColumn == val {
+			keyColumnIsExist = true
+		}
+	}
+
+	if !orderingColumnIsExist || !keyColumnIsExist {
+		return errors.New(columnsErrMsg)
+	}
+
+	return nil
 }
