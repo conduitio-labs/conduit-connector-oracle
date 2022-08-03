@@ -93,15 +93,16 @@ func (w *Writer) upsert(ctx context.Context, record sdk.Record) error {
 		return fmt.Errorf("get key column: %w", err)
 	}
 
-	// return an error if we didn't find a value for the key
-	keyValue, ok := key[keyColumn]
-	if !ok {
-		return errEmptyKey
+	// if the record doesn't contain the key, insert the key if it's not empty
+	if _, ok := payload[keyColumn]; !ok {
+		if _, ok := key[keyColumn]; ok {
+			payload[keyColumn] = key[keyColumn]
+		}
 	}
 
 	columns, values := w.extractColumnsAndValues(payload)
 
-	query, err := w.buildUpsertQuery(tableName, keyColumn, keyValue, columns, values)
+	query, err := w.buildUpsertQuery(tableName, keyColumn, payload[keyColumn], columns, values)
 	if err != nil {
 		return fmt.Errorf("build upsert query: %w", err)
 	}
@@ -286,7 +287,7 @@ func (w *Writer) encodeValues(values []any) error {
 				} else {
 					values[i] = 0
 				}
-			case reflect.Map: // convert the map type to the string, for the VARCHAR2 Oracle type
+			case reflect.Map, reflect.Slice: // convert the map type to the string, for the VARCHAR2 Oracle type
 				bs, err := json.Marshal(values[i])
 				if err != nil {
 					return fmt.Errorf("marshal map: %w", err)
