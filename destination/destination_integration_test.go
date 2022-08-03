@@ -35,8 +35,14 @@ const (
 	testTableNameFormat = "conduit_destination_test_%d"
 
 	// queries.
-	queryCreateTable = "CREATE TABLE %s (id NUMBER NOT NULL, name VARCHAR2(20), is_active NUMBER(1,0), " +
-		"attributes VARCHAR2(100), achievements VARCHAR2(100))"
+	queryCreateTable = `
+CREATE TABLE %s (
+	id NUMBER NOT NULL, 
+	name VARCHAR2(20), 
+	is_active NUMBER(1,0), 
+	attributes VARCHAR2(100), 
+	achievements VARCHAR2(100)
+)`
 	queryDropTable      = "DROP TABLE %s"
 	querySelectNameByID = "SELECT name FROM %s WHERE id = %d"
 )
@@ -104,10 +110,8 @@ func TestDestination_WriteIntegration(t *testing.T) {
 			Metadata: map[string]string{
 				"action": "update",
 			},
-			Key: sdk.StructuredData{
-				"id": 42,
-			},
 			Payload: sdk.StructuredData{
+				"id":   42,
 				"name": "Jane",
 			},
 		})
@@ -127,7 +131,7 @@ func TestDestination_WriteIntegration(t *testing.T) {
 		is.NoErr(err)
 	})
 
-	t.Run("upsert", func(t *testing.T) {
+	t.Run("update if not exists", func(t *testing.T) {
 		err = dest.Open(ctx)
 		is.NoErr(err)
 
@@ -136,21 +140,21 @@ func TestDestination_WriteIntegration(t *testing.T) {
 				"action": "update",
 			},
 			Payload: sdk.StructuredData{
-				"id":   42,
-				"name": "Sam",
+				"id":   7,
+				"name": "Sofia",
 			},
 		})
 		is.NoErr(err)
 
 		row := db.QueryRowContext(context.Background(),
-			fmt.Sprintf(querySelectNameByID, cfg[models.ConfigTable], 42),
+			fmt.Sprintf(querySelectNameByID, cfg[models.ConfigTable], 7),
 		)
 
 		var name string
 		err = row.Scan(&name)
 		is.NoErr(err)
 
-		is.Equal(name, "Sam")
+		is.Equal(name, "Sofia")
 
 		err = dest.Teardown(ctx)
 		is.NoErr(err)
@@ -181,7 +185,7 @@ func TestDestination_WriteIntegration(t *testing.T) {
 		is.NoErr(err)
 	})
 
-	t.Run("insert wrong column", func(t *testing.T) {
+	t.Run("insert with the wrong column", func(t *testing.T) {
 		err = dest.Open(ctx)
 		is.NoErr(err)
 
