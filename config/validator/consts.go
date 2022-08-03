@@ -19,4 +19,5 @@ const (
 	invalidOracleNameErrMsg = "%q can contain only alphanumeric characters from your database character set and " +
 		"the underscore (_), dollar sign ($), and pound sign (#)"
 	outOfRangeErrMsg = "%q is out of range"
+	columnsErrMsg    = "columns must includes orderingColumn and keyColumn"
 )
