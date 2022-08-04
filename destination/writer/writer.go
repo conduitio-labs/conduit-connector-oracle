@@ -22,7 +22,6 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/conduitio-labs/conduit-connector-oracle/config"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 	"github.com/huandu/go-sqlbuilder"
 )
@@ -42,15 +41,24 @@ const (
 
 // Writer implements a writer logic for Oracle destination.
 type Writer struct {
-	db  *sql.DB
-	cfg config.Destination
+	db        *sql.DB
+	table     string
+	keyColumn string
+}
+
+// Params is an incoming params for the New function.
+type Params struct {
+	DB        *sql.DB
+	Table     string
+	KeyColumn string
 }
 
 // New creates new instance of the Writer.
-func New(db *sql.DB, cfg config.Destination) *Writer {
+func New(db *sql.DB, params Params) *Writer {
 	return &Writer{
-		db:  db,
-		cfg: cfg,
+		db:        db,
+		table:     params.Table,
+		keyColumn: params.KeyColumn,
 	}
 }
 
@@ -223,7 +231,7 @@ func (w *Writer) buildDeleteQuery(table string, keyColumn string, keyValue any) 
 func (w *Writer) getTableName(metadata map[string]string) string {
 	tableName, ok := metadata[metadataTable]
 	if !ok {
-		return w.cfg.Table
+		return w.table
 	}
 
 	return tableName
@@ -240,7 +248,7 @@ func (w *Writer) getKeyColumn(key sdk.StructuredData) (string, error) {
 		return k, nil
 	}
 
-	return w.cfg.KeyColumn, nil
+	return w.keyColumn, nil
 }
 
 // converts sdk.Data to sdk.StructuredData.
