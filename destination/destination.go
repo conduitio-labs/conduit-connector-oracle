@@ -49,7 +49,7 @@ func New() sdk.Destination {
 }
 
 // Configure parses and stores configurations, returns an error in case of invalid configuration.
-func (d *Destination) Configure(ctx context.Context, cfg map[string]string) error {
+func (d *Destination) Configure(_ context.Context, cfg map[string]string) error {
 	configuration, err := config.ParseDestination(cfg)
 	if err != nil {
 		return err
@@ -61,7 +61,7 @@ func (d *Destination) Configure(ctx context.Context, cfg map[string]string) erro
 }
 
 // Open initializes a publisher client.
-func (d *Destination) Open(ctx context.Context) error {
+func (d *Destination) Open(_ context.Context) error {
 	db, err := sql.Open(driverName, d.cfg.URL)
 	if err != nil {
 		return fmt.Errorf("open connection: %w", err)
@@ -72,7 +72,11 @@ func (d *Destination) Open(ctx context.Context) error {
 		return fmt.Errorf("ping: %w", err)
 	}
 
-	d.writer = writer.New(db, d.cfg)
+	d.writer = writer.New(db, writer.Params{
+		DB:        db,
+		Table:     d.cfg.Table,
+		KeyColumn: d.cfg.KeyColumn,
+	})
 
 	return nil
 }
