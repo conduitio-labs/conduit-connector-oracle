@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package writer
+package repository
 
 import (
 	"reflect"
@@ -20,7 +20,7 @@ import (
 	"time"
 )
 
-func TestWriter_buildUpsertQuery(t *testing.T) {
+func TestOracle_buildUpsertQuery(t *testing.T) {
 	t.Parallel()
 
 	type args struct {
@@ -71,8 +71,7 @@ func TestWriter_buildUpsertQuery(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			w := &Writer{}
-			got, err := w.buildUpsertQuery(
+			got, err := new(Oracle).buildUpsertQuery(
 				tt.args.table, tt.args.keyColumn, tt.args.keyValue, tt.args.columns, tt.args.values)
 			if err != nil {
 				if tt.err == nil {
@@ -97,7 +96,7 @@ func TestWriter_buildUpsertQuery(t *testing.T) {
 	}
 }
 
-func TestWriter_buildDeleteQuery(t *testing.T) {
+func TestOracle_buildDeleteQuery(t *testing.T) {
 	t.Parallel()
 
 	type args struct {
@@ -126,8 +125,7 @@ func TestWriter_buildDeleteQuery(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			w := &Writer{}
-			got, err := w.buildDeleteQuery(tt.args.table, tt.args.keyColumn, tt.args.keyValue)
+			got, err := new(Oracle).buildDeleteQuery(tt.args.table, tt.args.keyColumn, tt.args.keyValue)
 			if err != nil {
 				t.Errorf("unexpected error: %s", err.Error())
 
@@ -141,7 +139,7 @@ func TestWriter_buildDeleteQuery(t *testing.T) {
 	}
 }
 
-func TestWriter_convertValues(t *testing.T) {
+func TestOracle_convertValues(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -171,9 +169,7 @@ func TestWriter_convertValues(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			w := &Writer{}
-
-			err := w.encodeValues(tt.values)
+			err := new(Oracle).encodeValues(tt.values)
 			if err != nil {
 				t.Errorf("unexpected error %s", err.Error())
 			}

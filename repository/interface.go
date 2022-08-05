@@ -12,16 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package writer
+package repository
 
-import "errors"
+import "context"
 
-var (
-	// ErrEmptyPayload occurs when there's no payload to insert.
-	ErrEmptyPayload = errors.New("payload is empty")
+type Repository interface {
+	Close() error
 
-	// errEmptyKey occurs when there is no value for key.
-	errEmptyKey = errors.New("key value must be provided")
-	// errCompositeKeysNotSupported occurs when there are more than one key in a Key map.
-	errCompositeKeysNotSupported = errors.New("composite keys not yet supported")
-)
+	Upsert(context.Context, string, string, any, []string, []any) error
+	Delete(context.Context, string, string, any) error
+}
