@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/conduitio-labs/conduit-connector-oracle/models"
+	"github.com/conduitio-labs/conduit-connector-oracle/repository"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 	"github.com/matryer/is"
 
@@ -215,7 +216,7 @@ func prepareConfig() (map[string]string, error) {
 }
 
 func prepareData(ctx context.Context, cfg map[string]string) (*sql.DB, error) {
-	db, err := sql.Open(driverName, cfg[models.ConfigURL])
+	db, err := sql.Open(repository.GodrorDriver, cfg[models.ConfigURL])
 	if err != nil {
 		return nil, fmt.Errorf("open connection: %w", err)
 	}
