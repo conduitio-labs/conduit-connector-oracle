@@ -16,16 +16,18 @@ package destination
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
 	"github.com/conduitio-labs/conduit-connector-oracle/config"
 	"github.com/conduitio-labs/conduit-connector-oracle/destination/writer"
-	"github.com/conduitio-labs/conduit-connector-oracle/repository"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 
 	// Go driver for Oracle.
 	_ "github.com/godror/godror"
 )
+
+const driverName = "godror"
 
 // Writer defines a writer interface needed for the Destination.
 type Writer interface {
@@ -60,13 +62,18 @@ func (d *Destination) Configure(_ context.Context, cfg map[string]string) error 
 
 // Open initializes a publisher client.
 func (d *Destination) Open(_ context.Context) error {
-	repo, err := repository.New(d.cfg.URL)
+	db, err := sql.Open(driverName, d.cfg.URL)
 	if err != nil {
-		return fmt.Errorf("new db: %w", err)
+		return fmt.Errorf("open connection: %w", err)
 	}
 
-	d.writer = writer.New(writer.Params{
-		Repo:      repo,
+	err = db.Ping()
+	if err != nil {
+		return fmt.Errorf("ping: %w", err)
+	}
+
+	d.writer = writer.New(db, writer.Params{
+		DB:        db,
 		Table:     d.cfg.Table,
 		KeyColumn: d.cfg.KeyColumn,
 	})
