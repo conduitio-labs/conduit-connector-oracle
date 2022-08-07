@@ -16,11 +16,14 @@ package writer
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
+	"reflect"
+	"strings"
 
-	"github.com/conduitio-labs/conduit-connector-oracle/repository"
 	sdk "github.com/conduitio/conduit-connector-sdk"
+	"github.com/huandu/go-sqlbuilder"
 )
 
 const (
@@ -30,26 +33,30 @@ const (
 
 	// action names.
 	actionDelete = "delete"
+
+	// upsert sql format.
+	upsertFmt = "MERGE INTO %s USING DUAL ON (%s = ?) " +
+		"WHEN MATCHED THEN UPDATE SET %s WHEN NOT MATCHED THEN INSERT (%s) VALUES (%s)"
 )
 
 // Writer implements a writer logic for Oracle destination.
 type Writer struct {
-	repo      repository.Repository
+	db        *sql.DB
 	table     string
 	keyColumn string
 }
 
 // Params is an incoming params for the New function.
 type Params struct {
-	Repo      repository.Repository
+	DB        *sql.DB
 	Table     string
 	KeyColumn string
 }
 
 // New creates new instance of the Writer.
-func New(params Params) *Writer {
+func New(db *sql.DB, params Params) *Writer {
 	return &Writer{
-		repo:      params.Repo,
+		db:        db,
 		table:     params.Table,
 		keyColumn: params.KeyColumn,
 	}
@@ -67,7 +74,7 @@ func (w *Writer) Write(ctx context.Context, record sdk.Record) error {
 
 // Close closes the underlying db connection.
 func (w *Writer) Close(ctx context.Context) error {
-	return w.repo.Close()
+	return w.db.Close()
 }
 
 // insert or update a record.
@@ -103,7 +110,12 @@ func (w *Writer) upsert(ctx context.Context, record sdk.Record) error {
 
 	columns, values := w.extractColumnsAndValues(payload)
 
-	err = w.repo.Upsert(ctx, tableName, keyColumn, payload[keyColumn], columns, values)
+	query, err := w.buildUpsertQuery(tableName, keyColumn, payload[keyColumn], columns, values)
+	if err != nil {
+		return fmt.Errorf("build upsert query: %w", err)
+	}
+
+	_, err = w.db.ExecContext(ctx, query)
 	if err != nil {
 		return fmt.Errorf("exec upsert: %w", err)
 	}
@@ -132,12 +144,86 @@ func (w *Writer) delete(ctx context.Context, record sdk.Record) error {
 		return errEmptyKey
 	}
 
-	err = w.repo.Delete(ctx, tableName, keyColumn, keyValue)
+	query, err := w.buildDeleteQuery(tableName, keyColumn, keyValue)
+	if err != nil {
+		return fmt.Errorf("build delete query: %w", err)
+	}
+
+	_, err = w.db.ExecContext(ctx, query)
 	if err != nil {
 		return fmt.Errorf("exec delete: %w", err)
 	}
 
 	return nil
+}
+
+// generates an SQL INSERT or UPDATE statement query via MERGE.
+func (w *Writer) buildUpsertQuery(
+	table, keyColumn string,
+	keyValue any,
+	columns []string,
+	values []any,
+) (string, error) {
+	if len(columns) != len(values) {
+		return "", errColumnsValuesLenMismatch
+	}
+
+	err := w.encodeValues(values)
+	if err != nil {
+		return "", fmt.Errorf("convert values: %w", err)
+	}
+
+	// arguments for the query
+	args := make([]any, 0, len(values)*2)
+
+	// append a key value as an argument
+	args = append(args, keyValue)
+
+	updateData := make([]string, 0, len(columns))
+	for i := 0; i < len(columns); i++ {
+		if columns[i] == keyColumn {
+			continue
+		}
+
+		updateData = append(updateData, columns[i]+" = ?")
+
+		// append all values for update (except the keyValue for update)
+		args = append(args, values[i])
+	}
+
+	// append all values and question marks for insert
+	placeholders := make([]string, len(values))
+	for i := range values {
+		args = append(args, values[i])
+		placeholders[i] = "?"
+	}
+
+	sql := fmt.Sprintf(upsertFmt, table, keyColumn,
+		strings.Join(updateData, ", "), strings.Join(columns, ", "), strings.Join(placeholders, ", "))
+
+	query, err := sqlbuilder.DefaultFlavor.Interpolate(sql, args)
+	if err != nil {
+		return "", fmt.Errorf("interpolate arguments to SQL: %w", err)
+	}
+
+	return query, nil
+}
+
+// generates an SQL DELETE statement query.
+func (w *Writer) buildDeleteQuery(table string, keyColumn string, keyValue any) (string, error) {
+	db := sqlbuilder.NewDeleteBuilder()
+
+	db.DeleteFrom(table)
+	db.Where(
+		db.Equal(keyColumn, keyValue),
+	)
+
+	query, err := sqlbuilder.DefaultFlavor.Interpolate(db.Build())
+	if err != nil {
+		return "", fmt.Errorf("interpolate arguments to SQL: %w", err)
+	}
+
+	return query, nil
 }
 
 // returns either the record metadata value for the table
@@ -196,4 +282,29 @@ func (w *Writer) extractColumnsAndValues(payload sdk.StructuredData) ([]string, 
 	}
 
 	return columns, values
+}
+
+// encodes values to right Oracle's types.
+func (w *Writer) encodeValues(values []any) error {
+	for i := range values {
+		if values[i] != nil {
+			switch reflect.TypeOf(values[i]).Kind() {
+			case reflect.Bool: // convert the boolean type to the int, for the NUMBER(1,0) Oracle type
+				if values[i].(bool) {
+					values[i] = 1
+				} else {
+					values[i] = 0
+				}
+			case reflect.Map, reflect.Slice: // convert the map type to the string, for the VARCHAR2 Oracle type
+				bs, err := json.Marshal(values[i])
+				if err != nil {
+					return fmt.Errorf("marshal map: %w", err)
+				}
+
+				values[i] = string(bs)
+			}
+		}
+	}
+
+	return nil
 }

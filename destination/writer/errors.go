@@ -24,4 +24,6 @@ var (
 	errEmptyKey = errors.New("key value must be provided")
 	// errCompositeKeysNotSupported occurs when there are more than one key in a Key map.
 	errCompositeKeysNotSupported = errors.New("composite keys not yet supported")
+	// errColumnsValuesLenMismatch occurs when trying to insert a row with a different column and value lengths.
+	errColumnsValuesLenMismatch = errors.New("number of columns must be equal to number of values")
 )
