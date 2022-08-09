@@ -50,16 +50,24 @@ func ParseSource(cfg map[string]string) (Source, error) {
 
 	sourceConfig := Source{
 		General:        config,
-		KeyColumn:      cfg[models.ConfigKeyColumn],
-		OrderingColumn: cfg[models.ConfigOrderingColumn],
+		KeyColumn:      strings.ToUpper(cfg[models.ConfigKeyColumn]),
+		OrderingColumn: strings.ToUpper(cfg[models.ConfigOrderingColumn]),
 		BatchSize:      defaultBatchSize,
 	}
 
 	if columns := cfg[models.ConfigColumns]; columns != "" {
-		if er := validator.ValidateColumns(sourceConfig.OrderingColumn, sourceConfig.KeyColumn, columns); er != nil {
+		columnsSl := strings.Split(columns, ",")
+
+		// converts columns to uppercase
+		for i := range columnsSl {
+			columnsSl[i] = strings.ToUpper(columnsSl[i])
+		}
+
+		if er := validator.ValidateColumns(sourceConfig.OrderingColumn, sourceConfig.KeyColumn, columnsSl); er != nil {
 			return Source{}, er
 		}
-		sourceConfig.Columns = strings.Split(columns, ",")
+
+		sourceConfig.Columns = columnsSl
 	}
 
 	if batchSize := cfg[models.ConfigBatchSize]; batchSize != "" {

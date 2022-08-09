@@ -48,7 +48,7 @@ func TestDestination_Configure(t *testing.T) {
 			want: config.Destination{
 				General: config.General{
 					URL:   "test_user/test_pass_123@localhost:1521/db_name",
-					Table: "test_table",
+					Table: "TEST_TABLE",
 				},
 			},
 		},
@@ -62,9 +62,9 @@ func TestDestination_Configure(t *testing.T) {
 			want: config.Destination{
 				General: config.General{
 					URL:   "test_user/test_pass_123@localhost:1521/db_name",
-					Table: "test_table",
+					Table: "TEST_TABLE",
 				},
-				KeyColumn: "test_column",
+				KeyColumn: "TEST_COLUMN",
 			},
 		},
 		{
@@ -77,9 +77,9 @@ func TestDestination_Configure(t *testing.T) {
 			want: config.Destination{
 				General: config.General{
 					URL:   "test_user/test_pass_123@localhost:1521/db_name",
-					Table: "test_table",
+					Table: "TEST_TABLE",
 				},
-				KeyColumn: "t",
+				KeyColumn: "T",
 			},
 		},
 		{

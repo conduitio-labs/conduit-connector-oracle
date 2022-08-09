@@ -18,10 +18,19 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/conduitio-labs/conduit-connector-oracle/source/iterator"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 
 	"github.com/conduitio-labs/conduit-connector-oracle/config"
 )
+
+// Iterator interface.
+type Iterator interface {
+	HasNext(context.Context) (bool, error)
+	Next(context.Context) (sdk.Record, error)
+	Stop() error
+	Ack(context.Context, sdk.Position) error
+}
 
 // Source connector.
 type Source struct {
@@ -37,7 +46,7 @@ func New() sdk.Source {
 }
 
 // Configure parses and stores configurations, returns an error in case of invalid configuration.
-func (s *Source) Configure(ctx context.Context, cfgRaw map[string]string) error {
+func (s *Source) Configure(_ context.Context, cfgRaw map[string]string) error {
 	cfg, err := config.ParseSource(cfgRaw)
 	if err != nil {
 		return err
@@ -50,7 +59,24 @@ func (s *Source) Configure(ctx context.Context, cfgRaw map[string]string) error 
 
 // Open prepare the plugin to start sending records from the given position.
 func (s *Source) Open(ctx context.Context, rp sdk.Position) error {
-	// TODO open db, create iterator
+	pos, err := iterator.ParseSDKPosition(rp)
+	if err != nil {
+		return fmt.Errorf("parse position: %w", err)
+	}
+
+	s.iterator, err = iterator.New(ctx, iterator.Params{
+		Position:       pos,
+		URL:            s.config.URL,
+		Table:          s.config.Table,
+		KeyColumn:      s.config.KeyColumn,
+		OrderingColumn: s.config.OrderingColumn,
+		Columns:        s.config.Columns,
+		BatchSize:      s.config.BatchSize,
+	})
+	if err != nil {
+		return fmt.Errorf("new iterator: %w", err)
+	}
+
 	return nil
 }
 
@@ -78,7 +104,7 @@ func (s *Source) Teardown(ctx context.Context) error {
 	if s.iterator != nil {
 		err := s.iterator.Stop()
 		if err != nil {
-			return err
+			return fmt.Errorf("stop iterator: %w", err)
 		}
 	}
 

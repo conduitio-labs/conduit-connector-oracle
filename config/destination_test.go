@@ -40,7 +40,7 @@ func TestParseDestination(t *testing.T) {
 			want: Destination{
 				General: General{
 					URL:   "test_user/test_pass_123@localhost:1521/db_name",
-					Table: "test_table",
+					Table: "TEST_TABLE",
 				},
 			},
 		},
@@ -54,9 +54,9 @@ func TestParseDestination(t *testing.T) {
 			want: Destination{
 				General: General{
 					URL:   "test_user/test_pass_123@localhost:1521/db_name",
-					Table: "test_table",
+					Table: "TEST_TABLE",
 				},
-				KeyColumn: "test_column",
+				KeyColumn: "TEST_COLUMN",
 			},
 		},
 		{
@@ -69,9 +69,9 @@ func TestParseDestination(t *testing.T) {
 			want: Destination{
 				General: General{
 					URL:   "test_user/test_pass_123@localhost:1521/db_name",
-					Table: "test_table",
+					Table: "TEST_TABLE",
 				},
-				KeyColumn: "t",
+				KeyColumn: "T",
 			},
 		},
 		{

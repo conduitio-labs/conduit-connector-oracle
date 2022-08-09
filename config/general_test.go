@@ -40,7 +40,7 @@ func TestParseGeneral(t *testing.T) {
 			},
 			want: General{
 				URL:   "test_user/test_pass_123@localhost:1521/db_name",
-				Table: "test_table",
+				Table: "TEST_TABLE",
 			},
 		},
 		{

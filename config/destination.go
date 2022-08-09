@@ -15,6 +15,8 @@
 package config
 
 import (
+	"strings"
+
 	"github.com/conduitio-labs/conduit-connector-oracle/config/validator"
 	"github.com/conduitio-labs/conduit-connector-oracle/models"
 )
@@ -36,7 +38,7 @@ func ParseDestination(cfg map[string]string) (Destination, error) {
 
 	destinationConfig := Destination{
 		General:   config,
-		KeyColumn: cfg[models.ConfigKeyColumn],
+		KeyColumn: strings.ToUpper(cfg[models.ConfigKeyColumn]),
 	}
 
 	err = validator.Validate(destinationConfig)

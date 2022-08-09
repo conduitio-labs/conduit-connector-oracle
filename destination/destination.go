@@ -72,7 +72,7 @@ func (d *Destination) Open(_ context.Context) error {
 		return fmt.Errorf("ping: %w", err)
 	}
 
-	d.writer = writer.New(db, writer.Params{
+	d.writer = writer.New(writer.Params{
 		DB:        db,
 		Table:     d.cfg.Table,
 		KeyColumn: d.cfg.KeyColumn,

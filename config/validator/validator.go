@@ -18,7 +18,6 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
-	"strings"
 	"sync"
 
 	v "github.com/go-playground/validator/v10"
@@ -49,6 +48,7 @@ func Get() *v.Validate {
 	return validatorInstance
 }
 
+// Validate validates structs.
 func Validate(s interface{}) error {
 	var err error
 
@@ -73,31 +73,34 @@ func Validate(s interface{}) error {
 	return err
 }
 
-func validateOracleObject(fl v.FieldLevel) bool {
-	return isOracleObjectValid(fl.Field().String())
-}
+// ValidateColumns validates database columns.
+func ValidateColumns(orderingColumn, keyColumn string, columnsSl []string) error {
+	var (
+		orderingColumnIsExist bool
+		keyColumnIsExist      bool
+	)
 
-func ValidateColumns(orderingColumn, keyColumn, columns string) error {
-	var orderingColumnIsExist bool
-	var keyColumnIsExist bool
-
-	if orderingColumn == "" || keyColumn == "" || columns == "" {
+	if orderingColumn == "" || keyColumn == "" || len(columnsSl) == 0 {
 		return nil
 	}
 
-	for _, val := range strings.Split(columns, ",") {
-		if orderingColumn == val {
+	for i := range columnsSl {
+		if orderingColumn == columnsSl[i] {
 			orderingColumnIsExist = true
 		}
 
-		if keyColumn == val {
+		if keyColumn == columnsSl[i] {
 			keyColumnIsExist = true
 		}
 	}
 
 	if !orderingColumnIsExist || !keyColumnIsExist {
-		return errors.New(columnsErrMsg)
+		return errors.New(ColumnsIncludeErrMsg)
 	}
 
 	return nil
+}
+
+func validateOracleObject(fl v.FieldLevel) bool {
+	return isOracleObjectValid(fl.Field().String())
 }

@@ -54,9 +54,9 @@ type Params struct {
 }
 
 // New creates new instance of the Writer.
-func New(db *sql.DB, params Params) *Writer {
+func New(params Params) *Writer {
 	return &Writer{
-		db:        db,
+		db:        params.DB,
 		table:     params.Table,
 		keyColumn: params.KeyColumn,
 	}

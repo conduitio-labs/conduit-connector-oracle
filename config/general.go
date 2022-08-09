@@ -15,6 +15,8 @@
 package config
 
 import (
+	"strings"
+
 	"github.com/conduitio-labs/conduit-connector-oracle/config/validator"
 	"github.com/conduitio-labs/conduit-connector-oracle/models"
 )
@@ -30,7 +32,7 @@ type General struct {
 func parseGeneral(cfg map[string]string) (General, error) {
 	config := General{
 		URL:   cfg[models.ConfigURL],
-		Table: cfg[models.ConfigTable],
+		Table: strings.ToUpper(cfg[models.ConfigTable]),
 	}
 
 	err := validator.Validate(config)
