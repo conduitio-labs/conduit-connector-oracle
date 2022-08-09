@@ -28,15 +28,23 @@ import (
 
 // Snapshot represents an implementation of a Snapshot iterator for Oracle.
 type Snapshot struct {
-	db             *sqlx.DB
-	position       *Position
-	table          string
-	keyColumn      string
-	orderingColumn string
-	columns        []string
-	batchSize      int
+	db       *sqlx.DB
+	position *Position
 
-	rows        *sqlx.Rows
+	// table represents a table name
+	table string
+	// keyColumn represents a name of column what iterator use for setting key in record
+	keyColumn string
+	// orderingColumn represents a name of column what iterator use for sorting data
+	orderingColumn string
+	// columns represents a list of table's columns for record payload.
+	// if empty - will get all columns
+	columns []string
+	// batchSize represents a size of batch
+	batchSize int
+
+	rows *sqlx.Rows
+	// columnTypes represents a columns' data from table
 	columnTypes map[string]coltypes.ColumnData
 }
 
@@ -105,7 +113,6 @@ func (s *Snapshot) Next(ctx context.Context) (sdk.Record, error) {
 	pos := Position{
 		Mode:             ModeSnapshot,
 		LastProcessedVal: transformedRow[s.orderingColumn],
-		//Time:             time.Now(),
 	}
 
 	convertedPosition, err := pos.convertToSDKPosition()

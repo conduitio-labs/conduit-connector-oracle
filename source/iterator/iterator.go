@@ -55,7 +55,7 @@ func New(ctx context.Context, params Params) (*Iterator, error) {
 
 	err = db.Ping()
 	if err != nil {
-		return nil, fmt.Errorf("ping: %w", err)
+		return nil, fmt.Errorf("ping db: %w", err)
 	}
 
 	// get column types for converting.
@@ -64,8 +64,7 @@ func New(ctx context.Context, params Params) (*Iterator, error) {
 		return nil, fmt.Errorf("get table column types: %w", err)
 	}
 
-	position := params.Position
-	if position == nil || position.Mode == ModeSnapshot {
+	if params.Position == nil || params.Position.Mode == ModeSnapshot {
 		iterator.snapshot, err = NewSnapshot(ctx, SnapshotParams{
 			DB:             db,
 			Position:       params.Position,
