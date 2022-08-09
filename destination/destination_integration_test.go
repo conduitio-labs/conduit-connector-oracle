@@ -221,7 +221,7 @@ func prepareData(ctx context.Context, cfg map[string]string) (*sql.DB, error) {
 	}
 
 	if err = db.PingContext(ctx); err != nil {
-		return nil, fmt.Errorf("ping: %w", err)
+		return nil, fmt.Errorf("ping db: %w", err)
 	}
 
 	_, err = db.ExecContext(ctx, fmt.Sprintf(queryCreateTable, cfg[models.ConfigTable]))

@@ -12,18 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package source
+package iterator
 
 import (
-	"context"
-
-	sdk "github.com/conduitio/conduit-connector-sdk"
+	"errors"
 )
 
-// Iterator interface.
-type Iterator interface {
-	HasNext(ctx context.Context) (bool, error)
-	Next(ctx context.Context) (sdk.Record, error)
-	Stop() error
-	Ack(ctx context.Context, rp sdk.Position) error
-}
+var (
+	errUnknownIteratorType      = errors.New("unknown iterator type")
+	errKeyIsNotExist            = errors.New("key is not exist")
+	errOrderingColumnIsNotExist = errors.New("ordering column is not exist")
+)

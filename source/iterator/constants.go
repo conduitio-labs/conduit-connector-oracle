@@ -12,13 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package validator
+package iterator
+
+type actionType string
 
 const (
-	requiredErrMsg          = "%q value must be set"
-	invalidOracleNameErrMsg = "%q can contain only alphanumeric characters from your database character set and " +
-		"the underscore (_), dollar sign ($), and pound sign (#)"
-	outOfRangeErrMsg = "%q is out of range"
+	// metadata related.
+	metadataTable  = "table"
+	metadataAction = "action"
 
-	ColumnsIncludeErrMsg = "columns must include orderingColumn and keyColumn"
+	// actionType names.
+	actionInsert actionType = "insert"
 )

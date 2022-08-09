@@ -19,6 +19,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/conduitio-labs/conduit-connector-oracle/config/validator"
 	"github.com/conduitio-labs/conduit-connector-oracle/models"
 )
 
@@ -40,10 +41,10 @@ func TestParseSource(t *testing.T) {
 			want: Source{
 				General: General{
 					URL:   "test_user/test_pass_123@localhost:1521/db_name",
-					Table: "test_table",
+					Table: "TEST_TABLE",
 				},
-				KeyColumn:      "id",
-				OrderingColumn: "id",
+				KeyColumn:      "ID",
+				OrderingColumn: "ID",
 				BatchSize:      defaultBatchSize,
 			},
 		},
@@ -59,10 +60,10 @@ func TestParseSource(t *testing.T) {
 			want: Source{
 				General: General{
 					URL:   "test_user/test_pass_123@localhost:1521/db_name",
-					Table: "test_table",
+					Table: "TEST_TABLE",
 				},
-				KeyColumn:      "id",
-				OrderingColumn: "id",
+				KeyColumn:      "ID",
+				OrderingColumn: "ID",
 				BatchSize:      100,
 			},
 		},
@@ -78,10 +79,10 @@ func TestParseSource(t *testing.T) {
 			want: Source{
 				General: General{
 					URL:   "test_user/test_pass_123@localhost:1521/db_name",
-					Table: "test_table",
+					Table: "TEST_TABLE",
 				},
-				KeyColumn:      "id",
-				OrderingColumn: "id",
+				KeyColumn:      "ID",
+				OrderingColumn: "ID",
 				BatchSize:      100,
 			},
 		},
@@ -97,12 +98,12 @@ func TestParseSource(t *testing.T) {
 			want: Source{
 				General: General{
 					URL:   "test_user/test_pass_123@localhost:1521/db_name",
-					Table: "test_table",
+					Table: "TEST_TABLE",
 				},
-				KeyColumn:      "id",
-				OrderingColumn: "id",
+				KeyColumn:      "ID",
+				OrderingColumn: "ID",
 				BatchSize:      defaultBatchSize,
-				Columns:        []string{"id", "name", "age"},
+				Columns:        []string{"ID", "NAME", "AGE"},
 			},
 		},
 		{
@@ -145,7 +146,7 @@ func TestParseSource(t *testing.T) {
 				models.ConfigKeyColumn:      "name",
 				models.ConfigColumns:        "name,age",
 			},
-			err: errors.New(`columns must includes orderingColumn and keyColumn`),
+			err: errors.New(validator.ColumnsIncludeErrMsg),
 		},
 		{
 			name: "invalid config, missed keyColumn in columns",
@@ -156,7 +157,7 @@ func TestParseSource(t *testing.T) {
 				models.ConfigKeyColumn:      "name",
 				models.ConfigColumns:        "id,age",
 			},
-			err: errors.New(`columns must includes orderingColumn and keyColumn`),
+			err: errors.New(validator.ColumnsIncludeErrMsg),
 		},
 	}
 
