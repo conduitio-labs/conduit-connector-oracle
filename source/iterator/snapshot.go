@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/conduitio-labs/conduit-connector-oracle/coltypes"
+	"github.com/conduitio-labs/conduit-connector-oracle/repository"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 	"github.com/huandu/go-sqlbuilder"
 	"github.com/jmoiron/sqlx"
@@ -28,7 +29,7 @@ import (
 
 // Snapshot represents an implementation of a Snapshot iterator for Oracle.
 type Snapshot struct {
-	db       *sqlx.DB
+	repo     *repository.Oracle
 	position *Position
 
 	// table represents a table name
@@ -50,7 +51,7 @@ type Snapshot struct {
 
 // SnapshotParams represents an incoming params for the NewSnapshot function.
 type SnapshotParams struct {
-	DB             *sqlx.DB
+	Repo           *repository.Oracle
 	Position       *Position
 	Table          string
 	KeyColumn      string
@@ -63,7 +64,7 @@ type SnapshotParams struct {
 // NewSnapshot creates a new instance of the Snapshot iterator.
 func NewSnapshot(ctx context.Context, params SnapshotParams) (*Snapshot, error) {
 	snapshot := &Snapshot{
-		db:             params.DB,
+		repo:           params.Repo,
 		position:       params.Position,
 		table:          params.Table,
 		keyColumn:      params.KeyColumn,
@@ -161,10 +162,6 @@ func (s *Snapshot) Stop() error {
 		}
 	}
 
-	if s.db != nil {
-		return s.db.Close()
-	}
-
 	return nil
 }
 
@@ -194,7 +191,7 @@ func (s *Snapshot) loadRows(ctx context.Context) error {
 		return fmt.Errorf("interpolate arguments to SQL: %w", err)
 	}
 
-	rows, err := s.db.QueryxContext(ctx, query)
+	rows, err := s.repo.DB.QueryxContext(ctx, query)
 	if err != nil {
 		return fmt.Errorf("execute select query: %s: %w", query, err)
 	}

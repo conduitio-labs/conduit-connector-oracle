@@ -35,20 +35,6 @@ func (m *MockWriter) EXPECT() *MockWriterMockRecorder {
 	return m.recorder
 }
 
-// Close mocks base method.
-func (m *MockWriter) Close(arg0 context.Context) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Close", arg0)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Close indicates an expected call of Close.
-func (mr *MockWriterMockRecorder) Close(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockWriter)(nil).Close), arg0)
-}
-
 // Write mocks base method.
 func (m *MockWriter) Write(arg0 context.Context, arg1 sdk.Record) error {
 	m.ctrl.T.Helper()

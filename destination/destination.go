@@ -16,29 +16,27 @@ package destination
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 
 	"github.com/conduitio-labs/conduit-connector-oracle/config"
 	"github.com/conduitio-labs/conduit-connector-oracle/destination/writer"
+	"github.com/conduitio-labs/conduit-connector-oracle/repository"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 
 	// Go driver for Oracle.
 	_ "github.com/godror/godror"
 )
 
-const driverName = "godror"
-
 // Writer defines a writer interface needed for the Destination.
 type Writer interface {
 	Write(context.Context, sdk.Record) error
-	Close(context.Context) error
 }
 
 // A Destination represents the destination connector.
 type Destination struct {
 	sdk.UnimplementedDestination
 
+	repo   *repository.Oracle
 	writer Writer
 	cfg    config.Destination
 }
@@ -61,19 +59,14 @@ func (d *Destination) Configure(_ context.Context, cfg map[string]string) error 
 }
 
 // Open initializes a publisher client.
-func (d *Destination) Open(_ context.Context) error {
-	db, err := sql.Open(driverName, d.cfg.URL)
+func (d *Destination) Open(_ context.Context) (err error) {
+	d.repo, err = repository.New(d.cfg.URL)
 	if err != nil {
-		return fmt.Errorf("open connection: %w", err)
-	}
-
-	err = db.Ping()
-	if err != nil {
-		return fmt.Errorf("ping db: %w", err)
+		return fmt.Errorf("new repository: %w", err)
 	}
 
 	d.writer = writer.New(writer.Params{
-		DB:        db,
+		Repo:      d.repo,
 		Table:     d.cfg.Table,
 		KeyColumn: d.cfg.KeyColumn,
 	})
@@ -88,9 +81,5 @@ func (d *Destination) Write(ctx context.Context, record sdk.Record) error {
 
 // Teardown gracefully closes connections.
 func (d *Destination) Teardown(ctx context.Context) error {
-	if d.writer != nil {
-		return d.writer.Close(ctx)
-	}
-
-	return nil
+	return d.repo.Close()
 }

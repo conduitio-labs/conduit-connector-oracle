@@ -19,14 +19,13 @@ import (
 	"fmt"
 
 	"github.com/conduitio-labs/conduit-connector-oracle/coltypes"
+	"github.com/conduitio-labs/conduit-connector-oracle/repository"
 	sdk "github.com/conduitio/conduit-connector-sdk"
-	"github.com/jmoiron/sqlx"
 )
-
-const driverName = "godror"
 
 // Iterator represents an implementation of an iterator for Oracle.
 type Iterator struct {
+	repo     *repository.Oracle
 	snapshot *Snapshot
 }
 
@@ -48,25 +47,20 @@ func New(ctx context.Context, params Params) (*Iterator, error) {
 		err      error
 	)
 
-	db, err := sqlx.Open(driverName, params.URL)
+	iterator.repo, err = repository.New(params.URL)
 	if err != nil {
-		return nil, fmt.Errorf("open connection: %w", err)
-	}
-
-	err = db.Ping()
-	if err != nil {
-		return nil, fmt.Errorf("ping db: %w", err)
+		return nil, fmt.Errorf("new repository: %w", err)
 	}
 
 	// get column types for converting.
-	columnTypes, err := coltypes.GetColumnTypes(ctx, db, params.Table)
+	columnTypes, err := coltypes.GetColumnTypes(ctx, iterator.repo, params.Table)
 	if err != nil {
 		return nil, fmt.Errorf("get table column types: %w", err)
 	}
 
 	if params.Position == nil || params.Position.Mode == ModeSnapshot {
 		iterator.snapshot, err = NewSnapshot(ctx, SnapshotParams{
-			DB:             db,
+			Repo:           iterator.repo,
 			Position:       params.Position,
 			Table:          params.Table,
 			KeyColumn:      params.KeyColumn,
@@ -95,7 +89,12 @@ func (i Iterator) Next(ctx context.Context) (sdk.Record, error) {
 
 // Stop stops iterators.
 func (i Iterator) Stop() error {
-	return i.snapshot.Stop()
+	err := i.snapshot.Stop()
+	if err != nil {
+		return fmt.Errorf("stop snapshot: %w", err)
+	}
+
+	return i.repo.Close()
 }
 
 // Ack check if record with position was recorded.

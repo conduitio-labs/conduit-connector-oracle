@@ -16,7 +16,6 @@ package destination
 
 import (
 	"context"
-	"errors"
 	"reflect"
 	"testing"
 
@@ -202,11 +201,8 @@ func TestDestination_Teardown(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		ctx := context.Background()
 
-		w := mock.NewMockWriter(ctrl)
-		w.EXPECT().Close(ctx).Return(nil)
-
 		d := Destination{
-			writer: w,
+			writer: mock.NewMockWriter(ctrl),
 		}
 
 		err := d.Teardown(ctx)
@@ -226,27 +222,5 @@ func TestDestination_Teardown(t *testing.T) {
 
 		err := d.Teardown(ctx)
 		is.NoErr(err)
-	})
-
-	t.Run("fail, unexpected error", func(t *testing.T) {
-		t.Parallel()
-
-		is := is.New(t)
-
-		ctrl := gomock.NewController(t)
-		ctx := context.Background()
-
-		errForTest := errors.New("some error")
-
-		w := mock.NewMockWriter(ctrl)
-		w.EXPECT().Close(ctx).Return(errForTest)
-
-		d := Destination{
-			writer: w,
-		}
-
-		err := d.Teardown(ctx)
-		is.Equal(err != nil, true)
-		is.Equal(err, errForTest)
 	})
 }
