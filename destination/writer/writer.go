@@ -275,7 +275,7 @@ func (w *Writer) extractColumnsAndValues(payload sdk.StructuredData) ([]string, 
 	)
 
 	for key, value := range payload {
-		columns[i] = strings.ToUpper(key)
+		columns[i] = key
 		values[i] = value
 
 		i++
