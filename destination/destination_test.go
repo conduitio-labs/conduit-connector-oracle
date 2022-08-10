@@ -39,7 +39,7 @@ func TestDestination_Configure(t *testing.T) {
 		err  error
 	}{
 		{
-			name: "valid config",
+			name: "success case",
 			in: map[string]string{
 				models.ConfigURL:   "test_user/test_pass_123@localhost:1521/db_name",
 				models.ConfigTable: "test_table",
@@ -52,37 +52,7 @@ func TestDestination_Configure(t *testing.T) {
 			},
 		},
 		{
-			name: "valid config with a key column",
-			in: map[string]string{
-				models.ConfigURL:       "test_user/test_pass_123@localhost:1521/db_name",
-				models.ConfigTable:     "test_table",
-				models.ConfigKeyColumn: "test_column",
-			},
-			want: config.Destination{
-				General: config.General{
-					URL:   "test_user/test_pass_123@localhost:1521/db_name",
-					Table: "TEST_TABLE",
-				},
-				KeyColumn: "TEST_COLUMN",
-			},
-		},
-		{
-			name: "key column is one symbol length",
-			in: map[string]string{
-				models.ConfigURL:       "test_user/test_pass_123@localhost:1521/db_name",
-				models.ConfigTable:     "test_table",
-				models.ConfigKeyColumn: "t",
-			},
-			want: config.Destination{
-				General: config.General{
-					URL:   "test_user/test_pass_123@localhost:1521/db_name",
-					Table: "TEST_TABLE",
-				},
-				KeyColumn: "T",
-			},
-		},
-		{
-			name: "key column is too long",
+			name: "failure case (key column is too long)",
 			in: map[string]string{
 				models.ConfigURL:   "test_user/test_pass_123@localhost:1521/db_name",
 				models.ConfigTable: "test_table",
@@ -159,7 +129,7 @@ func TestDestination_Write(t *testing.T) {
 		is.NoErr(err)
 	})
 
-	t.Run("fail, empty payload", func(t *testing.T) {
+	t.Run("failure, empty payload", func(t *testing.T) {
 		t.Parallel()
 
 		is := is.New(t)
