@@ -16,12 +16,12 @@ package writer
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
 
+	"github.com/conduitio-labs/conduit-connector-oracle/repository"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 	"github.com/huandu/go-sqlbuilder"
 )
@@ -41,14 +41,14 @@ const (
 
 // Writer implements a writer logic for Oracle destination.
 type Writer struct {
-	db        *sql.DB
+	repo      *repository.Oracle
 	table     string
 	keyColumn string
 }
 
 // Params is an incoming params for the New function.
 type Params struct {
-	DB        *sql.DB
+	Repo      *repository.Oracle
 	Table     string
 	KeyColumn string
 }
@@ -56,7 +56,7 @@ type Params struct {
 // New creates new instance of the Writer.
 func New(params Params) *Writer {
 	return &Writer{
-		db:        params.DB,
+		repo:      params.Repo,
 		table:     params.Table,
 		keyColumn: params.KeyColumn,
 	}
@@ -70,11 +70,6 @@ func (w *Writer) Write(ctx context.Context, record sdk.Record) error {
 	default:
 		return w.upsert(ctx, record)
 	}
-}
-
-// Close closes the underlying db connection.
-func (w *Writer) Close(ctx context.Context) error {
-	return w.db.Close()
 }
 
 // insert or update a record.
@@ -115,7 +110,7 @@ func (w *Writer) upsert(ctx context.Context, record sdk.Record) error {
 		return fmt.Errorf("build upsert query: %w", err)
 	}
 
-	_, err = w.db.ExecContext(ctx, query)
+	_, err = w.repo.DB.ExecContext(ctx, query)
 	if err != nil {
 		return fmt.Errorf("exec upsert: %w", err)
 	}
@@ -149,7 +144,7 @@ func (w *Writer) delete(ctx context.Context, record sdk.Record) error {
 		return fmt.Errorf("build delete query: %w", err)
 	}
 
-	_, err = w.db.ExecContext(ctx, query)
+	_, err = w.repo.DB.ExecContext(ctx, query)
 	if err != nil {
 		return fmt.Errorf("exec delete: %w", err)
 	}
@@ -257,9 +252,14 @@ func (w *Writer) structurizeData(data sdk.Data) (sdk.StructuredData, error) {
 		return nil, nil
 	}
 
-	structuredData := make(sdk.StructuredData)
-	if err := json.Unmarshal(data.Bytes(), &structuredData); err != nil {
+	unmarshalledData := make(sdk.StructuredData)
+	if err := json.Unmarshal(data.Bytes(), &unmarshalledData); err != nil {
 		return nil, fmt.Errorf("unmarshal data into structured data: %w", err)
+	}
+
+	structuredData := make(sdk.StructuredData, len(unmarshalledData))
+	for k, v := range unmarshalledData {
+		structuredData[strings.ToUpper(k)] = v
 	}
 
 	return structuredData, nil
@@ -275,7 +275,7 @@ func (w *Writer) extractColumnsAndValues(payload sdk.StructuredData) ([]string, 
 	)
 
 	for key, value := range payload {
-		columns[i] = key
+		columns[i] = strings.ToUpper(key)
 		values[i] = value
 
 		i++

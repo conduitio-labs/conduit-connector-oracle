@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/conduitio-labs/conduit-connector-oracle/models"
+	"github.com/conduitio-labs/conduit-connector-oracle/repository"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 	"github.com/matryer/is"
 
@@ -60,16 +61,17 @@ func TestDestination_WriteIntegration(t *testing.T) {
 		t.Skip(err)
 	}
 
-	db, err := prepareData(ctx, cfg)
+	repo, err := prepareData(ctx, cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	t.Cleanup(func() {
-		err = clearData(ctx, db, cfg)
+		err = clearData(ctx, repo, cfg)
 		is.NoErr(err)
 
-		db.Close()
+		err = repo.Close()
+		is.NoErr(err)
 	})
 
 	dest := new(Destination)
@@ -117,7 +119,7 @@ func TestDestination_WriteIntegration(t *testing.T) {
 		})
 		is.NoErr(err)
 
-		row := db.QueryRowContext(context.Background(),
+		row := repo.DB.QueryRowContext(context.Background(),
 			fmt.Sprintf(querySelectNameByID, cfg[models.ConfigTable], 42),
 		)
 
@@ -146,7 +148,7 @@ func TestDestination_WriteIntegration(t *testing.T) {
 		})
 		is.NoErr(err)
 
-		row := db.QueryRowContext(context.Background(),
+		row := repo.DB.QueryRowContext(context.Background(),
 			fmt.Sprintf(querySelectNameByID, cfg[models.ConfigTable], 7),
 		)
 
@@ -174,7 +176,7 @@ func TestDestination_WriteIntegration(t *testing.T) {
 		})
 		is.NoErr(err)
 
-		row := db.QueryRowContext(context.Background(),
+		row := repo.DB.QueryRowContext(context.Background(),
 			fmt.Sprintf(querySelectNameByID, cfg[models.ConfigTable], 42),
 		)
 
@@ -214,26 +216,22 @@ func prepareConfig() (map[string]string, error) {
 	}, nil
 }
 
-func prepareData(ctx context.Context, cfg map[string]string) (*sql.DB, error) {
-	db, err := sql.Open(driverName, cfg[models.ConfigURL])
+func prepareData(ctx context.Context, cfg map[string]string) (*repository.Oracle, error) {
+	repo, err := repository.New(cfg[models.ConfigURL])
 	if err != nil {
-		return nil, fmt.Errorf("open connection: %w", err)
+		return nil, fmt.Errorf("new repository: %w", err)
 	}
 
-	if err = db.PingContext(ctx); err != nil {
-		return nil, fmt.Errorf("ping db: %w", err)
-	}
-
-	_, err = db.ExecContext(ctx, fmt.Sprintf(queryCreateTable, cfg[models.ConfigTable]))
+	_, err = repo.DB.ExecContext(ctx, fmt.Sprintf(queryCreateTable, cfg[models.ConfigTable]))
 	if err != nil {
 		return nil, fmt.Errorf("execute create table query: %w", err)
 	}
 
-	return db, nil
+	return repo, nil
 }
 
-func clearData(ctx context.Context, db *sql.DB, cfg map[string]string) error {
-	_, err := db.ExecContext(ctx, fmt.Sprintf(queryDropTable, cfg[models.ConfigTable]))
+func clearData(ctx context.Context, repo *repository.Oracle, cfg map[string]string) error {
+	_, err := repo.DB.ExecContext(ctx, fmt.Sprintf(queryDropTable, cfg[models.ConfigTable]))
 	if err != nil {
 		return fmt.Errorf("execute drop table query: %w", err)
 	}

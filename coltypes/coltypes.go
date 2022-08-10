@@ -16,13 +16,12 @@ package coltypes
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
+
+	"github.com/conduitio-labs/conduit-connector-oracle/repository"
 )
 
-const (
-	numberType = "NUMBER"
-)
+const numberType = "NUMBER"
 
 // queryColumnData is a query that selects columns' data by the table name.
 var queryColumnData = `
@@ -40,11 +39,6 @@ type ColumnData struct {
 	Type      string
 	Precision *int
 	Scale     *int
-}
-
-// Querier is a database querier interface needed for the GetColumnTypes function.
-type Querier interface {
-	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
 }
 
 // TransformRow converts row map values to appropriate Go types, based on the columnTypes.
@@ -82,10 +76,10 @@ func TransformRow(row map[string]any, columnTypes map[string]ColumnData) (map[st
 }
 
 // GetColumnTypes returns a map containing all table's columns and their database data.
-func GetColumnTypes(ctx context.Context, querier Querier, tableName string) (map[string]ColumnData, error) {
+func GetColumnTypes(ctx context.Context, repo *repository.Oracle, tableName string) (map[string]ColumnData, error) {
 	var columnName string
 
-	rows, err := querier.QueryContext(ctx, fmt.Sprintf(queryColumnData, tableName))
+	rows, err := repo.DB.QueryxContext(ctx, fmt.Sprintf(queryColumnData, tableName))
 	if err != nil {
 		return nil, fmt.Errorf("query column types: %w", err)
 	}
