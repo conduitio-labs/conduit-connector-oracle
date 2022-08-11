@@ -60,7 +60,7 @@ func ParseSource(cfg map[string]string) (Source, error) {
 
 		// converts columns to uppercase
 		for i := range columnsSl {
-			columnsSl[i] = strings.ToUpper(columnsSl[i])
+			columnsSl[i] = strings.TrimSpace(strings.ToUpper(columnsSl[i]))
 		}
 
 		if er := validator.ValidateColumns(sourceConfig.OrderingColumn, sourceConfig.KeyColumn, columnsSl); er != nil {

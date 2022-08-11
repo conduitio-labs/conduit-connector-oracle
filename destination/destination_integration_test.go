@@ -211,8 +211,8 @@ func prepareConfig() (map[string]string, error) {
 
 	return map[string]string{
 		models.ConfigURL:       url,
-		models.ConfigKeyColumn: "id",
 		models.ConfigTable:     generateTableName(),
+		models.ConfigKeyColumn: "id",
 	}, nil
 }
 
