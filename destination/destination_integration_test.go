@@ -27,9 +27,6 @@ import (
 	"github.com/conduitio-labs/conduit-connector-oracle/repository"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 	"github.com/matryer/is"
-
-	// Go driver for Oracle.
-	_ "github.com/godror/godror"
 )
 
 const (
@@ -45,7 +42,7 @@ CREATE TABLE %s (
 	achievements VARCHAR2(100)
 )`
 	queryDropTable      = "DROP TABLE %s"
-	querySelectNameByID = "SELECT name FROM %s WHERE id = %d"
+	querySelectNameByID = "SELECT name FROM %s WHERE id = :id"
 )
 
 func TestDestination_WriteIntegration(t *testing.T) {
@@ -119,9 +116,7 @@ func TestDestination_WriteIntegration(t *testing.T) {
 		})
 		is.NoErr(err)
 
-		row := repo.DB.QueryRowContext(context.Background(),
-			fmt.Sprintf(querySelectNameByID, cfg[models.ConfigTable], 42),
-		)
+		row := repo.DB.QueryRowContext(ctx, fmt.Sprintf(querySelectNameByID, cfg[models.ConfigTable]), 42)
 
 		var name string
 		err = row.Scan(&name)
@@ -148,9 +143,7 @@ func TestDestination_WriteIntegration(t *testing.T) {
 		})
 		is.NoErr(err)
 
-		row := repo.DB.QueryRowContext(context.Background(),
-			fmt.Sprintf(querySelectNameByID, cfg[models.ConfigTable], 7),
-		)
+		row := repo.DB.QueryRowContext(ctx, fmt.Sprintf(querySelectNameByID, cfg[models.ConfigTable]), 7)
 
 		var name string
 		err = row.Scan(&name)
@@ -176,9 +169,7 @@ func TestDestination_WriteIntegration(t *testing.T) {
 		})
 		is.NoErr(err)
 
-		row := repo.DB.QueryRowContext(context.Background(),
-			fmt.Sprintf(querySelectNameByID, cfg[models.ConfigTable], 42),
-		)
+		row := repo.DB.QueryRowContext(ctx, fmt.Sprintf(querySelectNameByID, cfg[models.ConfigTable]), 42)
 
 		err = row.Scan()
 		is.Equal(err, sql.ErrNoRows)
@@ -211,8 +202,8 @@ func prepareConfig() (map[string]string, error) {
 
 	return map[string]string{
 		models.ConfigURL:       url,
-		models.ConfigKeyColumn: "id",
 		models.ConfigTable:     generateTableName(),
+		models.ConfigKeyColumn: "id",
 	}, nil
 }
 

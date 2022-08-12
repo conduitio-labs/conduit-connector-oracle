@@ -18,6 +18,9 @@ import (
 	"fmt"
 
 	"github.com/jmoiron/sqlx"
+
+	// Go driver for Oracle.
+	_ "github.com/godror/godror"
 )
 
 const driverName = "godror"
