@@ -22,9 +22,6 @@ import (
 	"github.com/conduitio-labs/conduit-connector-oracle/destination/writer"
 	"github.com/conduitio-labs/conduit-connector-oracle/repository"
 	sdk "github.com/conduitio/conduit-connector-sdk"
-
-	// Go driver for Oracle.
-	_ "github.com/godror/godror"
 )
 
 // Writer defines a writer interface needed for the Destination.
