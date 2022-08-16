@@ -16,10 +16,8 @@ package destination
 
 import (
 	"context"
-	"reflect"
 	"testing"
 
-	"github.com/conduitio-labs/conduit-connector-oracle/config"
 	"github.com/conduitio-labs/conduit-connector-oracle/config/validator"
 	"github.com/conduitio-labs/conduit-connector-oracle/destination/mock"
 	"github.com/conduitio-labs/conduit-connector-oracle/destination/writer"
@@ -35,7 +33,6 @@ func TestDestination_Configure(t *testing.T) {
 	tests := []struct {
 		name string
 		in   map[string]string
-		want config.Destination
 		err  error
 	}{
 		{
@@ -43,12 +40,6 @@ func TestDestination_Configure(t *testing.T) {
 			in: map[string]string{
 				models.ConfigURL:   "test_user/test_pass_123@localhost:1521/db_name",
 				models.ConfigTable: "test_table",
-			},
-			want: config.Destination{
-				General: config.General{
-					URL:   "test_user/test_pass_123@localhost:1521/db_name",
-					Table: "TEST_TABLE",
-				},
 			},
 		},
 		{
@@ -69,7 +60,9 @@ func TestDestination_Configure(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := config.ParseDestination(tt.in)
+			d := new(Destination)
+
+			err := d.Configure(context.Background(), tt.in)
 			if err != nil {
 				if tt.err == nil {
 					t.Errorf("unexpected error: %s", err.Error())
@@ -84,10 +77,6 @@ func TestDestination_Configure(t *testing.T) {
 				}
 
 				return
-			}
-
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("got: %v, want: %v", got, tt.want)
 			}
 		})
 	}
