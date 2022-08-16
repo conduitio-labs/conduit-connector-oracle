@@ -17,11 +17,9 @@ package source
 import (
 	"context"
 	"errors"
-	"reflect"
 	"testing"
 	"time"
 
-	"github.com/conduitio-labs/conduit-connector-oracle/config"
 	"github.com/conduitio-labs/conduit-connector-oracle/config/validator"
 	"github.com/conduitio-labs/conduit-connector-oracle/models"
 	"github.com/conduitio-labs/conduit-connector-oracle/source/mock"
@@ -30,13 +28,16 @@ import (
 	"github.com/matryer/is"
 )
 
+func TestSource_Open(t *testing.T) {
+
+}
+
 func TestSource_Configure(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		name string
 		in   map[string]string
-		want config.Source
 		err  error
 	}{
 		{
@@ -46,15 +47,6 @@ func TestSource_Configure(t *testing.T) {
 				models.ConfigTable:          "test_table",
 				models.ConfigKeyColumn:      "id",
 				models.ConfigOrderingColumn: "created_at",
-			},
-			want: config.Source{
-				General: config.General{
-					URL:   "test_user/test_pass_123@localhost:1521/db_name",
-					Table: "TEST_TABLE",
-				},
-				KeyColumn:      "ID",
-				OrderingColumn: "CREATED_AT",
-				BatchSize:      1000,
 			},
 		},
 		{
@@ -74,7 +66,9 @@ func TestSource_Configure(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := config.ParseSource(tt.in)
+			s := new(Source)
+
+			err := s.Configure(context.Background(), tt.in)
 			if err != nil {
 				if tt.err == nil {
 					t.Errorf("unexpected error: %s", err.Error())
@@ -89,10 +83,6 @@ func TestSource_Configure(t *testing.T) {
 				}
 
 				return
-			}
-
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("got: %v, want: %v", got, tt.want)
 			}
 		})
 	}
