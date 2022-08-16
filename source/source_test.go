@@ -28,10 +28,6 @@ import (
 	"github.com/matryer/is"
 )
 
-func TestSource_Open(t *testing.T) {
-
-}
-
 func TestSource_Configure(t *testing.T) {
 	t.Parallel()
 
