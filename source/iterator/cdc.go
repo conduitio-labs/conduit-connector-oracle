@@ -27,13 +27,15 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-// Snapshot represents an implementation of a Snapshot iterator for Oracle.
-type Snapshot struct {
+// CDC represents an implementation of a CDC iterator for Oracle.
+type CDC struct {
 	repo     *repository.Oracle
 	position *Position
 
 	// table represents a table name
 	table string
+	// trackingTable represents a tracking table name
+	trackingTable string
 	// keyColumn represents a name of column what iterator use for setting key in record
 	keyColumn string
 	// orderingColumn represents a name of column what iterator use for sorting data
@@ -49,32 +51,40 @@ type Snapshot struct {
 	columnTypes map[string]coltypes.ColumnData
 }
 
-// SnapshotParams represents an incoming params for the NewSnapshot function.
-type SnapshotParams struct {
+// CDCParams represents an incoming params for the NewCDC function.
+type CDCParams struct {
 	Repo           *repository.Oracle
 	Position       *Position
 	Table          string
+	TrackingTable  string
 	KeyColumn      string
 	OrderingColumn string
 	Columns        []string
 	BatchSize      int
-	ColumnTypes    map[string]coltypes.ColumnData
 }
 
-// NewSnapshot creates a new instance of the Snapshot iterator.
-func NewSnapshot(ctx context.Context, params SnapshotParams) (*Snapshot, error) {
-	iterator := &Snapshot{
+// NewCDC creates a new instance of the CDC iterator.
+func NewCDC(ctx context.Context, params CDCParams) (*CDC, error) {
+	var err error
+
+	iterator := &CDC{
 		repo:           params.Repo,
 		position:       params.Position,
 		table:          params.Table,
+		trackingTable:  params.TrackingTable,
 		keyColumn:      params.KeyColumn,
 		orderingColumn: params.OrderingColumn,
 		columns:        params.Columns,
 		batchSize:      params.BatchSize,
-		columnTypes:    params.ColumnTypes,
 	}
 
-	err := iterator.loadRows(ctx)
+	// get column types of tracking table for converting
+	iterator.columnTypes, err = coltypes.GetColumnTypes(ctx, iterator.repo, iterator.trackingTable)
+	if err != nil {
+		return nil, fmt.Errorf("get tracking table column types: %w", err)
+	}
+
+	err = iterator.loadRows(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("load rows: %w", err)
 	}
@@ -83,7 +93,7 @@ func NewSnapshot(ctx context.Context, params SnapshotParams) (*Snapshot, error) 
 }
 
 // HasNext returns a bool indicating whether the iterator has the next record to return or not.
-func (i *Snapshot) HasNext(ctx context.Context) (bool, error) {
+func (i *CDC) HasNext(ctx context.Context) (bool, error) {
 	if i.rows != nil && i.rows.Next() {
 		return true, nil
 	}
@@ -96,7 +106,7 @@ func (i *Snapshot) HasNext(ctx context.Context) (bool, error) {
 }
 
 // Next returns the next record.
-func (i *Snapshot) Next(ctx context.Context) (sdk.Record, error) {
+func (i *CDC) Next(ctx context.Context) (sdk.Record, error) {
 	row := make(map[string]any)
 	if err := i.rows.MapScan(row); err != nil {
 		return sdk.Record{}, fmt.Errorf("scan rows: %w", err)
@@ -107,13 +117,14 @@ func (i *Snapshot) Next(ctx context.Context) (sdk.Record, error) {
 		return sdk.Record{}, fmt.Errorf("transform row column types: %w", err)
 	}
 
-	if _, ok := transformedRow[i.orderingColumn]; !ok {
-		return sdk.Record{}, errOrderingColumnIsNotExist
+	operationType, ok := transformedRow[columnOperationType].(string)
+	if !ok {
+		return sdk.Record{}, errWrongTrackingOperationType
 	}
 
 	i.position = &Position{
-		Mode:             ModeSnapshot,
-		LastProcessedVal: transformedRow[i.orderingColumn],
+		Mode:             ModeCDC,
+		LastProcessedVal: transformedRow[columnTrackingID],
 	}
 
 	convertedPosition, err := i.position.marshalPosition()
@@ -121,9 +132,14 @@ func (i *Snapshot) Next(ctx context.Context) (sdk.Record, error) {
 		return sdk.Record{}, fmt.Errorf("convert position %w", err)
 	}
 
-	if _, ok := transformedRow[i.keyColumn]; !ok {
+	if _, ok = transformedRow[i.keyColumn]; !ok {
 		return sdk.Record{}, errKeyIsNotExist
 	}
+
+	// delete tracking columns
+	delete(transformedRow, columnOperationType)
+	delete(transformedRow, columnTrackingID)
+	delete(transformedRow, columnTimeCreatedAt)
 
 	transformedRowBytes, err := json.Marshal(transformedRow)
 	if err != nil {
@@ -134,7 +150,7 @@ func (i *Snapshot) Next(ctx context.Context) (sdk.Record, error) {
 		Position: convertedPosition,
 		Metadata: map[string]string{
 			metadataTable:  i.table,
-			metadataAction: actionInsert,
+			metadataAction: operationType,
 		},
 		CreatedAt: time.Now(),
 		Key: sdk.StructuredData{
@@ -144,8 +160,8 @@ func (i *Snapshot) Next(ctx context.Context) (sdk.Record, error) {
 	}, nil
 }
 
-// Stop stops snapshot iterator.
-func (i *Snapshot) Stop() error {
+// Stop stops iterators.
+func (i *CDC) Stop() error {
 	if i.rows != nil {
 		err := i.rows.Close()
 		if err != nil {
@@ -156,22 +172,28 @@ func (i *Snapshot) Stop() error {
 	return nil
 }
 
-// LoadRows selects a batch of rows from a database, based on the
+// Ack check if record with position was recorded.
+func (i *CDC) Ack(ctx context.Context, position sdk.Position) error {
+	return nil
+}
+
+// loadRows selects a batch of rows from a database, based on the
 // table, columns, orderingColumn, batchSize and the current position.
-func (i *Snapshot) loadRows(ctx context.Context) error {
+func (i *CDC) loadRows(ctx context.Context) error {
 	selectBuilder := sqlbuilder.NewSelectBuilder().
-		From(i.table).
-		OrderBy(i.orderingColumn)
+		From(i.trackingTable).
+		OrderBy(columnTrackingID)
 
 	if len(i.columns) > 0 {
-		selectBuilder.Select(i.columns...)
+		selectBuilder.Select(append(i.columns,
+			[]string{columnTrackingID, columnOperationType, columnTimeCreatedAt}...)...)
 	} else {
 		selectBuilder.Select("*")
 	}
 
 	if i.position != nil {
 		selectBuilder.Where(
-			selectBuilder.GreaterThan(i.orderingColumn, i.position.LastProcessedVal),
+			selectBuilder.GreaterThan(columnTrackingID, i.position.LastProcessedVal),
 		)
 	}
 
@@ -182,12 +204,10 @@ func (i *Snapshot) loadRows(ctx context.Context) error {
 		return fmt.Errorf("interpolate arguments to SQL: %w", err)
 	}
 
-	rows, err := i.repo.DB.QueryxContext(ctx, query)
+	i.rows, err = i.repo.DB.QueryxContext(ctx, query)
 	if err != nil {
 		return fmt.Errorf("execute select query: %s: %w", query, err)
 	}
-
-	i.rows = rows
 
 	return nil
 }

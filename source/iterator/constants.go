@@ -14,13 +14,16 @@
 
 package iterator
 
-type actionType string
-
 const (
 	// metadata related.
 	metadataTable  = "table"
 	metadataAction = "action"
 
-	// actionType names.
-	actionInsert actionType = "insert"
+	// actions.
+	actionInsert = "insert"
+
+	// tracking table columns.
+	columnTrackingID    = "CONDUIT_TRACKING_ID"
+	columnOperationType = "CONDUIT_OPERATION_TYPE"
+	columnTimeCreatedAt = "CONDUIT_TRACKING_CREATED_AT"
 )

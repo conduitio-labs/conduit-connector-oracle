@@ -28,6 +28,34 @@ import (
 	"github.com/matryer/is"
 )
 
+func TestSource_Open(t *testing.T) {
+	ctx := context.Background()
+
+	s := new(Source)
+
+	err := s.Configure(ctx, map[string]string{
+		models.ConfigURL:            "voscob/vosc2139@localhost:1521/OraDoc.my.domain.com",
+		models.ConfigTable:          "animals",
+		models.ConfigKeyColumn:      "id",
+		models.ConfigOrderingColumn: "id",
+	})
+	if err != nil {
+		t.Logf("configure: %s", err)
+	}
+
+	err = s.Open(ctx, nil)
+	if err != nil {
+		t.Logf("open: %s", err)
+	}
+
+	for i := 0; i < 25; i++ {
+		_, err = s.Read(ctx)
+		if err != nil {
+			t.Logf("open: %s", err)
+		}
+	}
+}
+
 func TestSource_Configure(t *testing.T) {
 	t.Parallel()
 
