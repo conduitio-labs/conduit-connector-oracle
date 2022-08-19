@@ -144,13 +144,10 @@ func (i *Snapshot) Next(ctx context.Context) (sdk.Record, error) {
 	}, nil
 }
 
-// Stop stops snapshot iterator.
-func (i *Snapshot) Stop() error {
+// Close closes database rows of Snapshot iterator.
+func (i *Snapshot) Close() error {
 	if i.rows != nil {
-		err := i.rows.Close()
-		if err != nil {
-			return err
-		}
+		return i.rows.Close()
 	}
 
 	return nil

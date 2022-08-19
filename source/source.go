@@ -28,8 +28,8 @@ import (
 type Iterator interface {
 	HasNext(context.Context) (bool, error)
 	Next(context.Context) (sdk.Record, error)
-	Stop() error
-	Ack(context.Context, sdk.Position) error
+	PushValueToDelete(sdk.Position) error
+	Close() error
 }
 
 // Source connector.
@@ -58,8 +58,8 @@ func (s *Source) Configure(_ context.Context, cfgRaw map[string]string) error {
 }
 
 // Open prepare the plugin to start sending records from the given position.
-func (s *Source) Open(ctx context.Context, rp sdk.Position) error {
-	pos, err := iterator.ParseSDKPosition(rp)
+func (s *Source) Open(ctx context.Context, position sdk.Position) error {
+	pos, err := iterator.ParseSDKPosition(position)
 	if err != nil {
 		return fmt.Errorf("parse position: %w", err)
 	}
@@ -99,19 +99,21 @@ func (s *Source) Read(ctx context.Context) (sdk.Record, error) {
 	return r, nil
 }
 
+// Ack appends the last processed value to the slice to clear the tracking table in the future.
+func (s *Source) Ack(ctx context.Context, position sdk.Position) error {
+	sdk.Logger(ctx).Debug().Str("position", string(position)).Msg("got ack")
+
+	return s.iterator.PushValueToDelete(position)
+}
+
 // Teardown gracefully shutdown connector.
-func (s *Source) Teardown(ctx context.Context) error {
+func (s *Source) Teardown(_ context.Context) error {
 	if s.iterator != nil {
-		err := s.iterator.Stop()
+		err := s.iterator.Close()
 		if err != nil {
-			return fmt.Errorf("stop iterator: %w", err)
+			return fmt.Errorf("stops iterators and closes database connection: %w", err)
 		}
 	}
 
 	return nil
-}
-
-// Ack check if record with position was recorded.
-func (s *Source) Ack(ctx context.Context, p sdk.Position) error {
-	return s.iterator.Ack(ctx, p)
 }

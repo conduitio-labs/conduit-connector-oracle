@@ -28,34 +28,6 @@ import (
 	"github.com/matryer/is"
 )
 
-func TestSource_Open(t *testing.T) {
-	ctx := context.Background()
-
-	s := new(Source)
-
-	err := s.Configure(ctx, map[string]string{
-		models.ConfigURL:            "voscob/vosc2139@localhost:1521/OraDoc.my.domain.com",
-		models.ConfigTable:          "animals",
-		models.ConfigKeyColumn:      "id",
-		models.ConfigOrderingColumn: "id",
-	})
-	if err != nil {
-		t.Logf("configure: %s", err)
-	}
-
-	err = s.Open(ctx, nil)
-	if err != nil {
-		t.Logf("open: %s", err)
-	}
-
-	for i := 0; i < 25; i++ {
-		_, err = s.Read(ctx)
-		if err != nil {
-			t.Logf("open: %s", err)
-		}
-	}
-}
-
 func TestSource_Configure(t *testing.T) {
 	t.Parallel()
 
@@ -198,7 +170,7 @@ func TestSource_Teardown(t *testing.T) {
 		ctx := context.Background()
 
 		it := mock.NewMockIterator(ctrl)
-		it.EXPECT().Stop().Return(nil)
+		it.EXPECT().Close().Return(nil)
 
 		s := Source{
 			iterator: it,
@@ -217,7 +189,7 @@ func TestSource_Teardown(t *testing.T) {
 		ctx := context.Background()
 
 		it := mock.NewMockIterator(ctrl)
-		it.EXPECT().Stop().Return(errors.New("some error"))
+		it.EXPECT().Close().Return(errors.New("some error"))
 
 		s := Source{
 			iterator: it,

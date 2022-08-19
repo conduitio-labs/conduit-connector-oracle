@@ -171,31 +171,31 @@ func (i *Iterator) Next(ctx context.Context) (sdk.Record, error) {
 	}
 }
 
-// Stop stops iterators.
-func (i *Iterator) Stop() (err error) {
-	if i.snapshot != nil {
-		err = i.snapshot.Stop()
-	}
-
-	if i.cdc != nil {
-		err = i.cdc.Stop()
-	}
-
-	return multierr.Append(err, i.repo.Close())
-}
-
-// Ack collects ids for removal from the tracking table.
-func (i *Iterator) Ack(ctx context.Context, position sdk.Position) error {
+// PushValueToDelete appends the last processed value to the slice to clear the tracking table in the future.
+func (i *Iterator) PushValueToDelete(position sdk.Position) error {
 	pos, err := ParseSDKPosition(position)
 	if err != nil {
 		return fmt.Errorf("parse position: %w", err)
 	}
 
 	if pos.Mode == ModeCDC {
-		return i.cdc.Ack(ctx, position)
+		return i.cdc.pushValueToDelete(pos.LastProcessedVal)
 	}
 
 	return nil
+}
+
+// Close stops iterators and closes database connection.
+func (i *Iterator) Close() (err error) {
+	if i.snapshot != nil {
+		err = i.snapshot.Close()
+	}
+
+	if i.cdc != nil {
+		err = i.cdc.Close()
+	}
+
+	return multierr.Append(err, i.repo.Close())
 }
 
 // initTrackingTable formats tracking table name and returns if it's not the first start.
@@ -277,7 +277,7 @@ func formatName(name string) string {
 
 // switchToCDCIterator stops Snapshot and initializes CDC iterator.
 func (i *Iterator) switchToCDCIterator(ctx context.Context) error {
-	err := i.snapshot.Stop()
+	err := i.snapshot.Close()
 	if err != nil {
 		return fmt.Errorf("stop snaphot iterator: %w", err)
 	}

@@ -26,4 +26,9 @@ const (
 	columnTrackingID    = "CONDUIT_TRACKING_ID"
 	columnOperationType = "CONDUIT_OPERATION_TYPE"
 	columnTimeCreatedAt = "CONDUIT_TRACKING_CREATED_AT"
+
+	pseudoRecordNew = ":NEW."
+
+	timeoutBeforeCloseDBSec        = 20
+	timeoutToClearTrackingTableSec = 5
 )

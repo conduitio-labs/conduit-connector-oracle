@@ -84,7 +84,7 @@ func buildCreateTriggerQuery(params buildCreateTriggerParams) string {
 
 	newValues := make([]string, len(columnNames))
 	for i := range columnNames {
-		newValues[i] = fmt.Sprintf(":NEW.%s", columnNames[i])
+		newValues[i] = fmt.Sprintf("%s%s", pseudoRecordNew, columnNames[i])
 	}
 
 	return fmt.Sprintf(queryCreateTrigger, params.name, params.table, params.trackingTable,

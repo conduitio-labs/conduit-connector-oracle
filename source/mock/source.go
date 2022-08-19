@@ -35,18 +35,18 @@ func (m *MockIterator) EXPECT() *MockIteratorMockRecorder {
 	return m.recorder
 }
 
-// Ack mocks base method.
-func (m *MockIterator) Ack(arg0 context.Context, arg1 sdk.Position) error {
+// Close mocks base method.
+func (m *MockIterator) Close() error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Ack", arg0, arg1)
+	ret := m.ctrl.Call(m, "Close")
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// Ack indicates an expected call of Ack.
-func (mr *MockIteratorMockRecorder) Ack(arg0, arg1 interface{}) *gomock.Call {
+// Close indicates an expected call of Close.
+func (mr *MockIteratorMockRecorder) Close() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Ack", reflect.TypeOf((*MockIterator)(nil).Ack), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockIterator)(nil).Close))
 }
 
 // HasNext mocks base method.
@@ -79,16 +79,16 @@ func (mr *MockIteratorMockRecorder) Next(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Next", reflect.TypeOf((*MockIterator)(nil).Next), arg0)
 }
 
-// Stop mocks base method.
-func (m *MockIterator) Stop() error {
+// PushValueToDelete mocks base method.
+func (m *MockIterator) PushValueToDelete(arg0 sdk.Position) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Stop")
+	ret := m.ctrl.Call(m, "PushValueToDelete", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// Stop indicates an expected call of Stop.
-func (mr *MockIteratorMockRecorder) Stop() *gomock.Call {
+// PushValueToDelete indicates an expected call of PushValueToDelete.
+func (mr *MockIteratorMockRecorder) PushValueToDelete(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Stop", reflect.TypeOf((*MockIterator)(nil).Stop))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PushValueToDelete", reflect.TypeOf((*MockIterator)(nil).PushValueToDelete), arg0)
 }
