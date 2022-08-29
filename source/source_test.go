@@ -61,7 +61,7 @@ func TestSource_Configure(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			s := new(Source)
+			s := NewSource()
 
 			err := s.Configure(context.Background(), tt.in)
 			if err != nil {

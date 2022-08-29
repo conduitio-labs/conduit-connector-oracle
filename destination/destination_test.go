@@ -61,7 +61,7 @@ func TestDestination_Configure(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			d := new(Destination)
+			d := NewDestination()
 
 			err := d.Configure(context.Background(), tt.in)
 			if err != nil {
