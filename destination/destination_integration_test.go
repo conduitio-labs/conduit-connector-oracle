@@ -71,7 +71,7 @@ func TestDestination_WriteIntegration(t *testing.T) {
 		is.NoErr(err)
 	})
 
-	dest := new(Destination)
+	dest := NewDestination()
 
 	err = dest.Configure(ctx, cfg)
 	if err != nil {
@@ -82,20 +82,41 @@ func TestDestination_WriteIntegration(t *testing.T) {
 		err = dest.Open(ctx)
 		is.NoErr(err)
 
-		err = dest.Write(ctx, sdk.Record{
-			Payload: sdk.StructuredData{
-				"id":        42,
-				"name":      "John",
-				"is_active": true,
-				"attributes": map[string]any{
-					"attr_0": "string",
-					"attr_1": 1,
-					"attr_2": false,
-				},
-				"achievements": []string{"achievement_0", "achievement_1"},
+		n := 0
+		records := []sdk.Record{
+			{
+				Operation: sdk.OperationCreate,
+				Payload: sdk.Change{After: sdk.StructuredData{
+					"id":        42,
+					"name":      "John",
+					"is_active": true,
+					"attributes": map[string]any{
+						"attr_0": "string",
+						"attr_1": 1,
+						"attr_2": false,
+					},
+					"achievements": []string{"achievement_0", "achievement_1"},
+				}},
 			},
-		})
+			{
+				Operation: sdk.OperationCreate,
+				Payload: sdk.Change{After: sdk.StructuredData{
+					"id":        43,
+					"name":      "Nick",
+					"is_active": false,
+					"attributes": map[string]any{
+						"attr_0": "string",
+						"attr_1": 1,
+						"attr_2": false,
+					},
+					"achievements": []string{"achievement_0", "achievement_1"},
+				}},
+			},
+		}
+
+		n, err = dest.Write(ctx, records)
 		is.NoErr(err)
+		is.Equal(n, len(records))
 
 		err = dest.Teardown(ctx)
 		is.NoErr(err)
@@ -105,16 +126,18 @@ func TestDestination_WriteIntegration(t *testing.T) {
 		err = dest.Open(ctx)
 		is.NoErr(err)
 
-		err = dest.Write(ctx, sdk.Record{
-			Metadata: map[string]string{
-				"action": "update",
-			},
-			Payload: sdk.StructuredData{
-				"id":   42,
-				"name": "Jane",
+		n := 0
+		n, err = dest.Write(ctx, []sdk.Record{
+			{
+				Operation: sdk.OperationUpdate,
+				Payload: sdk.Change{After: sdk.StructuredData{
+					"id":   42,
+					"name": "Jane",
+				}},
 			},
 		})
 		is.NoErr(err)
+		is.Equal(n, 1)
 
 		row := repo.DB.QueryRowContext(ctx, fmt.Sprintf(querySelectNameByID, cfg[models.ConfigTable]), 42)
 
@@ -132,16 +155,18 @@ func TestDestination_WriteIntegration(t *testing.T) {
 		err = dest.Open(ctx)
 		is.NoErr(err)
 
-		err = dest.Write(ctx, sdk.Record{
-			Metadata: map[string]string{
-				"action": "update",
-			},
-			Payload: sdk.StructuredData{
-				"id":   7,
-				"name": "Sofia",
+		n := 0
+		n, err = dest.Write(ctx, []sdk.Record{
+			{
+				Operation: sdk.OperationUpdate,
+				Payload: sdk.Change{After: sdk.StructuredData{
+					"id":   7,
+					"name": "Sofia",
+				}},
 			},
 		})
 		is.NoErr(err)
+		is.Equal(n, 1)
 
 		row := repo.DB.QueryRowContext(ctx, fmt.Sprintf(querySelectNameByID, cfg[models.ConfigTable]), 7)
 
@@ -159,15 +184,17 @@ func TestDestination_WriteIntegration(t *testing.T) {
 		err = dest.Open(ctx)
 		is.NoErr(err)
 
-		err = dest.Write(ctx, sdk.Record{
-			Metadata: map[string]string{
-				"action": "delete",
-			},
-			Key: sdk.StructuredData{
-				"id": 42,
+		n := 0
+		n, err = dest.Write(ctx, []sdk.Record{
+			{
+				Operation: sdk.OperationDelete,
+				Key: sdk.StructuredData{
+					"id": 42,
+				},
 			},
 		})
 		is.NoErr(err)
+		is.Equal(n, 1)
 
 		row := repo.DB.QueryRowContext(ctx, fmt.Sprintf(querySelectNameByID, cfg[models.ConfigTable]), 42)
 
@@ -182,12 +209,16 @@ func TestDestination_WriteIntegration(t *testing.T) {
 		err = dest.Open(ctx)
 		is.NoErr(err)
 
-		err = dest.Write(ctx, sdk.Record{
-			Payload: sdk.StructuredData{
-				"age": 42,
+		n := 0
+		n, err = dest.Write(ctx, []sdk.Record{
+			{
+				Payload: sdk.Change{After: sdk.StructuredData{
+					"age": 42,
+				}},
 			},
 		})
 		is.Equal(err != nil, true)
+		is.Equal(n, 0)
 
 		err = dest.Teardown(ctx)
 		is.NoErr(err)

@@ -76,7 +76,7 @@ func (w *Writer) Write(ctx context.Context, record sdk.Record) error {
 func (w *Writer) upsert(ctx context.Context, record sdk.Record) error {
 	tableName := w.getTableName(record.Metadata)
 
-	payload, err := w.structurizeData(record.Payload)
+	payload, err := w.structurizeData(record.Payload.After)
 	if err != nil {
 		return fmt.Errorf("structurize payload: %w", err)
 	}

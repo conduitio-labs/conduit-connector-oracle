@@ -16,18 +16,20 @@ package iterator
 
 const (
 	// metadata related.
-	metadataTable  = "table"
-	metadataAction = "action"
+	metadataTable = "table"
 
 	// actions.
 	actionInsert = "insert"
+	actionUpdate = "update"
+	actionDelete = "delete"
 
 	// tracking table columns.
 	columnTrackingID    = "CONDUIT_TRACKING_ID"
 	columnOperationType = "CONDUIT_OPERATION_TYPE"
 	columnTimeCreatedAt = "CONDUIT_TRACKING_CREATED_AT"
 
-	pseudoRecordNew = ":NEW."
+	referencingNew = ":NEW."
+	referencingOld = ":OLD."
 
 	timeoutBeforeCloseDBSec        = 20
 	timeoutToClearTrackingTableSec = 5

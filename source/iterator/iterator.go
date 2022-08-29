@@ -210,7 +210,7 @@ func (i *Iterator) initTrackingTable(ctx context.Context) error {
 	defer tx.Rollback() // nolint:errcheck,nolintlint
 
 	// check if the table exists
-	rows, err := tx.QueryContext(ctx, fmt.Sprintf(queryExistTable, i.trackingTable))
+	rows, err := tx.QueryContext(ctx, fmt.Sprintf(queryTableIsExists, i.trackingTable))
 	if err != nil {
 		return fmt.Errorf("request with check if the table exists: %w", err)
 	}
@@ -230,7 +230,7 @@ func (i *Iterator) initTrackingTable(ctx context.Context) error {
 	}
 
 	// create a copy of table
-	_, err = tx.ExecContext(ctx, fmt.Sprintf(queryCopyTable, i.trackingTable, i.table, i.table))
+	_, err = tx.ExecContext(ctx, fmt.Sprintf(queryTableCopy, i.trackingTable, i.table, i.table))
 	if err != nil {
 		return fmt.Errorf("create copy of table: %w", err)
 	}

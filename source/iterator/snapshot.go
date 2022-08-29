@@ -96,7 +96,7 @@ func (i *Snapshot) HasNext(ctx context.Context) (bool, error) {
 }
 
 // Next returns the next record.
-func (i *Snapshot) Next(ctx context.Context) (sdk.Record, error) {
+func (i *Snapshot) Next(_ context.Context) (sdk.Record, error) {
 	row := make(map[string]any)
 	if err := i.rows.MapScan(row); err != nil {
 		return sdk.Record{}, fmt.Errorf("scan rows: %w", err)
@@ -130,18 +130,21 @@ func (i *Snapshot) Next(ctx context.Context) (sdk.Record, error) {
 		return sdk.Record{}, fmt.Errorf("marshal row: %w", err)
 	}
 
-	return sdk.Record{
-		Position: convertedPosition,
-		Metadata: map[string]string{
-			metadataTable:  i.table,
-			metadataAction: actionInsert,
-		},
-		CreatedAt: time.Now(),
-		Key: sdk.StructuredData{
+	metadata := sdk.Metadata{
+		metadataTable: i.table,
+	}
+	metadata.SetCreatedAt(time.Now())
+
+	r := sdk.Util.Source.NewRecordSnapshot(
+		convertedPosition,
+		metadata,
+		sdk.StructuredData{
 			i.keyColumn: transformedRow[i.keyColumn],
 		},
-		Payload: sdk.RawData(transformedRowBytes),
-	}, nil
+		sdk.RawData(transformedRowBytes),
+	)
+
+	return r, nil
 }
 
 // Close closes database rows of Snapshot iterator.

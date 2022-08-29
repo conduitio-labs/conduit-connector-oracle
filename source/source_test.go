@@ -18,7 +18,6 @@ import (
 	"context"
 	"errors"
 	"testing"
-	"time"
 
 	"github.com/conduitio-labs/conduit-connector-oracle/config/validator"
 	"github.com/conduitio-labs/conduit-connector-oracle/models"
@@ -99,11 +98,10 @@ func TestSource_Read(t *testing.T) {
 		st["key"] = "value"
 
 		record := sdk.Record{
-			Position:  sdk.Position(`{"last_processed_element_value": 1}`),
-			Metadata:  nil,
-			CreatedAt: time.Time{},
-			Key:       st,
-			Payload:   st,
+			Position: sdk.Position(`{"last_processed_element_value": 1}`),
+			Metadata: nil,
+			Key:      st,
+			Payload:  sdk.Change{After: st},
 		}
 
 		it := mock.NewMockIterator(ctrl)

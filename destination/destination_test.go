@@ -17,6 +17,7 @@ package destination
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/conduitio-labs/conduit-connector-oracle/config/validator"
 	"github.com/conduitio-labs/conduit-connector-oracle/destination/mock"
@@ -93,29 +94,49 @@ func TestDestination_Write(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		ctx := context.Background()
 
-		record := sdk.Record{
+		metadata := sdk.Metadata{}
+		metadata.SetCreatedAt(time.Now())
+
+		records := make([]sdk.Record, 2)
+		records[0] = sdk.Record{
 			Position: sdk.Position("1.0"),
-			Metadata: map[string]string{
-				"action": "insert",
-			},
+			Metadata: metadata,
 			Key: sdk.StructuredData{
 				"id": 1,
 			},
-			Payload: sdk.StructuredData{
-				"id":   1,
-				"name": "Void",
+			Payload: sdk.Change{
+				After: sdk.StructuredData{
+					"id":   1,
+					"name": "John",
+				},
+			},
+		}
+		records[1] = sdk.Record{
+			Position: sdk.Position("1.0"),
+			Metadata: metadata,
+			Key: sdk.StructuredData{
+				"id": 2,
+			},
+			Payload: sdk.Change{
+				After: sdk.StructuredData{
+					"id":   2,
+					"name": "Sam",
+				},
 			},
 		}
 
 		w := mock.NewMockWriter(ctrl)
-		w.EXPECT().Write(ctx, record).Return(nil)
+		for i := range records {
+			w.EXPECT().Write(ctx, records[i]).Return(nil)
+		}
 
 		d := Destination{
 			writer: w,
 		}
 
-		err := d.Write(ctx, record)
+		n, err := d.Write(ctx, records)
 		is.NoErr(err)
+		is.Equal(n, len(records))
 	})
 
 	t.Run("failure, empty payload", func(t *testing.T) {
@@ -128,9 +149,6 @@ func TestDestination_Write(t *testing.T) {
 
 		record := sdk.Record{
 			Position: sdk.Position("1.0"),
-			Metadata: map[string]string{
-				"action": "insert",
-			},
 			Key: sdk.StructuredData{
 				"id": 1,
 			},
@@ -143,9 +161,10 @@ func TestDestination_Write(t *testing.T) {
 			writer: w,
 		}
 
-		err := d.Write(ctx, record)
+		n, err := d.Write(ctx, []sdk.Record{record})
 		is.Equal(err != nil, true)
 		is.Equal(err, writer.ErrEmptyPayload)
+		is.Equal(n, 0)
 	})
 }
 

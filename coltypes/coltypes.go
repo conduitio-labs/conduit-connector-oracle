@@ -17,8 +17,10 @@ package coltypes
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/conduitio-labs/conduit-connector-oracle/repository"
+	"github.com/godror/godror"
 )
 
 const numberType = "NUMBER"
@@ -52,24 +54,30 @@ func TransformRow(row map[string]any, columnTypes map[string]ColumnData) (map[st
 			continue
 		}
 
-		switch data := columnTypes[key]; {
-		case data.Type == numberType:
-			if data.Precision != nil && *data.Precision == 1 && data.Scale != nil && *data.Scale == 0 {
-				if v, ok := value.(int64); ok {
-					if v == 1 {
-						result[key] = true
-					} else {
-						result[key] = false
-					}
-
-					continue
-				}
+		data := columnTypes[key]
+		if data.Type == numberType {
+			valStr, err := godror.Num.ConvertValue(value)
+			if err != nil {
+				return nil, fmt.Errorf("convert oracle number type to string: %w", err)
 			}
 
-			fallthrough
-		default:
-			result[key] = value
+			value, err = strconv.Atoi(valStr.(string))
+			if err != nil {
+				return nil, fmt.Errorf("convert oracle number type to int: %w", err)
+			}
+
+			if data.Precision != nil && *data.Precision == 1 && data.Scale != nil && *data.Scale == 0 {
+				if value == 1 {
+					result[key] = true
+				} else {
+					result[key] = false
+				}
+
+				continue
+			}
 		}
+
+		result[key] = value
 	}
 
 	return result, nil
