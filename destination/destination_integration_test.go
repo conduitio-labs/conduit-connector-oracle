@@ -85,7 +85,7 @@ func TestDestination_WriteIntegration(t *testing.T) {
 		n := 0
 		records := []sdk.Record{
 			{
-				Operation: sdk.OperationCreate,
+				Operation: sdk.OperationSnapshot,
 				Payload: sdk.Change{After: sdk.StructuredData{
 					"id":        42,
 					"name":      "John",
@@ -99,7 +99,7 @@ func TestDestination_WriteIntegration(t *testing.T) {
 				}},
 			},
 			{
-				Operation: sdk.OperationCreate,
+				Operation: sdk.OperationSnapshot,
 				Payload: sdk.Change{After: sdk.StructuredData{
 					"id":        43,
 					"name":      "Nick",
