@@ -16,9 +16,11 @@ package destination
 
 import (
 	"context"
+	"strings"
 	"testing"
+	"time"
 
-	"github.com/conduitio-labs/conduit-connector-oracle/config/validator"
+	"github.com/conduitio-labs/conduit-connector-oracle/config"
 	"github.com/conduitio-labs/conduit-connector-oracle/destination/mock"
 	"github.com/conduitio-labs/conduit-connector-oracle/destination/writer"
 	"github.com/conduitio-labs/conduit-connector-oracle/models"
@@ -27,159 +29,147 @@ import (
 	"github.com/matryer/is"
 )
 
-func TestDestination_Configure(t *testing.T) {
+func TestDestination_ConfigureSuccess(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		name string
-		in   map[string]string
-		err  error
-	}{
-		{
-			name: "success case",
-			in: map[string]string{
-				models.ConfigURL:   "test_user/test_pass_123@localhost:1521/db_name",
-				models.ConfigTable: "test_table",
-			},
+	is := is.New(t)
+
+	d := Destination{}
+
+	err := d.Configure(context.Background(), map[string]string{
+		models.ConfigURL:       "test_user/test_pass_123@localhost:1521/db_name",
+		models.ConfigTable:     "test_table",
+		models.ConfigKeyColumn: "id",
+	})
+	is.NoErr(err)
+	is.Equal(d.cfg, config.Destination{
+		General: config.General{
+			URL:   "test_user/test_pass_123@localhost:1521/db_name",
+			Table: strings.ToUpper("test_table"),
 		},
-		{
-			name: "failure case (key column is too long)",
-			in: map[string]string{
-				models.ConfigURL:   "test_user/test_pass_123@localhost:1521/db_name",
-				models.ConfigTable: "test_table",
-				models.ConfigKeyColumn: "test_column_test_column_test_column_test_column_test_column_" +
-					"test_column_test_column_test_column_test_column_test_column_test_colu",
-			},
-			err: validator.OutOfRangeErr(models.ConfigKeyColumn),
-		},
-	}
-
-	for _, tt := range tests {
-		tt := tt
-
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			d := new(Destination)
-
-			err := d.Configure(context.Background(), tt.in)
-			if err != nil {
-				if tt.err == nil {
-					t.Errorf("unexpected error: %s", err.Error())
-
-					return
-				}
-
-				if err.Error() != tt.err.Error() {
-					t.Errorf("unexpected error, got: %s, want: %s", err.Error(), tt.err.Error())
-
-					return
-				}
-
-				return
-			}
-		})
-	}
+		KeyColumn: strings.ToUpper("id"),
+	})
 }
 
-func TestDestination_Write(t *testing.T) {
+func TestDestination_ConfigureFail(t *testing.T) {
 	t.Parallel()
 
-	t.Run("success", func(t *testing.T) {
-		t.Parallel()
+	is := is.New(t)
 
-		is := is.New(t)
+	d := Destination{}
 
-		ctrl := gomock.NewController(t)
-		ctx := context.Background()
+	err := d.Configure(context.Background(), map[string]string{
+		models.ConfigURL: "test_user/test_pass_123@localhost:1521/db_name",
+	})
+	is.Equal(err != nil, true)
+}
 
-		record := sdk.Record{
-			Position: sdk.Position("1.0"),
-			Metadata: map[string]string{
-				"action": "insert",
-			},
-			Key: sdk.StructuredData{
-				"id": 1,
-			},
-			Payload: sdk.StructuredData{
+func TestDestination_WriteSuccess(t *testing.T) {
+	t.Parallel()
+
+	is := is.New(t)
+
+	ctrl := gomock.NewController(t)
+	ctx := context.Background()
+
+	metadata := sdk.Metadata{}
+	metadata.SetCreatedAt(time.Now())
+
+	records := make([]sdk.Record, 2)
+	records[0] = sdk.Record{
+		Operation: sdk.OperationSnapshot,
+		Metadata:  metadata,
+		Key: sdk.StructuredData{
+			"id": 1,
+		},
+		Payload: sdk.Change{
+			After: sdk.StructuredData{
 				"id":   1,
-				"name": "Void",
+				"name": "John",
 			},
-		}
-
-		w := mock.NewMockWriter(ctrl)
-		w.EXPECT().Write(ctx, record).Return(nil)
-
-		d := Destination{
-			writer: w,
-		}
-
-		err := d.Write(ctx, record)
-		is.NoErr(err)
-	})
-
-	t.Run("failure, empty payload", func(t *testing.T) {
-		t.Parallel()
-
-		is := is.New(t)
-
-		ctrl := gomock.NewController(t)
-		ctx := context.Background()
-
-		record := sdk.Record{
-			Position: sdk.Position("1.0"),
-			Metadata: map[string]string{
-				"action": "insert",
+		},
+	}
+	records[1] = sdk.Record{
+		Position:  sdk.Position("snapshot.1"),
+		Operation: sdk.OperationSnapshot,
+		Metadata:  metadata,
+		Key: sdk.StructuredData{
+			"id": 2,
+		},
+		Payload: sdk.Change{
+			After: sdk.StructuredData{
+				"id":   2,
+				"name": "Sam",
 			},
-			Key: sdk.StructuredData{
-				"id": 1,
-			},
-		}
+		},
+	}
 
-		w := mock.NewMockWriter(ctrl)
-		w.EXPECT().Write(ctx, record).Return(writer.ErrEmptyPayload)
+	w := mock.NewMockWriter(ctrl)
+	for i := range records {
+		w.EXPECT().Write(ctx, records[i]).Return(nil)
+	}
 
-		d := Destination{
-			writer: w,
-		}
+	d := Destination{
+		writer: w,
+	}
 
-		err := d.Write(ctx, record)
-		is.Equal(err != nil, true)
-		is.Equal(err, writer.ErrEmptyPayload)
-	})
+	n, err := d.Write(ctx, records)
+	is.NoErr(err)
+	is.Equal(n, len(records))
 }
 
-func TestDestination_Teardown(t *testing.T) {
+func TestDestination_WriteFail(t *testing.T) {
 	t.Parallel()
 
-	t.Run("success", func(t *testing.T) {
-		t.Parallel()
+	is := is.New(t)
 
-		is := is.New(t)
+	ctrl := gomock.NewController(t)
+	ctx := context.Background()
 
-		ctrl := gomock.NewController(t)
-		ctx := context.Background()
+	record := sdk.Record{
+		Key: sdk.StructuredData{
+			"id": 1,
+		},
+	}
 
-		d := Destination{
-			writer: mock.NewMockWriter(ctrl),
-		}
+	w := mock.NewMockWriter(ctrl)
+	w.EXPECT().Write(ctx, record).Return(writer.ErrEmptyPayload)
 
-		err := d.Teardown(ctx)
-		is.NoErr(err)
-	})
+	d := Destination{
+		writer: w,
+	}
 
-	t.Run("success, writer is nil", func(t *testing.T) {
-		t.Parallel()
+	n, err := d.Write(ctx, []sdk.Record{record})
+	is.Equal(err != nil, true)
+	is.Equal(err, writer.ErrEmptyPayload)
+	is.Equal(n, 0)
+}
 
-		is := is.New(t)
+func TestDestination_TeardownSuccess(t *testing.T) {
+	t.Parallel()
 
-		ctx := context.Background()
+	is := is.New(t)
 
-		d := Destination{
-			writer: nil,
-		}
+	ctrl := gomock.NewController(t)
+	ctx := context.Background()
 
-		err := d.Teardown(ctx)
-		is.NoErr(err)
-	})
+	d := Destination{
+		writer: mock.NewMockWriter(ctrl),
+	}
+
+	err := d.Teardown(ctx)
+	is.NoErr(err)
+}
+
+func TestDestination_TeardownSuccessNilWriter(t *testing.T) {
+	t.Parallel()
+
+	is := is.New(t)
+
+	d := Destination{
+		writer: nil,
+	}
+
+	err := d.Teardown(context.Background())
+	is.NoErr(err)
 }

@@ -20,6 +20,7 @@ import (
 
 	"github.com/conduitio-labs/conduit-connector-oracle/config"
 	"github.com/conduitio-labs/conduit-connector-oracle/destination/writer"
+	"github.com/conduitio-labs/conduit-connector-oracle/models"
 	"github.com/conduitio-labs/conduit-connector-oracle/repository"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 )
@@ -38,9 +39,30 @@ type Destination struct {
 	cfg    config.Destination
 }
 
-// New initialises a new Destination.
-func New() sdk.Destination {
-	return &Destination{}
+// NewDestination initialises a new Destination.
+func NewDestination() sdk.Destination {
+	return sdk.DestinationWithMiddleware(&Destination{}, sdk.DefaultDestinationMiddleware()...)
+}
+
+// Parameters returns a map of named Parameters that describe how to configure the Source.
+func (d *Destination) Parameters() map[string]sdk.Parameter {
+	return map[string]sdk.Parameter{
+		models.ConfigURL: {
+			Default:     "",
+			Required:    true,
+			Description: "The connection string to connect to Oracle database.",
+		},
+		models.ConfigTable: {
+			Default:     "",
+			Required:    true,
+			Description: "The table name of the table in Oracle that the connector should write to, by default.",
+		},
+		models.ConfigKeyColumn: {
+			Default:     "",
+			Required:    false,
+			Description: "A column name that used to detect if the target table already contains the record.",
+		},
+	}
 }
 
 // Configure parses and stores configurations, returns an error in case of invalid configuration.
@@ -72,8 +94,15 @@ func (d *Destination) Open(_ context.Context) (err error) {
 }
 
 // Write writes a record into a Destination.
-func (d *Destination) Write(ctx context.Context, record sdk.Record) error {
-	return d.writer.Write(ctx, record)
+func (d *Destination) Write(ctx context.Context, records []sdk.Record) (int, error) {
+	for i, r := range records {
+		err := d.writer.Write(ctx, r)
+		if err != nil {
+			return i, err
+		}
+	}
+
+	return len(records), nil
 }
 
 // Teardown gracefully closes connections.

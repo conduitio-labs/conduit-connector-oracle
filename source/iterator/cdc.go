@@ -168,18 +168,42 @@ func (i *CDC) Next(ctx context.Context) (sdk.Record, error) {
 		return sdk.Record{}, fmt.Errorf("marshal row: %w", err)
 	}
 
-	return sdk.Record{
-		Position: convertedPosition,
-		Metadata: map[string]string{
-			metadataTable:  i.table,
-			metadataAction: operationType,
-		},
-		CreatedAt: time.Now(),
-		Key: sdk.StructuredData{
-			i.keyColumn: transformedRow[i.keyColumn],
-		},
-		Payload: sdk.RawData(transformedRowBytes),
-	}, nil
+	metadata := sdk.Metadata{
+		metadataTable: i.table,
+	}
+	metadata.SetCreatedAt(time.Now())
+
+	switch operationType {
+	case actionInsert:
+		return sdk.Util.Source.NewRecordCreate(
+			convertedPosition,
+			metadata,
+			sdk.StructuredData{
+				i.keyColumn: transformedRow[i.keyColumn],
+			},
+			sdk.RawData(transformedRowBytes),
+		), nil
+	case actionUpdate:
+		return sdk.Util.Source.NewRecordUpdate(
+			convertedPosition,
+			metadata,
+			sdk.StructuredData{
+				i.keyColumn: transformedRow[i.keyColumn],
+			},
+			nil,
+			sdk.RawData(transformedRowBytes),
+		), nil
+	case actionDelete:
+		return sdk.Util.Source.NewRecordDelete(
+			convertedPosition,
+			metadata,
+			sdk.StructuredData{
+				i.keyColumn: transformedRow[i.keyColumn],
+			},
+		), nil
+	default:
+		return sdk.Record{}, errWrongTrackingOperationType
+	}
 }
 
 // Close closes database rows of CDC iterator.
