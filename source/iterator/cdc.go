@@ -72,11 +72,11 @@ type trackingTableService struct {
 	m sync.Mutex
 
 	// channel for the stop signal
-	stopCh chan bool
+	stopCh chan struct{}
+	// channel to notify that all queries are completed and the database connection can be closed
+	canCloseCh chan struct{}
 	// error channel
 	errCh chan error
-	// channel to notify that all queries are completed and the database connection can be closed
-	canCloseCh chan bool
 	// slice of identifiers to delete
 	idsToDelete []any
 }
@@ -209,7 +209,7 @@ func (i *CDC) Next(ctx context.Context) (sdk.Record, error) {
 // Close closes database rows of CDC iterator.
 func (i *CDC) Close() (err error) {
 	// send a signal to stop clearing the tracking table
-	i.tableSrv.stopCh <- true
+	i.tableSrv.stopCh <- struct{}{}
 
 	if i.rows != nil {
 		err = i.rows.Close()
@@ -262,15 +262,15 @@ func (i *CDC) loadRows(ctx context.Context) error {
 
 // newTrackingTableService is a service to delete processed rows.
 func newTrackingTableService() *trackingTableService {
-	stopCh := make(chan bool, 1)
-	canCloseCh := make(chan bool, 1)
+	stopCh := make(chan struct{}, 1)
+	canCloseCh := make(chan struct{}, 1)
 	errCh := make(chan error, 1)
 	trackingIDsForRemoving := make([]any, 0)
 
 	return &trackingTableService{
 		stopCh:      stopCh,
-		errCh:       errCh,
 		canCloseCh:  canCloseCh,
+		errCh:       errCh,
 		idsToDelete: trackingIDsForRemoving,
 	}
 }
@@ -310,7 +310,7 @@ func (i *CDC) clearTrackingTable(ctx context.Context) {
 			}
 
 			// query finished, db can be closed.
-			i.tableSrv.canCloseCh <- true
+			i.tableSrv.canCloseCh <- struct{}{}
 
 			return
 
