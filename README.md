@@ -5,7 +5,7 @@ Oracle connector is one of [Conduit](https://github.com/ConduitIO/conduit) plugi
 
 ### Prerequisites
 - [Go](https://go.dev/) 1.18
-- (optional) [golangci-lint](https://github.com/golangci/golangci-lint) 1.46.2
+- (optional) [golangci-lint](https://github.com/golangci/golangci-lint) 1.49.0
 
 ### How to build it
 Run `make build`.

@@ -63,7 +63,7 @@ type SnapshotParams struct {
 
 // NewSnapshot creates a new instance of the Snapshot iterator.
 func NewSnapshot(ctx context.Context, params SnapshotParams) (*Snapshot, error) {
-	snapshot := &Snapshot{
+	iterator := &Snapshot{
 		repo:           params.Repo,
 		position:       params.Position,
 		table:          params.Table,
@@ -74,54 +74,54 @@ func NewSnapshot(ctx context.Context, params SnapshotParams) (*Snapshot, error) 
 		columnTypes:    params.ColumnTypes,
 	}
 
-	err := snapshot.loadRows(ctx)
+	err := iterator.loadRows(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("load rows: %w", err)
 	}
 
-	return snapshot, nil
+	return iterator, nil
 }
 
 // HasNext returns a bool indicating whether the iterator has the next record to return or not.
-func (s *Snapshot) HasNext(ctx context.Context) (bool, error) {
-	if s.rows != nil && s.rows.Next() {
+func (i *Snapshot) HasNext(ctx context.Context) (bool, error) {
+	if i.rows != nil && i.rows.Next() {
 		return true, nil
 	}
 
-	if err := s.loadRows(ctx); err != nil {
+	if err := i.loadRows(ctx); err != nil {
 		return false, fmt.Errorf("load rows: %w", err)
 	}
 
-	return false, nil
+	return i.rows.Next(), nil
 }
 
 // Next returns the next record.
-func (s *Snapshot) Next(ctx context.Context) (sdk.Record, error) {
+func (i *Snapshot) Next(_ context.Context) (sdk.Record, error) {
 	row := make(map[string]any)
-	if err := s.rows.MapScan(row); err != nil {
+	if err := i.rows.MapScan(row); err != nil {
 		return sdk.Record{}, fmt.Errorf("scan rows: %w", err)
 	}
 
-	transformedRow, err := coltypes.TransformRow(row, s.columnTypes)
+	transformedRow, err := coltypes.TransformRow(row, i.columnTypes)
 	if err != nil {
 		return sdk.Record{}, fmt.Errorf("transform row column types: %w", err)
 	}
 
-	if _, ok := transformedRow[s.orderingColumn]; !ok {
+	if _, ok := transformedRow[i.orderingColumn]; !ok {
 		return sdk.Record{}, errOrderingColumnIsNotExist
 	}
 
-	pos := Position{
+	i.position = &Position{
 		Mode:             ModeSnapshot,
-		LastProcessedVal: transformedRow[s.orderingColumn],
+		LastProcessedVal: transformedRow[i.orderingColumn],
 	}
 
-	convertedPosition, err := pos.convertToSDKPosition()
+	convertedPosition, err := i.position.marshalPosition()
 	if err != nil {
 		return sdk.Record{}, fmt.Errorf("convert position %w", err)
 	}
 
-	if _, ok := transformedRow[s.keyColumn]; !ok {
+	if _, ok := transformedRow[i.keyColumn]; !ok {
 		return sdk.Record{}, errKeyIsNotExist
 	}
 
@@ -130,73 +130,64 @@ func (s *Snapshot) Next(ctx context.Context) (sdk.Record, error) {
 		return sdk.Record{}, fmt.Errorf("marshal row: %w", err)
 	}
 
-	s.position = &pos
+	metadata := sdk.Metadata{
+		metadataTable: i.table,
+	}
+	metadata.SetCreatedAt(time.Now())
 
-	return sdk.Record{
-		Position: convertedPosition,
-		Metadata: map[string]string{
-			metadataTable:  s.table,
-			metadataAction: string(actionInsert),
+	r := sdk.Util.Source.NewRecordSnapshot(
+		convertedPosition,
+		metadata,
+		sdk.StructuredData{
+			i.keyColumn: transformedRow[i.keyColumn],
 		},
-		CreatedAt: time.Now(),
-		Key: sdk.StructuredData{
-			s.keyColumn: transformedRow[s.keyColumn],
-		},
-		Payload: sdk.RawData(transformedRowBytes),
-	}, nil
+		sdk.RawData(transformedRowBytes),
+	)
+
+	return r, nil
 }
 
-// Ack check if record with position was recorded.
-func (s *Snapshot) Ack(ctx context.Context, position sdk.Position) error {
-	sdk.Logger(ctx).Debug().Str("position", string(position)).Msg("got ack")
-
-	return nil
-}
-
-// Stop stops snapshot iterator.
-func (s *Snapshot) Stop() error {
-	if s.rows != nil {
-		err := s.rows.Close()
-		if err != nil {
-			return err
-		}
+// Close closes database rows of Snapshot iterator.
+func (i *Snapshot) Close() error {
+	if i.rows != nil {
+		return i.rows.Close()
 	}
 
 	return nil
 }
 
-// LoadRows selects a batch of rows from a database, based on the Iterator's
+// LoadRows selects a batch of rows from a database, based on the
 // table, columns, orderingColumn, batchSize and the current position.
-func (s *Snapshot) loadRows(ctx context.Context) error {
+func (i *Snapshot) loadRows(ctx context.Context) error {
 	selectBuilder := sqlbuilder.NewSelectBuilder().
-		From(s.table).
-		OrderBy(s.orderingColumn)
+		From(i.table).
+		OrderBy(i.orderingColumn)
 
-	if len(s.columns) > 0 {
-		selectBuilder.Select(s.columns...)
+	if len(i.columns) > 0 {
+		selectBuilder.Select(i.columns...)
 	} else {
 		selectBuilder.Select("*")
 	}
 
-	if s.position != nil {
+	if i.position != nil {
 		selectBuilder.Where(
-			selectBuilder.GreaterThan(s.orderingColumn, s.position.LastProcessedVal),
+			selectBuilder.GreaterThan(i.orderingColumn, i.position.LastProcessedVal),
 		)
 	}
 
 	query, err := sqlbuilder.DefaultFlavor.Interpolate(
-		sqlbuilder.Buildf("%v FETCH NEXT %v ROWS ONLY", selectBuilder, s.batchSize).Build(),
+		sqlbuilder.Buildf("%v FETCH NEXT %v ROWS ONLY", selectBuilder, i.batchSize).Build(),
 	)
 	if err != nil {
 		return fmt.Errorf("interpolate arguments to SQL: %w", err)
 	}
 
-	rows, err := s.repo.DB.QueryxContext(ctx, query)
+	rows, err := i.repo.DB.QueryxContext(ctx, query)
 	if err != nil {
 		return fmt.Errorf("execute select query: %s: %w", query, err)
 	}
 
-	s.rows = rows
+	i.rows = rows
 
 	return nil
 }

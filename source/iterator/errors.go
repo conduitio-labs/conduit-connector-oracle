@@ -19,7 +19,8 @@ import (
 )
 
 var (
-	errUnknownIteratorType      = errors.New("unknown iterator type")
-	errKeyIsNotExist            = errors.New("key is not exist")
-	errOrderingColumnIsNotExist = errors.New("ordering column is not exist")
+	errKeyIsNotExist              = errors.New("key is not exist")
+	errOrderingColumnIsNotExist   = errors.New("ordering column is not exist")
+	errNoInitializedIterator      = errors.New("not initialized iterator")
+	errWrongTrackingOperationType = errors.New("wrong tracking operation type")
 )

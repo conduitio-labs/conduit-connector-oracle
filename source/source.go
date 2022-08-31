@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/conduitio-labs/conduit-connector-oracle/models"
 	"github.com/conduitio-labs/conduit-connector-oracle/source/iterator"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 
@@ -28,8 +29,8 @@ import (
 type Iterator interface {
 	HasNext(context.Context) (bool, error)
 	Next(context.Context) (sdk.Record, error)
-	Stop() error
-	Ack(context.Context, sdk.Position) error
+	PushValueToDelete(sdk.Position) error
+	Close() error
 }
 
 // Source connector.
@@ -40,9 +41,45 @@ type Source struct {
 	iterator Iterator
 }
 
-// New initialises a new source.
-func New() sdk.Source {
-	return &Source{}
+// NewSource initialises a new source.
+func NewSource() sdk.Source {
+	return sdk.SourceWithMiddleware(&Source{}, sdk.DefaultSourceMiddleware()...)
+}
+
+// Parameters returns a map of named Parameters that describe how to configure the Source.
+func (s *Source) Parameters() map[string]sdk.Parameter {
+	return map[string]sdk.Parameter{
+		models.ConfigURL: {
+			Default:     "",
+			Required:    true,
+			Description: "The connection string to connect to Oracle database.",
+		},
+		models.ConfigTable: {
+			Default:     "",
+			Required:    true,
+			Description: "The table name of the table in Oracle that the connector should write to, by default.",
+		},
+		models.ConfigKeyColumn: {
+			Default:     "",
+			Required:    true,
+			Description: "A column name that used to detect if the target table already contains the record.",
+		},
+		models.ConfigOrderingColumn: {
+			Default:     "",
+			Required:    true,
+			Description: "A name of a column that the connector will use for ordering rows.",
+		},
+		models.ConfigColumns: {
+			Default:     "",
+			Required:    false,
+			Description: "The list of column names that should be included in each Record's payload",
+		},
+		models.ConfigBatchSize: {
+			Default:     "1000",
+			Required:    false,
+			Description: "The size of rows batch",
+		},
+	}
 }
 
 // Configure parses and stores configurations, returns an error in case of invalid configuration.
@@ -58,8 +95,8 @@ func (s *Source) Configure(_ context.Context, cfgRaw map[string]string) error {
 }
 
 // Open prepare the plugin to start sending records from the given position.
-func (s *Source) Open(ctx context.Context, rp sdk.Position) error {
-	pos, err := iterator.ParseSDKPosition(rp)
+func (s *Source) Open(ctx context.Context, position sdk.Position) error {
+	pos, err := iterator.ParseSDKPosition(position)
 	if err != nil {
 		return fmt.Errorf("parse position: %w", err)
 	}
@@ -99,19 +136,21 @@ func (s *Source) Read(ctx context.Context) (sdk.Record, error) {
 	return r, nil
 }
 
+// Ack appends the last processed value to the slice to clear the tracking table in the future.
+func (s *Source) Ack(ctx context.Context, position sdk.Position) error {
+	sdk.Logger(ctx).Debug().Str("position", string(position)).Msg("got ack")
+
+	return s.iterator.PushValueToDelete(position)
+}
+
 // Teardown gracefully shutdown connector.
-func (s *Source) Teardown(ctx context.Context) error {
+func (s *Source) Teardown(_ context.Context) error {
 	if s.iterator != nil {
-		err := s.iterator.Stop()
+		err := s.iterator.Close()
 		if err != nil {
-			return fmt.Errorf("stop iterator: %w", err)
+			return fmt.Errorf("stops iterators and closes database connection: %w", err)
 		}
 	}
 
 	return nil
-}
-
-// Ack check if record with position was recorded.
-func (s *Source) Ack(ctx context.Context, p sdk.Position) error {
-	return s.iterator.Ack(ctx, p)
 }

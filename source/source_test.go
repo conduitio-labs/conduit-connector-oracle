@@ -17,10 +17,10 @@ package source
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
-	"time"
 
-	"github.com/conduitio-labs/conduit-connector-oracle/config/validator"
+	"github.com/conduitio-labs/conduit-connector-oracle/config"
 	"github.com/conduitio-labs/conduit-connector-oracle/models"
 	"github.com/conduitio-labs/conduit-connector-oracle/source/mock"
 	sdk "github.com/conduitio/conduit-connector-sdk"
@@ -28,174 +28,149 @@ import (
 	"github.com/matryer/is"
 )
 
-func TestSource_Configure(t *testing.T) {
+func TestSource_ConfigureSuccess(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		name string
-		in   map[string]string
-		err  error
-	}{
-		{
-			name: "success case",
-			in: map[string]string{
-				models.ConfigURL:            "test_user/test_pass_123@localhost:1521/db_name",
-				models.ConfigTable:          "test_table",
-				models.ConfigKeyColumn:      "id",
-				models.ConfigOrderingColumn: "created_at",
-			},
-		},
-		{
-			name: "failure case (ordering column is not exist)",
-			in: map[string]string{
-				models.ConfigURL:       "test_user/test_pass_123@localhost:1521/db_name",
-				models.ConfigTable:     "test_table",
-				models.ConfigKeyColumn: "id",
-			},
-			err: validator.RequiredErr(models.ConfigOrderingColumn),
-		},
-	}
+	is := is.New(t)
 
-	for _, tt := range tests {
-		tt := tt
+	s := Source{}
 
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			s := new(Source)
-
-			err := s.Configure(context.Background(), tt.in)
-			if err != nil {
-				if tt.err == nil {
-					t.Errorf("unexpected error: %s", err.Error())
-
-					return
-				}
-
-				if err.Error() != tt.err.Error() {
-					t.Errorf("unexpected error, got: %s, want: %s", err.Error(), tt.err.Error())
-
-					return
-				}
-
-				return
-			}
-		})
-	}
-}
-
-func TestSource_Read(t *testing.T) {
-	t.Parallel()
-
-	t.Run("success", func(t *testing.T) {
-		t.Parallel()
-
-		is := is.New(t)
-
-		ctrl := gomock.NewController(t)
-		ctx := context.Background()
-
-		st := make(sdk.StructuredData)
-		st["key"] = "value"
-
-		record := sdk.Record{
-			Position:  sdk.Position(`{"last_processed_element_value": 1}`),
-			Metadata:  nil,
-			CreatedAt: time.Time{},
-			Key:       st,
-			Payload:   st,
-		}
-
-		it := mock.NewMockIterator(ctrl)
-		it.EXPECT().HasNext(ctx).Return(true, nil)
-		it.EXPECT().Next(ctx).Return(record, nil)
-
-		s := Source{
-			iterator: it,
-		}
-
-		r, err := s.Read(ctx)
-		is.NoErr(err)
-
-		is.Equal(r, record)
+	err := s.Configure(context.Background(), map[string]string{
+		models.ConfigURL:            "test_user/test_pass_123@localhost:1521/db_name",
+		models.ConfigTable:          "test_table",
+		models.ConfigKeyColumn:      "id",
+		models.ConfigOrderingColumn: "created_at",
 	})
-
-	t.Run("failure has next", func(t *testing.T) {
-		t.Parallel()
-
-		is := is.New(t)
-
-		ctrl := gomock.NewController(t)
-		ctx := context.Background()
-
-		it := mock.NewMockIterator(ctrl)
-		it.EXPECT().HasNext(ctx).Return(true, errors.New("get data: fail"))
-
-		s := Source{
-			iterator: it,
-		}
-
-		_, err := s.Read(ctx)
-		is.Equal(err != nil, true)
-	})
-
-	t.Run("failure next", func(t *testing.T) {
-		t.Parallel()
-
-		is := is.New(t)
-
-		ctrl := gomock.NewController(t)
-		ctx := context.Background()
-
-		it := mock.NewMockIterator(ctrl)
-		it.EXPECT().HasNext(ctx).Return(true, nil)
-		it.EXPECT().Next(ctx).Return(sdk.Record{}, errors.New("key is not exist"))
-
-		s := Source{
-			iterator: it,
-		}
-
-		_, err := s.Read(ctx)
-		is.Equal(err != nil, true)
+	is.NoErr(err)
+	is.Equal(s.config, config.Source{
+		General: config.General{
+			URL:   "test_user/test_pass_123@localhost:1521/db_name",
+			Table: strings.ToUpper("test_table"),
+		},
+		KeyColumn:      strings.ToUpper("id"),
+		OrderingColumn: strings.ToUpper("created_at"),
+		BatchSize:      1000,
 	})
 }
 
-func TestSource_Teardown(t *testing.T) {
-	t.Run("success teadown", func(t *testing.T) {
-		t.Parallel()
+func TestSource_ConfigureFail(t *testing.T) {
+	t.Parallel()
 
-		is := is.New(t)
+	is := is.New(t)
 
-		ctrl := gomock.NewController(t)
-		ctx := context.Background()
+	s := Source{}
 
-		it := mock.NewMockIterator(ctrl)
-		it.EXPECT().Stop().Return(nil)
-
-		s := Source{
-			iterator: it,
-		}
-
-		err := s.Teardown(ctx)
-		is.NoErr(err)
+	err := s.Configure(context.Background(), map[string]string{
+		models.ConfigURL:       "test_user/test_pass_123@localhost:1521/db_name",
+		models.ConfigTable:     "test_table",
+		models.ConfigKeyColumn: "id",
 	})
+	is.True(err != nil)
+}
 
-	t.Run("failure teardown", func(t *testing.T) {
-		t.Parallel()
+func TestSource_ReadSuccess(t *testing.T) {
+	t.Parallel()
 
-		is := is.New(t)
+	is := is.New(t)
 
-		ctrl := gomock.NewController(t)
-		ctx := context.Background()
+	ctrl := gomock.NewController(t)
+	ctx := context.Background()
 
-		it := mock.NewMockIterator(ctrl)
-		it.EXPECT().Stop().Return(errors.New("some error"))
+	st := make(sdk.StructuredData)
+	st["key"] = "value"
 
-		s := Source{
-			iterator: it,
-		}
+	record := sdk.Record{
+		Position: sdk.Position(`{"last_processed_element_value": 1}`),
+		Metadata: nil,
+		Key:      st,
+		Payload:  sdk.Change{After: st},
+	}
 
-		err := s.Teardown(ctx)
-		is.Equal(err != nil, true)
-	})
+	it := mock.NewMockIterator(ctrl)
+	it.EXPECT().HasNext(ctx).Return(true, nil)
+	it.EXPECT().Next(ctx).Return(record, nil)
+
+	s := Source{
+		iterator: it,
+	}
+
+	r, err := s.Read(ctx)
+	is.NoErr(err)
+
+	is.Equal(r, record)
+}
+
+func TestSource_ReadHasNextFail(t *testing.T) {
+	t.Parallel()
+
+	is := is.New(t)
+
+	ctrl := gomock.NewController(t)
+	ctx := context.Background()
+
+	it := mock.NewMockIterator(ctrl)
+	it.EXPECT().HasNext(ctx).Return(true, errors.New("get data: fail"))
+
+	s := Source{
+		iterator: it,
+	}
+
+	_, err := s.Read(ctx)
+	is.True(err != nil)
+}
+
+func TestSource_ReadNextFail(t *testing.T) {
+	t.Parallel()
+
+	is := is.New(t)
+
+	ctrl := gomock.NewController(t)
+	ctx := context.Background()
+
+	it := mock.NewMockIterator(ctrl)
+	it.EXPECT().HasNext(ctx).Return(true, nil)
+	it.EXPECT().Next(ctx).Return(sdk.Record{}, errors.New("key is not exist"))
+
+	s := Source{
+		iterator: it,
+	}
+
+	_, err := s.Read(ctx)
+	is.True(err != nil)
+}
+
+func TestSource_TeardownSuccess(t *testing.T) {
+	t.Parallel()
+
+	is := is.New(t)
+
+	ctrl := gomock.NewController(t)
+
+	it := mock.NewMockIterator(ctrl)
+	it.EXPECT().Close().Return(nil)
+
+	s := Source{
+		iterator: it,
+	}
+
+	err := s.Teardown(context.Background())
+	is.NoErr(err)
+}
+
+func TestSource_TeardownFail(t *testing.T) {
+	t.Parallel()
+
+	is := is.New(t)
+
+	ctrl := gomock.NewController(t)
+
+	it := mock.NewMockIterator(ctrl)
+	it.EXPECT().Close().Return(errors.New("some error"))
+
+	s := Source{
+		iterator: it,
+	}
+
+	err := s.Teardown(context.Background())
+	is.True(err != nil)
 }

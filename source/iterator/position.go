@@ -26,6 +26,7 @@ type Mode string
 
 const (
 	ModeSnapshot = "snapshot"
+	ModeCDC      = "cdc"
 )
 
 // Position represents Oracle position.
@@ -38,28 +39,22 @@ type Position struct {
 }
 
 // ParseSDKPosition parses sdk.Position and returns Position.
-func ParseSDKPosition(p sdk.Position) (*Position, error) {
+func ParseSDKPosition(position sdk.Position) (*Position, error) {
 	var pos Position
 
-	if p == nil {
+	if position == nil {
 		return nil, nil
 	}
 
-	err := json.Unmarshal(p, &pos)
-	if err != nil {
-		return nil, err
+	if err := json.Unmarshal(position, &pos); err != nil {
+		return nil, fmt.Errorf("unmarshal sdk.Position into Position: %w", err)
 	}
 
-	switch pos.Mode {
-	case ModeSnapshot:
-		return &pos, nil
-	default:
-		return nil, fmt.Errorf("%w: %s", errUnknownIteratorType, pos.Mode)
-	}
+	return &pos, nil
 }
 
-// marshals Position and returns sdk.Position or an error.
-func (p Position) convertToSDKPosition() (sdk.Position, error) {
+// marshalPosition marshals Position and returns sdk.Position or an error.
+func (p Position) marshalPosition() (sdk.Position, error) {
 	positionBytes, err := json.Marshal(p)
 	if err != nil {
 		return nil, fmt.Errorf("marshal position: %w", err)
