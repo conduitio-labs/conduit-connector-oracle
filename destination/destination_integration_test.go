@@ -16,12 +16,11 @@ package destination
 
 import (
 	"context"
-	"database/sql"
-	"errors"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/conduitio-labs/conduit-connector-oracle/models"
 	"github.com/conduitio-labs/conduit-connector-oracle/repository"
@@ -29,231 +28,333 @@ import (
 	"github.com/matryer/is"
 )
 
-const (
-	testTableNameFormat = "conduit_destination_test_%d"
-
-	// queries.
-	queryCreateTable = `
-CREATE TABLE %s (
-	id NUMBER NOT NULL, 
-	name VARCHAR2(20), 
-	is_active NUMBER(1,0), 
-	attributes VARCHAR2(100), 
-	achievements VARCHAR2(100)
-)`
-	queryDropTable      = "DROP TABLE %s"
-	querySelectNameByID = "SELECT name FROM %s WHERE id = :id"
-)
-
-func TestDestination_WriteIntegration(t *testing.T) {
+func TestDestination_Write(t *testing.T) {
 	t.Parallel()
 
 	var (
 		ctx = context.Background()
+		cfg = prepareConfig(t)
 		is  = is.New(t)
 	)
 
-	cfg, err := prepareConfig()
-	if err != nil {
-		t.Skip(err)
-	}
+	repo, err := repository.New(cfg[models.ConfigURL])
+	is.NoErr(err)
+	defer repo.Close()
 
-	repo, err := prepareData(ctx, cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
+	err = createTable(repo, cfg[models.ConfigTable])
+	is.NoErr(err)
 
-	t.Cleanup(func() {
-		err = clearData(ctx, repo, cfg)
+	defer func() {
+		err = dropTable(repo, cfg[models.ConfigTable])
 		is.NoErr(err)
+	}()
 
-		err = repo.Close()
-		is.NoErr(err)
-	})
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
 	dest := NewDestination()
 
 	err = dest.Configure(ctx, cfg)
-	if err != nil {
-		t.Error(err)
+	is.NoErr(err)
+
+	err = dest.Open(ctx)
+	is.NoErr(err)
+
+	n := 0
+	records := []sdk.Record{
+		{
+			Operation: sdk.OperationSnapshot,
+			Payload: sdk.Change{After: sdk.StructuredData{
+				"id":        42,
+				"name":      "John",
+				"is_active": true,
+				"attributes": map[string]any{
+					"attr_0": "string",
+					"attr_1": 1,
+					"attr_2": false,
+				},
+				"achievements": []string{"achievement_0", "achievement_1"},
+			}},
+		},
+		{
+			Operation: sdk.OperationSnapshot,
+			Payload: sdk.Change{After: sdk.StructuredData{
+				"id":        43,
+				"name":      "Nick",
+				"is_active": false,
+				"attributes": map[string]any{
+					"attr_0": "string",
+					"attr_1": 1,
+					"attr_2": false,
+				},
+				"achievements": []string{"achievement_0", "achievement_1"},
+			}},
+		},
 	}
 
-	t.Run("insert", func(t *testing.T) {
-		err = dest.Open(ctx)
-		is.NoErr(err)
+	n, err = dest.Write(ctx, records)
+	is.NoErr(err)
+	is.Equal(n, len(records))
 
-		n := 0
-		records := []sdk.Record{
-			{
-				Operation: sdk.OperationSnapshot,
-				Payload: sdk.Change{After: sdk.StructuredData{
-					"id":        42,
-					"name":      "John",
-					"is_active": true,
-					"attributes": map[string]any{
-						"attr_0": "string",
-						"attr_1": 1,
-						"attr_2": false,
-					},
-					"achievements": []string{"achievement_0", "achievement_1"},
-				}},
-			},
-			{
-				Operation: sdk.OperationSnapshot,
-				Payload: sdk.Change{After: sdk.StructuredData{
-					"id":        43,
-					"name":      "Nick",
-					"is_active": false,
-					"attributes": map[string]any{
-						"attr_0": "string",
-						"attr_1": 1,
-						"attr_2": false,
-					},
-					"achievements": []string{"achievement_0", "achievement_1"},
-				}},
-			},
-		}
+	cancel()
 
-		n, err = dest.Write(ctx, records)
-		is.NoErr(err)
-		is.Equal(n, len(records))
-
-		err = dest.Teardown(ctx)
-		is.NoErr(err)
-	})
-
-	t.Run("update", func(t *testing.T) {
-		err = dest.Open(ctx)
-		is.NoErr(err)
-
-		n := 0
-		n, err = dest.Write(ctx, []sdk.Record{
-			{
-				Operation: sdk.OperationUpdate,
-				Payload: sdk.Change{After: sdk.StructuredData{
-					"id":   42,
-					"name": "Jane",
-				}},
-			},
-		})
-		is.NoErr(err)
-		is.Equal(n, 1)
-
-		row := repo.DB.QueryRowContext(ctx, fmt.Sprintf(querySelectNameByID, cfg[models.ConfigTable]), 42)
-
-		var name string
-		err = row.Scan(&name)
-		is.NoErr(err)
-
-		is.Equal(name, "Jane")
-
-		err = dest.Teardown(ctx)
-		is.NoErr(err)
-	})
-
-	t.Run("update if not exists", func(t *testing.T) {
-		err = dest.Open(ctx)
-		is.NoErr(err)
-
-		n := 0
-		n, err = dest.Write(ctx, []sdk.Record{
-			{
-				Operation: sdk.OperationUpdate,
-				Payload: sdk.Change{After: sdk.StructuredData{
-					"id":   7,
-					"name": "Sofia",
-				}},
-			},
-		})
-		is.NoErr(err)
-		is.Equal(n, 1)
-
-		row := repo.DB.QueryRowContext(ctx, fmt.Sprintf(querySelectNameByID, cfg[models.ConfigTable]), 7)
-
-		var name string
-		err = row.Scan(&name)
-		is.NoErr(err)
-
-		is.Equal(name, "Sofia")
-
-		err = dest.Teardown(ctx)
-		is.NoErr(err)
-	})
-
-	t.Run("delete", func(t *testing.T) {
-		err = dest.Open(ctx)
-		is.NoErr(err)
-
-		n := 0
-		n, err = dest.Write(ctx, []sdk.Record{
-			{
-				Operation: sdk.OperationDelete,
-				Key: sdk.StructuredData{
-					"id": 42,
-				},
-			},
-		})
-		is.NoErr(err)
-		is.Equal(n, 1)
-
-		row := repo.DB.QueryRowContext(ctx, fmt.Sprintf(querySelectNameByID, cfg[models.ConfigTable]), 42)
-
-		err = row.Scan()
-		is.Equal(err, sql.ErrNoRows)
-
-		err = dest.Teardown(ctx)
-		is.NoErr(err)
-	})
-
-	t.Run("insert with the wrong column", func(t *testing.T) {
-		err = dest.Open(ctx)
-		is.NoErr(err)
-
-		n := 0
-		n, err = dest.Write(ctx, []sdk.Record{
-			{
-				Payload: sdk.Change{After: sdk.StructuredData{
-					"age": 42,
-				}},
-			},
-		})
-		is.Equal(err != nil, true)
-		is.Equal(n, 0)
-
-		err = dest.Teardown(ctx)
-		is.NoErr(err)
-	})
+	err = dest.Teardown(context.Background())
+	is.NoErr(err)
 }
 
-func prepareConfig() (map[string]string, error) {
+func TestDestination_Write_Update(t *testing.T) {
+	t.Parallel()
+
+	var (
+		ctx = context.Background()
+		cfg = prepareConfig(t)
+		is  = is.New(t)
+	)
+
+	repo, err := repository.New(cfg[models.ConfigURL])
+	is.NoErr(err)
+	defer repo.Close()
+
+	err = createTable(repo, cfg[models.ConfigTable])
+	is.NoErr(err)
+
+	defer func() {
+		err = dropTable(repo, cfg[models.ConfigTable])
+		is.NoErr(err)
+	}()
+
+	err = insertData(repo, cfg[models.ConfigTable])
+	is.NoErr(err)
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	dest := NewDestination()
+
+	err = dest.Configure(ctx, cfg)
+	is.NoErr(err)
+
+	err = dest.Open(ctx)
+	is.NoErr(err)
+
+	n := 0
+	n, err = dest.Write(ctx, []sdk.Record{
+		{
+			Operation: sdk.OperationUpdate,
+			Payload: sdk.Change{After: sdk.StructuredData{
+				"id":   42,
+				"name": "Jane",
+			}},
+		},
+	})
+	is.NoErr(err)
+	is.Equal(n, 1)
+
+	name, err := getNameByID(repo, cfg[models.ConfigTable], 42)
+	is.NoErr(err)
+	is.Equal(name, "Jane")
+
+	cancel()
+
+	err = dest.Teardown(context.Background())
+	is.NoErr(err)
+}
+
+func TestDestination_Write_Upsert(t *testing.T) {
+	t.Parallel()
+
+	var (
+		ctx = context.Background()
+		cfg = prepareConfig(t)
+		is  = is.New(t)
+	)
+
+	repo, err := repository.New(cfg[models.ConfigURL])
+	is.NoErr(err)
+	defer repo.Close()
+
+	err = createTable(repo, cfg[models.ConfigTable])
+	is.NoErr(err)
+
+	defer func() {
+		err = dropTable(repo, cfg[models.ConfigTable])
+		is.NoErr(err)
+	}()
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	dest := NewDestination()
+
+	err = dest.Configure(ctx, cfg)
+	is.NoErr(err)
+
+	err = dest.Open(ctx)
+	is.NoErr(err)
+
+	n := 0
+	n, err = dest.Write(ctx, []sdk.Record{
+		{
+			Operation: sdk.OperationUpdate,
+			Payload: sdk.Change{After: sdk.StructuredData{
+				"id":   42,
+				"name": "Jane",
+			}},
+		},
+	})
+	is.NoErr(err)
+	is.Equal(n, 1)
+
+	name, err := getNameByID(repo, cfg[models.ConfigTable], 42)
+	is.NoErr(err)
+	is.Equal(name, "Jane")
+
+	cancel()
+
+	err = dest.Teardown(context.Background())
+	is.NoErr(err)
+}
+
+func TestDestination_Write_Delete(t *testing.T) {
+	t.Parallel()
+
+	var (
+		ctx = context.Background()
+		cfg = prepareConfig(t)
+		is  = is.New(t)
+	)
+
+	repo, err := repository.New(cfg[models.ConfigURL])
+	is.NoErr(err)
+	defer repo.Close()
+
+	err = createTable(repo, cfg[models.ConfigTable])
+	is.NoErr(err)
+
+	defer func() {
+		err = dropTable(repo, cfg[models.ConfigTable])
+		is.NoErr(err)
+	}()
+
+	err = insertData(repo, cfg[models.ConfigTable])
+	is.NoErr(err)
+
+	// check that row is exists
+	_, err = getNameByID(repo, cfg[models.ConfigTable], 42)
+	is.NoErr(err)
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	dest := NewDestination()
+
+	err = dest.Configure(ctx, cfg)
+	is.NoErr(err)
+
+	err = dest.Open(ctx)
+	is.NoErr(err)
+
+	n := 0
+	n, err = dest.Write(ctx, []sdk.Record{
+		{
+			Operation: sdk.OperationDelete,
+			Key:       sdk.RawData(`{"id":42}`),
+		},
+	})
+	is.NoErr(err)
+	is.Equal(n, 1)
+
+	_, err = getNameByID(repo, cfg[models.ConfigTable], 42)
+	is.True(err != nil)
+
+	cancel()
+
+	err = dest.Teardown(context.Background())
+	is.NoErr(err)
+}
+
+func TestDestination_Write_WrongColumn(t *testing.T) {
+	t.Parallel()
+
+	var (
+		ctx = context.Background()
+		cfg = prepareConfig(t)
+		is  = is.New(t)
+	)
+
+	repo, err := repository.New(cfg[models.ConfigURL])
+	is.NoErr(err)
+	defer repo.Close()
+
+	err = createTable(repo, cfg[models.ConfigTable])
+	is.NoErr(err)
+
+	defer func() {
+		err = dropTable(repo, cfg[models.ConfigTable])
+		is.NoErr(err)
+	}()
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	dest := NewDestination()
+
+	err = dest.Configure(ctx, cfg)
+	is.NoErr(err)
+
+	err = dest.Open(ctx)
+	is.NoErr(err)
+
+	_, err = dest.Write(ctx, []sdk.Record{
+		{
+			Operation: sdk.OperationSnapshot,
+			Payload: sdk.Change{After: sdk.StructuredData{
+				"id":           43,
+				"wrong_column": "test",
+			}},
+		},
+	})
+	is.True(err != nil)
+
+	cancel()
+
+	err = dest.Teardown(context.Background())
+	is.NoErr(err)
+}
+
+func prepareConfig(t *testing.T) map[string]string {
 	url := os.Getenv("ORACLE_URL")
 	if url == "" {
-		return nil, errors.New("ORACLE_URL env var must be set")
+		t.Skip("ORACLE_URL env var must be set")
+
+		return nil
 	}
 
 	return map[string]string{
 		models.ConfigURL:       url,
-		models.ConfigTable:     generateTableName(),
+		models.ConfigTable:     fmt.Sprintf("conduit_dest_test_%s", randString(6)),
 		models.ConfigKeyColumn: "id",
-	}, nil
+	}
 }
 
-func prepareData(ctx context.Context, cfg map[string]string) (*repository.Oracle, error) {
-	repo, err := repository.New(cfg[models.ConfigURL])
+func createTable(repo *repository.Oracle, table string) error {
+	_, err := repo.DB.Exec(fmt.Sprintf(`
+	CREATE TABLE %s (
+		id NUMBER NOT NULL, 
+		name VARCHAR2(20), 
+		is_active NUMBER(1,0), 
+		attributes VARCHAR2(100), 
+		achievements VARCHAR2(100)
+	)`, table))
 	if err != nil {
-		return nil, fmt.Errorf("new repository: %w", err)
+		return fmt.Errorf("execute create table query: %w", err)
 	}
 
-	_, err = repo.DB.ExecContext(ctx, fmt.Sprintf(queryCreateTable, cfg[models.ConfigTable]))
-	if err != nil {
-		return nil, fmt.Errorf("execute create table query: %w", err)
-	}
-
-	return repo, nil
+	return nil
 }
 
-func clearData(ctx context.Context, repo *repository.Oracle, cfg map[string]string) error {
-	_, err := repo.DB.ExecContext(ctx, fmt.Sprintf(queryDropTable, cfg[models.ConfigTable]))
+func dropTable(repo *repository.Oracle, table string) error {
+	_, err := repo.DB.Exec(fmt.Sprintf("DROP TABLE %s", table))
 	if err != nil {
 		return fmt.Errorf("execute drop table query: %w", err)
 	}
@@ -261,6 +362,33 @@ func clearData(ctx context.Context, repo *repository.Oracle, cfg map[string]stri
 	return nil
 }
 
-func generateTableName() string {
-	return fmt.Sprintf(testTableNameFormat, time.Now().UnixNano())
+func insertData(repo *repository.Oracle, table string) error {
+	_, err := repo.DB.Exec(fmt.Sprintf("INSERT INTO %s (id, name) VALUES (42, 'Sam')", table))
+	if err != nil {
+		return fmt.Errorf("execute insert query: %w", err)
+	}
+
+	return nil
+}
+
+func getNameByID(repo *repository.Oracle, table string, id int) (string, error) {
+	row := repo.DB.QueryRow(fmt.Sprintf("SELECT name FROM %s WHERE id = %d", table, id))
+
+	name := ""
+
+	err := row.Scan(&name)
+	if err != nil {
+		return "", fmt.Errorf("scan row: %w", err)
+	}
+
+	return name, nil
+}
+
+// randString generates a random string of length n.
+// (source: https://stackoverflow.com/a/47676287)
+func randString(n int) string {
+	b := make([]byte, n)
+	rand.Read(b) // nolint:errcheck // does not actually fail
+
+	return hex.EncodeToString(b)
 }

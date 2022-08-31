@@ -61,7 +61,7 @@ func TestDestination_ConfigureFail(t *testing.T) {
 	err := d.Configure(context.Background(), map[string]string{
 		models.ConfigURL: "test_user/test_pass_123@localhost:1521/db_name",
 	})
-	is.Equal(err != nil, true)
+	is.True(err != nil)
 }
 
 func TestDestination_WriteSuccess(t *testing.T) {
@@ -140,7 +140,6 @@ func TestDestination_WriteFail(t *testing.T) {
 	}
 
 	n, err := d.Write(ctx, []sdk.Record{record})
-	is.Equal(err != nil, true)
 	is.Equal(err, writer.ErrEmptyPayload)
 	is.Equal(n, 0)
 }

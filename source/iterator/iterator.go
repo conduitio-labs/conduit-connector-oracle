@@ -139,15 +139,16 @@ func (i *Iterator) HasNext(ctx context.Context) (bool, error) {
 			return false, fmt.Errorf("snapshot has next: %w", err)
 		}
 
-		if !hasNext {
-			if err = i.switchToCDCIterator(ctx); err != nil {
-				return false, fmt.Errorf("switch to cdc iterator: %w", err)
-			}
-
-			return false, nil
+		if hasNext {
+			return true, nil
 		}
 
-		return true, nil
+		if err = i.switchToCDCIterator(ctx); err != nil {
+			return false, fmt.Errorf("switch to cdc iterator: %w", err)
+		}
+
+		// to check if the next record exists via CDC iterator
+		fallthrough
 
 	case i.cdc != nil:
 		return i.cdc.HasNext(ctx)

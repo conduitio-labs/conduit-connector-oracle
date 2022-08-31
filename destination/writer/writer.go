@@ -26,19 +26,6 @@ import (
 	"github.com/huandu/go-sqlbuilder"
 )
 
-const (
-	// metadata related.
-	metadataTable  = "table"
-	metadataAction = "action"
-
-	// action names.
-	actionDelete = "delete"
-
-	// upsert sql format.
-	upsertFmt = "MERGE INTO %s USING DUAL ON (%s = ?) " +
-		"WHEN MATCHED THEN UPDATE SET %s WHEN NOT MATCHED THEN INSERT (%s) VALUES (%s)"
-)
-
 // Writer implements a writer logic for Oracle destination.
 type Writer struct {
 	repo      *repository.Oracle
@@ -64,8 +51,8 @@ func New(params Params) *Writer {
 
 // Write writes a sdk.Record into a Destination.
 func (w *Writer) Write(ctx context.Context, record sdk.Record) error {
-	switch record.Metadata[metadataAction] {
-	case actionDelete:
+	switch record.Operation {
+	case sdk.OperationDelete:
 		return w.delete(ctx, record)
 	default:
 		return w.upsert(ctx, record)
@@ -159,6 +146,9 @@ func (w *Writer) buildUpsertQuery(
 	columns []string,
 	values []any,
 ) (string, error) {
+	const upsertFmt = "MERGE INTO %s USING DUAL ON (%s = ?) " +
+		"WHEN MATCHED THEN UPDATE SET %s WHEN NOT MATCHED THEN INSERT (%s) VALUES (%s)"
+
 	if len(columns) != len(values) {
 		return "", errColumnsValuesLenMismatch
 	}
@@ -224,7 +214,7 @@ func (w *Writer) buildDeleteQuery(table string, keyColumn string, keyValue any) 
 // returns either the record metadata value for the table
 // or the default configured value for the table.
 func (w *Writer) getTableName(metadata map[string]string) string {
-	tableName, ok := metadata[metadataTable]
+	tableName, ok := metadata["table"]
 	if !ok {
 		return w.table
 	}

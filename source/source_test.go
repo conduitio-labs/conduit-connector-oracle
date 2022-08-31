@@ -65,7 +65,7 @@ func TestSource_ConfigureFail(t *testing.T) {
 		models.ConfigTable:     "test_table",
 		models.ConfigKeyColumn: "id",
 	})
-	is.Equal(err != nil, true)
+	is.True(err != nil)
 }
 
 func TestSource_ReadSuccess(t *testing.T) {
@@ -116,7 +116,7 @@ func TestSource_ReadHasNextFail(t *testing.T) {
 	}
 
 	_, err := s.Read(ctx)
-	is.Equal(err != nil, true)
+	is.True(err != nil)
 }
 
 func TestSource_ReadNextFail(t *testing.T) {
@@ -136,7 +136,7 @@ func TestSource_ReadNextFail(t *testing.T) {
 	}
 
 	_, err := s.Read(ctx)
-	is.Equal(err != nil, true)
+	is.True(err != nil)
 }
 
 func TestSource_TeardownSuccess(t *testing.T) {
@@ -172,5 +172,5 @@ func TestSource_TeardownFail(t *testing.T) {
 	}
 
 	err := s.Teardown(context.Background())
-	is.Equal(err != nil, true)
+	is.True(err != nil)
 }
