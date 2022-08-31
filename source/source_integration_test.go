@@ -205,7 +205,7 @@ func TestSource_CDC_Read(t *testing.T) {
 		is.NoErr(err)
 	}()
 
-	// insert snapshot data
+	// insert snapshot data (3 records)
 	err = insertSnapshotData(repo, cfg[models.ConfigTable])
 	is.NoErr(err)
 
@@ -220,32 +220,36 @@ func TestSource_CDC_Read(t *testing.T) {
 	err = src.Open(ctx, nil)
 	is.NoErr(err)
 
-	// read all snapshot records
+	// read the first snapshot record
 	_, err = src.Read(ctx)
 	is.NoErr(err)
 
+	// read the second snapshot record
 	_, err = src.Read(ctx)
 	is.NoErr(err)
 
+	// update the second record to check that the CDC iterator will start immediately after the snapshot
+	err = updateCDCData(repo, cfg[models.ConfigTable])
+	is.NoErr(err)
+
+	// read the third snapshot record
 	_, err = src.Read(ctx)
 	is.NoErr(err)
 
-	_, err = src.Read(ctx)
-	is.Equal(err, sdk.ErrBackoffRetry)
-
-	// insert cdc data
-	err = insertCDCData(repo, cfg[models.ConfigTable])
-	is.NoErr(err)
-
+	// read the first cdc record without sdk.ErrBackoffRetry error between iterators
 	record, err := src.Read(ctx)
 	is.NoErr(err)
 	is.Equal(string(record.Position), `{"mode":"cdc","last_processed_val":1}`)
-	is.Equal(record.Operation, sdk.OperationCreate)
-	is.Equal(record.Key, sdk.StructuredData(map[string]interface{}{"ID": 4}))
+	is.Equal(record.Operation, sdk.OperationUpdate)
+	is.Equal(record.Key, sdk.StructuredData(map[string]interface{}{"ID": 2}))
 	is.Equal(strings.ReplaceAll(string(record.Payload.After.Bytes()), " ", ""),
-		`{"AGE":81,"ID":4,"IS_ACTIVE":false,"NAME":"Smith"}`)
+		`{"AGE":33,"ID":2,"IS_ACTIVE":false,"NAME":"Jane"}`)
 
 	cancel()
+
+	// insert two records more
+	err = insertCDCData(repo, cfg[models.ConfigTable])
+	is.NoErr(err)
 
 	err = src.Teardown(context.Background())
 	is.NoErr(err)
@@ -266,24 +270,17 @@ func TestSource_CDC_Read(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(string(record.Position), `{"mode":"cdc","last_processed_val":2}`)
 	is.Equal(record.Operation, sdk.OperationCreate)
-	is.Equal(record.Key, sdk.StructuredData(map[string]interface{}{"ID": 5}))
+	is.Equal(record.Key, sdk.StructuredData(map[string]interface{}{"ID": 4}))
 	is.Equal(strings.ReplaceAll(string(record.Payload.After.Bytes()), " ", ""),
-		`{"AGE":26,"ID":5,"IS_ACTIVE":true,"NAME":"Elizabeth"}`)
-
-	_, err = src.Read(ctx)
-	is.Equal(err, sdk.ErrBackoffRetry)
-
-	// update the age field for user with ID=2
-	err = updateCDCData(repo, cfg[models.ConfigTable])
-	is.NoErr(err)
+		`{"AGE":81,"ID":4,"IS_ACTIVE":false,"NAME":"Smith"}`)
 
 	record, err = src.Read(ctx)
 	is.NoErr(err)
 	is.Equal(string(record.Position), `{"mode":"cdc","last_processed_val":3}`)
-	is.Equal(record.Operation, sdk.OperationUpdate)
-	is.Equal(record.Key, sdk.StructuredData(map[string]interface{}{"ID": 2}))
+	is.Equal(record.Operation, sdk.OperationCreate)
+	is.Equal(record.Key, sdk.StructuredData(map[string]interface{}{"ID": 5}))
 	is.Equal(strings.ReplaceAll(string(record.Payload.After.Bytes()), " ", ""),
-		`{"AGE":33,"ID":2,"IS_ACTIVE":false,"NAME":"Jane"}`)
+		`{"AGE":26,"ID":5,"IS_ACTIVE":true,"NAME":"Elizabeth"}`)
 
 	_, err = src.Read(ctx)
 	is.Equal(err, sdk.ErrBackoffRetry)
@@ -402,7 +399,7 @@ func deleteCDCData(repo *repository.Oracle, table string) error {
 // (source: https://stackoverflow.com/a/47676287)
 func randString(n int) string {
 	b := make([]byte, n)
-	rand.Read(b) // nolint:errcheck // does not actually fail
+	rand.Read(b) //nolint:errcheck // does not actually fail
 
 	return hex.EncodeToString(b)
 }

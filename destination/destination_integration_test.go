@@ -60,7 +60,6 @@ func TestDestination_Write(t *testing.T) {
 	err = dest.Open(ctx)
 	is.NoErr(err)
 
-	n := 0
 	records := []sdk.Record{
 		{
 			Operation: sdk.OperationSnapshot,
@@ -92,7 +91,7 @@ func TestDestination_Write(t *testing.T) {
 		},
 	}
 
-	n, err = dest.Write(ctx, records)
+	n, err := dest.Write(ctx, records)
 	is.NoErr(err)
 	is.Equal(n, len(records))
 
@@ -137,8 +136,7 @@ func TestDestination_Write_Update(t *testing.T) {
 	err = dest.Open(ctx)
 	is.NoErr(err)
 
-	n := 0
-	n, err = dest.Write(ctx, []sdk.Record{
+	n, err := dest.Write(ctx, []sdk.Record{
 		{
 			Operation: sdk.OperationUpdate,
 			Payload: sdk.Change{After: sdk.StructuredData{
@@ -192,8 +190,7 @@ func TestDestination_Write_Upsert(t *testing.T) {
 	err = dest.Open(ctx)
 	is.NoErr(err)
 
-	n := 0
-	n, err = dest.Write(ctx, []sdk.Record{
+	n, err := dest.Write(ctx, []sdk.Record{
 		{
 			Operation: sdk.OperationUpdate,
 			Payload: sdk.Change{After: sdk.StructuredData{
@@ -254,8 +251,7 @@ func TestDestination_Write_Delete(t *testing.T) {
 	err = dest.Open(ctx)
 	is.NoErr(err)
 
-	n := 0
-	n, err = dest.Write(ctx, []sdk.Record{
+	n, err := dest.Write(ctx, []sdk.Record{
 		{
 			Operation: sdk.OperationDelete,
 			Key:       sdk.RawData(`{"id":42}`),
@@ -388,7 +384,7 @@ func getNameByID(repo *repository.Oracle, table string, id int) (string, error) 
 // (source: https://stackoverflow.com/a/47676287)
 func randString(n int) string {
 	b := make([]byte, n)
-	rand.Read(b) // nolint:errcheck // does not actually fail
+	rand.Read(b) //nolint:errcheck // does not actually fail
 
 	return hex.EncodeToString(b)
 }

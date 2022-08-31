@@ -222,6 +222,8 @@ func (i *CDC) Close() (err error) {
 	case <-time.After(timeoutBeforeCloseDBSec * time.Second):
 	}
 
+	i.tableSrv.close()
+
 	return
 }
 
@@ -273,6 +275,12 @@ func newTrackingTableService() *trackingTableService {
 		errCh:       errCh,
 		idsToDelete: trackingIDsForRemoving,
 	}
+}
+
+func (t *trackingTableService) close() {
+	close(t.canCloseCh)
+	close(t.errCh)
+	close(t.stopCh)
 }
 
 // pushValueToDelete appends the last processed value to the slice to clear the tracking table in the future.
