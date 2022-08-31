@@ -55,14 +55,14 @@ func TransformRow(row map[string]any, columnTypes map[string]ColumnData) (map[st
 		}
 
 		if columnTypes[key].Type == numberType {
-			valStr, err := godror.Num.ConvertValue(value)
+			v, err := godror.Num.ConvertValue(value)
 			if err != nil {
-				return nil, fmt.Errorf("convert oracle number type to string: %w", err)
+				return nil, fmt.Errorf("convert the oracle number type to the interface: %w", err)
 			}
 
-			value, err = strconv.Atoi(valStr.(string))
+			value, err = strconv.Atoi(v.(string))
 			if err != nil {
-				return nil, fmt.Errorf("convert oracle number type to int: %w", err)
+				return nil, fmt.Errorf("convert oracle an interface to the int: %w", err)
 			}
 
 			// if the type is NUMBER(1,0) takes it as a boolean type
