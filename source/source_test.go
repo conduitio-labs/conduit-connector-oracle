@@ -44,10 +44,10 @@ func TestSource_ConfigureSuccess(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(s.config, config.Source{
 		General: config.General{
-			URL:   "test_user/test_pass_123@localhost:1521/db_name",
-			Table: strings.ToUpper("test_table"),
+			URL:       "test_user/test_pass_123@localhost:1521/db_name",
+			Table:     strings.ToUpper("test_table"),
+			KeyColumn: strings.ToUpper("id"),
 		},
-		KeyColumn:      strings.ToUpper("id"),
 		OrderingColumn: strings.ToUpper("created_at"),
 		BatchSize:      1000,
 	})

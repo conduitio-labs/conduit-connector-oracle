@@ -27,12 +27,17 @@ type General struct {
 	URL string `json:"url" validate:"required"`
 	// Table is the configuration of the table name.
 	Table string `json:"table" validate:"required,lte=128,oracle"`
+	// KeyColumn is a column name that records should use for their `Key` fields (source) or
+	// is a column name uses to detect if the target table already contains the record (destination).
+	KeyColumn string `validate:"required,lte=128,oracle"`
 }
 
-func parseGeneral(cfg map[string]string) (General, error) {
+// Parse parses general configuration.
+func Parse(cfg map[string]string) (General, error) {
 	config := General{
-		URL:   cfg[models.ConfigURL],
-		Table: strings.ToUpper(cfg[models.ConfigTable]),
+		URL:       cfg[models.ConfigURL],
+		Table:     strings.ToUpper(cfg[models.ConfigTable]),
+		KeyColumn: strings.ToUpper(cfg[models.ConfigKeyColumn]),
 	}
 
 	err := validator.Validate(config)

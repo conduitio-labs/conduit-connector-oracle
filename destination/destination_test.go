@@ -42,11 +42,9 @@ func TestDestination_ConfigureSuccess(t *testing.T) {
 		models.ConfigKeyColumn: "id",
 	})
 	is.NoErr(err)
-	is.Equal(d.cfg, config.Destination{
-		General: config.General{
-			URL:   "test_user/test_pass_123@localhost:1521/db_name",
-			Table: strings.ToUpper("test_table"),
-		},
+	is.Equal(d.cfg, config.General{
+		URL:       "test_user/test_pass_123@localhost:1521/db_name",
+		Table:     strings.ToUpper("test_table"),
 		KeyColumn: strings.ToUpper("id"),
 	})
 }

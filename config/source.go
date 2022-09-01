@@ -31,8 +31,6 @@ const (
 type Source struct {
 	General
 
-	// Key - Column name that records should use for their `Key` fields.
-	KeyColumn string `validate:"required,lte=128,oracle"`
 	// OrderingColumn is a name of a column that the connector will use for ordering rows.
 	OrderingColumn string `validate:"required,lte=128,oracle"`
 	// Columns list of column names that should be included in each Record's payload.
@@ -43,14 +41,13 @@ type Source struct {
 
 // ParseSource parses source configuration.
 func ParseSource(cfg map[string]string) (Source, error) {
-	config, err := parseGeneral(cfg)
+	config, err := Parse(cfg)
 	if err != nil {
 		return Source{}, err
 	}
 
 	sourceConfig := Source{
 		General:        config,
-		KeyColumn:      strings.ToUpper(cfg[models.ConfigKeyColumn]),
 		OrderingColumn: strings.ToUpper(cfg[models.ConfigOrderingColumn]),
 		BatchSize:      defaultBatchSize,
 	}

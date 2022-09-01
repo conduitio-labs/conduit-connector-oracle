@@ -35,31 +35,53 @@ func TestParseGeneral(t *testing.T) {
 		{
 			name: "valid config",
 			in: map[string]string{
-				models.ConfigURL:   "test_user/test_pass_123@localhost:1521/db_name",
-				models.ConfigTable: "test_table",
+				models.ConfigURL:       "test_user/test_pass_123@localhost:1521/db_name",
+				models.ConfigTable:     "test_table",
+				models.ConfigKeyColumn: "id",
 			},
 			want: General{
-				URL:   "test_user/test_pass_123@localhost:1521/db_name",
-				Table: "TEST_TABLE",
+				URL:       "test_user/test_pass_123@localhost:1521/db_name",
+				Table:     "TEST_TABLE",
+				KeyColumn: "ID",
 			},
 		},
 		{
 			name: "url is required",
 			in: map[string]string{
-				models.ConfigTable: "test_table",
+				models.ConfigTable:     "test_table",
+				models.ConfigKeyColumn: "id",
 			},
 			err: validator.RequiredErr(models.ConfigURL),
 		},
 		{
+			name: "table is required",
+			in: map[string]string{
+				models.ConfigURL:       "test_user/test_pass_123@localhost:1521/db_name",
+				models.ConfigKeyColumn: "id",
+			},
+			err: validator.RequiredErr(models.ConfigTable),
+		},
+		{
+			name: "keyColumn is required",
+			in: map[string]string{
+				models.ConfigURL:   "test_user/test_pass_123@localhost:1521/db_name",
+				models.ConfigTable: "test_table",
+			},
+			err: validator.RequiredErr(models.ConfigKeyColumn),
+		},
+		{
 			name: "a couple required fields are empty (a password and an url)",
-			in:   map[string]string{},
-			err:  multierr.Combine(validator.RequiredErr(models.ConfigURL), validator.RequiredErr(models.ConfigTable)),
+			in: map[string]string{
+				models.ConfigKeyColumn: "id",
+			},
+			err: multierr.Combine(validator.RequiredErr(models.ConfigURL), validator.RequiredErr(models.ConfigTable)),
 		},
 		{
 			name: "table begins with a number",
 			in: map[string]string{
-				models.ConfigURL:   "test_user/test_pass_123@localhost:1521/db_name",
-				models.ConfigTable: "1_test_table",
+				models.ConfigURL:       "test_user/test_pass_123@localhost:1521/db_name",
+				models.ConfigTable:     "1_test_table",
+				models.ConfigKeyColumn: "id",
 			},
 			err: validator.InvalidOracleObjectErr(models.ConfigTable),
 		},
@@ -71,7 +93,7 @@ func TestParseGeneral(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := parseGeneral(tt.in)
+			got, err := Parse(tt.in)
 			if err != nil {
 				if tt.err == nil {
 					t.Errorf("unexpected error: %s", err.Error())
