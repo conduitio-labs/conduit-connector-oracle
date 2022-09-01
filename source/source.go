@@ -117,7 +117,7 @@ func (s *Source) Open(ctx context.Context, position sdk.Position) error {
 	return nil
 }
 
-// Read gets the next object from the db2.
+// Read returns the next record.
 func (s *Source) Read(ctx context.Context) (sdk.Record, error) {
 	hasNext, err := s.iterator.HasNext(ctx)
 	if err != nil {

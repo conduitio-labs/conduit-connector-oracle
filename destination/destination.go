@@ -36,7 +36,7 @@ type Destination struct {
 
 	repo   *repository.Oracle
 	writer Writer
-	cfg    config.Destination
+	cfg    config.General
 }
 
 // NewDestination initialises a new Destination.
@@ -59,15 +59,15 @@ func (d *Destination) Parameters() map[string]sdk.Parameter {
 		},
 		models.ConfigKeyColumn: {
 			Default:     "",
-			Required:    false,
-			Description: "A column name that used to detect if the target table already contains the record.",
+			Required:    true,
+			Description: "A column name uses to detect if the target table already contains the record.",
 		},
 	}
 }
 
 // Configure parses and stores configurations, returns an error in case of invalid configuration.
 func (d *Destination) Configure(_ context.Context, cfg map[string]string) error {
-	configuration, err := config.ParseDestination(cfg)
+	configuration, err := config.Parse(cfg)
 	if err != nil {
 		return err
 	}

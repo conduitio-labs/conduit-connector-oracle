@@ -40,10 +40,10 @@ func TestParseSource(t *testing.T) {
 			},
 			want: Source{
 				General: General{
-					URL:   "test_user/test_pass_123@localhost:1521/db_name",
-					Table: "TEST_TABLE",
+					URL:       "test_user/test_pass_123@localhost:1521/db_name",
+					Table:     "TEST_TABLE",
+					KeyColumn: "ID",
 				},
-				KeyColumn:      "ID",
 				OrderingColumn: "ID",
 				BatchSize:      defaultBatchSize,
 			},
@@ -59,10 +59,10 @@ func TestParseSource(t *testing.T) {
 			},
 			want: Source{
 				General: General{
-					URL:   "test_user/test_pass_123@localhost:1521/db_name",
-					Table: "TEST_TABLE",
+					URL:       "test_user/test_pass_123@localhost:1521/db_name",
+					Table:     "TEST_TABLE",
+					KeyColumn: "ID",
 				},
-				KeyColumn:      "ID",
 				OrderingColumn: "ID",
 				BatchSize:      100,
 			},
@@ -78,10 +78,10 @@ func TestParseSource(t *testing.T) {
 			},
 			want: Source{
 				General: General{
-					URL:   "test_user/test_pass_123@localhost:1521/db_name",
-					Table: "TEST_TABLE",
+					URL:       "test_user/test_pass_123@localhost:1521/db_name",
+					Table:     "TEST_TABLE",
+					KeyColumn: "ID",
 				},
-				KeyColumn:      "ID",
 				OrderingColumn: "ID",
 				BatchSize:      defaultBatchSize,
 				Columns:        []string{"ID", "NAME", "AGE"},

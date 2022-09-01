@@ -21,7 +21,6 @@ const (
 	ConfigTable = "table"
 	// ConfigKeyColumn is the configuration name of the key column.
 	ConfigKeyColumn = "keyColumn"
-
 	// ConfigOrderingColumn is a config name for an ordering column.
 	ConfigOrderingColumn = "orderingColumn"
 	// ConfigColumns is a config name for columns.

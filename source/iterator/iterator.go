@@ -242,7 +242,7 @@ func (i *Iterator) initTrackingTable(ctx context.Context) error {
 		return fmt.Errorf("expand tracking table with conduit columns: %w", err)
 	}
 
-	// add tracking columns to a tracking table
+	// add trigger
 	_, err = tx.ExecContext(ctx, buildCreateTriggerQuery(buildCreateTriggerParams{
 		name:          formatName(i.table),
 		table:         i.table,
