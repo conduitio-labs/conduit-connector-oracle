@@ -87,14 +87,14 @@ information [inside the Change Data Capture section](#change-data-capture)).
 
 ### Configuration Options
 
-| name             | description                                                            | required | example                                     |
-|------------------|------------------------------------------------------------------------|----------|---------------------------------------------|
-| `url`            | string line for connection to Oracle                                   | **true** | `username/password@path:1521/my.domain.com` |
-| `table`          | the name of a table in the database that the connector should write to | **true** | `users`                                     |
-| `keyColumn`      | column name records should use for their `Key` fields                  | **true** | `id`                                        |
-| `orderingColumn` | column name of a column that the connector will use for ordering rows  | **true** | `created_at`                                |
-| `columns`        | list of column names that should be included in each Record's payload  | false    | `id,name,age`                               |
-| `batchSize`      | size of rows batch. Min is 1 and max is 100000                         | false    | `100`                                       |
+| name             | description                                                                                            | required | example                                     |
+|------------------|--------------------------------------------------------------------------------------------------------|----------|---------------------------------------------|
+| `url`            | string line for connection to Oracle                                                                   | **true** | `username/password@path:1521/my.domain.com` |
+| `table`          | the name of a table in the database that the connector should write to                                 | **true** | `users`                                     |
+| `keyColumn`      | column name records should use for their `Key` fields                                                  | **true** | `id`                                        |
+| `orderingColumn` | column name of a column that the connector will use for ordering rows                                  | **true** | `created_at`                                |
+| `columns`        | list of column names that should be included in each Record's payload, by default includes all columns | false    | `id,name,age`                               |
+| `batchSize`      | size of rows batch. Min is 1 and max is 100000                                                         | false    | `100`                                       |
 
 ## Destination
 
