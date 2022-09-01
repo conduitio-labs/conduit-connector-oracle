@@ -81,8 +81,9 @@ The `mode` field represents a mode of the iterator (`snapshot` or `cdc`).
 
 The `last_processed_val` field represents the last processed element value, and it depends on the iterator mode. For the
 Snapshot mode it is the value from `orderingColumn` column you chose. This means that the `orderingColumn` must contain
-unique values. For the CDC mode it is the value from `CONDUIT_TRACKING_ID` column of the tracking table (more
-information [inside the Change Data Capture section](#change-data-capture)). 
+unique values and suitable for sorting, otherwise the snapshot won't work correctly. For the CDC mode it is the value
+from `CONDUIT_TRACKING_ID` column of the tracking table (more
+information [inside the Change Data Capture section](#change-data-capture)).
 
 ### Configuration Options
 
