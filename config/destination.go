@@ -24,8 +24,8 @@ import (
 // A Destination represents a destination configuration needed for the destination connector.
 type Destination struct {
 	General
-	// KeyColumn is a column name that records should use for their Key fields (source)
-	// or used to detect if the target table already contains the record (destination).
+
+	// KeyColumn is a column name uses to detect if the target table already contains the record.
 	KeyColumn string `validate:"lte=128,omitempty,oracle"`
 }
 

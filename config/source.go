@@ -35,7 +35,7 @@ type Source struct {
 	KeyColumn string `validate:"required,lte=128,oracle"`
 	// OrderingColumn is a name of a column that the connector will use for ordering rows.
 	OrderingColumn string `validate:"required,lte=128,oracle"`
-	// Columns  list of column names that should be included in each Record's payload.
+	// Columns list of column names that should be included in each Record's payload.
 	Columns []string `validate:"dive,lte=128,oracle"`
 	// BatchSize is a size of rows batch.
 	BatchSize int `validate:"gte=1,lte=100000"`
