@@ -25,6 +25,9 @@ const (
 	queryTableIsExists = `
 SELECT table_name FROM user_tables WHERE table_name='%s'`
 
+	querySnapshotTable = `
+CREATE SNAPSHOT %s AS SELECT * FROM %s`
+
 	queryTableCopy = `
 CREATE TABLE %s AS SELECT * FROM %s WHERE 1=2 UNION ALL SELECT * FROM %s WHERE 1=2`
 

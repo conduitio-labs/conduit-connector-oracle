@@ -20,6 +20,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/conduitio-labs/conduit-connector-oracle/models"
@@ -328,7 +329,7 @@ func prepareConfig(t *testing.T) map[string]string {
 
 	return map[string]string{
 		models.ConfigURL:       url,
-		models.ConfigTable:     fmt.Sprintf("conduit_dest_test_%s", randString(6)),
+		models.ConfigTable:     fmt.Sprintf("CONDUIT_DEST_TEST_%s", randString(6)),
 		models.ConfigKeyColumn: "id",
 	}
 }
@@ -386,5 +387,5 @@ func randString(n int) string {
 	b := make([]byte, n)
 	rand.Read(b) //nolint:errcheck // does not actually fail
 
-	return hex.EncodeToString(b)
+	return strings.ToUpper(hex.EncodeToString(b))
 }

@@ -34,6 +34,8 @@ type Snapshot struct {
 
 	// table represents a table name
 	table string
+	// snapshotTable represents a name of snapshot table
+	snapshotTable string
 	// keyColumn represents a name of column what iterator use for setting key in record
 	keyColumn string
 	// orderingColumn represents a name of column what iterator use for sorting data
@@ -54,6 +56,7 @@ type SnapshotParams struct {
 	Repo           *repository.Oracle
 	Position       *Position
 	Table          string
+	SnapshotTable  string
 	KeyColumn      string
 	OrderingColumn string
 	Columns        []string
@@ -67,6 +70,7 @@ func NewSnapshot(ctx context.Context, params SnapshotParams) (*Snapshot, error) 
 		repo:           params.Repo,
 		position:       params.Position,
 		table:          params.Table,
+		snapshotTable:  params.SnapshotTable,
 		keyColumn:      params.KeyColumn,
 		orderingColumn: params.OrderingColumn,
 		columns:        params.Columns,
@@ -160,7 +164,7 @@ func (i *Snapshot) Close() error {
 // table, columns, orderingColumn, batchSize and the current position.
 func (i *Snapshot) loadRows(ctx context.Context) error {
 	selectBuilder := sqlbuilder.NewSelectBuilder().
-		From(i.table).
+		From(i.snapshotTable).
 		OrderBy(i.orderingColumn)
 
 	if len(i.columns) > 0 {

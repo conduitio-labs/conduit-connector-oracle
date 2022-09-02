@@ -25,11 +25,6 @@ import (
 	"go.uber.org/multierr"
 )
 
-const (
-	nameMaxLength     = 30
-	conduitNameFormat = "CONDUIT_%v"
-)
-
 // Iterator represents an implementation of an iterator for Oracle.
 type Iterator struct {
 	repo     *repository.Oracle
@@ -50,7 +45,9 @@ type Iterator struct {
 
 	// columnTypes represents a columns' data from table
 	columnTypes   map[string]coltypes.ColumnData
+	hashedTable   uint32
 	trackingTable string
+	snapshotTable string
 }
 
 // Params represents an incoming iterator params for the New function.
@@ -76,6 +73,15 @@ func New(ctx context.Context, params Params) (*Iterator, error) {
 		batchSize:      params.BatchSize,
 	}
 
+	// hash the table name to use it as a postfix in the tracking table and snapshot,
+	// because the maximum length of names (tables, triggers, etc.) is 30 characters
+	h := fnv.New32a()
+	h.Write([]byte(iterator.table))
+	iterator.hashedTable = h.Sum32()
+
+	iterator.snapshotTable = fmt.Sprintf("CONDUIT_SNAPSHOT_%d", iterator.hashedTable)
+	iterator.trackingTable = fmt.Sprintf("CONDUIT_TRACKING_%d", iterator.hashedTable)
+
 	iterator.repo, err = repository.New(params.URL)
 	if err != nil {
 		return nil, fmt.Errorf("new repository: %w", err)
@@ -87,18 +93,25 @@ func New(ctx context.Context, params Params) (*Iterator, error) {
 		return nil, fmt.Errorf("get table column types: %w", err)
 	}
 
-	// initialize tracking table
-	err = iterator.initTrackingTable(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("initialize tracking table: %w", err)
-	}
-
 	switch position := params.Position; {
 	case position == nil || position.Mode == ModeSnapshot:
+		// initialize a snapshot
+		err = iterator.initSnapshotTable(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("initialize snapshot: %w", err)
+		}
+
+		// initialize tracking table
+		err = iterator.initTrackingTable(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("initialize tracking table: %w", err)
+		}
+
 		iterator.snapshot, err = NewSnapshot(ctx, SnapshotParams{
 			Repo:           iterator.repo,
 			Position:       params.Position,
 			Table:          params.Table,
+			SnapshotTable:  iterator.snapshotTable,
 			KeyColumn:      params.KeyColumn,
 			OrderingColumn: params.OrderingColumn,
 			Columns:        params.Columns,
@@ -199,11 +212,52 @@ func (i *Iterator) Close() (err error) {
 	return multierr.Append(err, i.repo.Close())
 }
 
+// initSnapshotTable formats snapshot name and returns if it's not the first start.
+// If it is - creates a new snapshot.
+func (i *Iterator) initSnapshotTable(ctx context.Context) error {
+	tx, err := i.repo.DB.Begin()
+	if err != nil {
+		return fmt.Errorf("begin db transaction: %w", err)
+	}
+	defer tx.Rollback() // nolint:errcheck,nolintlint
+
+	// check if the snapshot exists
+	rows, err := tx.QueryContext(ctx, fmt.Sprintf(queryTableIsExists, i.snapshotTable))
+	if err != nil {
+		return fmt.Errorf("request with check if the snapshot already exists: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var name string
+		err = rows.Scan(&name)
+		if err != nil {
+			return fmt.Errorf("scan tables to check if the snapshot already exists: %w", err)
+		}
+
+		if name == i.snapshotTable {
+			// table exists, initialization is not needed
+			return nil
+		}
+	}
+
+	// create a snapshot
+	_, err = tx.ExecContext(ctx, fmt.Sprintf(querySnapshotTable, i.snapshotTable, i.table))
+	if err != nil {
+		return fmt.Errorf("create snapshot: %w", err)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return fmt.Errorf("commit db transaction: %w", err)
+	}
+
+	return nil
+}
+
 // initTrackingTable formats tracking table name and returns if it's not the first start.
 // If it is - creates a new tracking table with trigger.
 func (i *Iterator) initTrackingTable(ctx context.Context) error {
-	i.trackingTable = formatName(i.table)
-
 	tx, err := i.repo.DB.Begin()
 	if err != nil {
 		return fmt.Errorf("begin db transaction: %w", err)
@@ -244,7 +298,7 @@ func (i *Iterator) initTrackingTable(ctx context.Context) error {
 
 	// add trigger
 	_, err = tx.ExecContext(ctx, buildCreateTriggerQuery(buildCreateTriggerParams{
-		name:          formatName(i.table),
+		name:          fmt.Sprintf("CONDUIT_%d", i.hashedTable),
 		table:         i.table,
 		trackingTable: i.trackingTable,
 		columnTypes:   i.columnTypes,
@@ -262,20 +316,6 @@ func (i *Iterator) initTrackingTable(ctx context.Context) error {
 	return nil
 }
 
-// formatName formats name and checks that the name less than nameMaxLength.
-// If the formatted name is longer than nameMaxLength - hashes it and returns.
-func formatName(name string) string {
-	result := fmt.Sprintf(conduitNameFormat, name)
-	if len(result) > nameMaxLength {
-		h := fnv.New32a()
-		h.Write([]byte(result))
-
-		return fmt.Sprintf(conduitNameFormat, h.Sum32())
-	}
-
-	return result
-}
-
 // switchToCDCIterator stops Snapshot and initializes CDC iterator.
 func (i *Iterator) switchToCDCIterator(ctx context.Context) error {
 	err := i.snapshot.Close()
@@ -284,6 +324,12 @@ func (i *Iterator) switchToCDCIterator(ctx context.Context) error {
 	}
 
 	i.snapshot = nil
+
+	// drop a snapshot
+	_, err = i.repo.DB.ExecContext(ctx, fmt.Sprintf("DROP SNAPSHOT %s", i.snapshotTable))
+	if err != nil {
+		return fmt.Errorf("exec drop snapshot: %w", err)
+	}
 
 	i.cdc, err = NewCDC(ctx, CDCParams{
 		Repo:           i.repo,
