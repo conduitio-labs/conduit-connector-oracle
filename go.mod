@@ -7,6 +7,7 @@ require (
 	github.com/go-playground/validator/v10 v10.11.0
 	github.com/godror/godror v0.33.3
 	github.com/golang/mock v1.6.0
+	github.com/google/uuid v1.3.0
 	github.com/huandu/go-sqlbuilder v1.14.0
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/matryer/is v1.4.0

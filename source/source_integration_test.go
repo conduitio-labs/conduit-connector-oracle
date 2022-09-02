@@ -19,6 +19,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"hash/fnv"
 	"os"
 	"strings"
 	"testing"
@@ -73,7 +74,7 @@ func TestSource_Read_EmptyTable(t *testing.T) {
 	is.NoErr(err)
 
 	defer func() {
-		err = dropTable(repo, cfg[models.ConfigTable])
+		err = dropTables(repo, cfg[models.ConfigTable])
 		is.NoErr(err)
 	}()
 
@@ -114,7 +115,7 @@ func TestSource_Snapshot_Read(t *testing.T) {
 	is.NoErr(err)
 
 	defer func() {
-		err = dropTable(repo, cfg[models.ConfigTable])
+		err = dropTables(repo, cfg[models.ConfigTable])
 		is.NoErr(err)
 	}()
 
@@ -201,7 +202,7 @@ func TestSource_CDC_Read(t *testing.T) {
 	is.NoErr(err)
 
 	defer func() {
-		err = dropTable(repo, cfg[models.ConfigTable])
+		err = dropTables(repo, cfg[models.ConfigTable])
 		is.NoErr(err)
 	}()
 
@@ -315,7 +316,7 @@ func prepareConfig(t *testing.T) map[string]string {
 
 	return map[string]string{
 		models.ConfigURL:            url,
-		models.ConfigTable:          fmt.Sprintf("conduit_src_test_%s", randString(6)),
+		models.ConfigTable:          fmt.Sprintf("CONDUIT_SRC_TEST_%s", randString(6)),
 		models.ConfigKeyColumn:      "id",
 		models.ConfigOrderingColumn: "id",
 	}
@@ -337,10 +338,34 @@ func createTable(repo *repository.Oracle, table string) error {
 	return nil
 }
 
-func dropTable(repo *repository.Oracle, table string) error {
+func dropTables(repo *repository.Oracle, table string) error {
 	_, err := repo.DB.Exec(fmt.Sprintf("DROP TABLE %s", table))
 	if err != nil {
 		return fmt.Errorf("execute drop table query: %w", err)
+	}
+
+	h := fnv.New32a()
+	h.Write([]byte(table))
+	hash := h.Sum32()
+
+	_, err = repo.DB.Exec(fmt.Sprintf(`
+	DECLARE
+		tbl_count number;
+		sql_stmt long;
+	
+	BEGIN
+		SELECT COUNT(*) INTO tbl_count 
+		FROM dba_tables
+		WHERE table_name = 'CONDUIT_TRACKING_%d';
+	
+		IF(tbl_count <> 0)
+			THEN
+			sql_stmt:='DROP TABLE CONDUIT_TRACKING_%d';
+			EXECUTE IMMEDIATE sql_stmt;
+		END IF;
+	END;`, hash, hash))
+	if err != nil {
+		return fmt.Errorf("execute drop tracking table query: %w", err)
 	}
 
 	return nil
@@ -401,5 +426,5 @@ func randString(n int) string {
 	b := make([]byte, n)
 	rand.Read(b) //nolint:errcheck // does not actually fail
 
-	return hex.EncodeToString(b)
+	return strings.ToUpper(hex.EncodeToString(b))
 }
