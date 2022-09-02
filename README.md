@@ -23,9 +23,10 @@ acceptance tests, set the Oracle database URL to the environment variables as an
 ## Source
 
 The Oracle Source connects to the database using the provided `url` and starts creating records for each table row and
-each detected change. The first time Source runs, it makes a snapshot, creates a tracking table, and a trigger to track
-changes in the `table`, and launches Snapshot mode. Then, when all the records have been read, Source switches to CDC
-mode. More information [inside the Change Data Capture section](#change-data-capture).
+each detected change. The first time Source runs,
+it [makes a snapshot](https://docs.oracle.com/cd/A87860_01/doc/server.817/a76959/mview.htm), creates a tracking table,
+and a trigger to track changes in the `table`, and launches Snapshot mode. Then, when all the records have been read,
+Source switches to CDC mode. More information [inside the Change Data Capture section](#change-data-capture).
 
 ### Snapshot
 

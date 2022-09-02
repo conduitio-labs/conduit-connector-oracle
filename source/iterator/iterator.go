@@ -73,7 +73,8 @@ func New(ctx context.Context, params Params) (*Iterator, error) {
 		batchSize:      params.BatchSize,
 	}
 
-	// hash the table name to use it in tracking table and snapshot
+	// hash the table name to use it as a postfix in the tracking table and snapshot,
+	// because the maximum length of names (tables, triggers, etc.) is 30 characters
 	h := fnv.New32a()
 	h.Write([]byte(iterator.table))
 	iterator.hashedTable = h.Sum32()
