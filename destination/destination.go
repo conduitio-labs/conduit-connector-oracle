@@ -93,7 +93,7 @@ func (d *Destination) Open(_ context.Context) (err error) {
 	return nil
 }
 
-// Write writes a record into a Destination.
+// Write writes records into a Destination.
 func (d *Destination) Write(ctx context.Context, records []sdk.Record) (int, error) {
 	for i, r := range records {
 		err := d.writer.Write(ctx, r)

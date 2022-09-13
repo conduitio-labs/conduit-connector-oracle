@@ -23,8 +23,6 @@ import (
 	_ "github.com/godror/godror"
 )
 
-const driverName = "godror"
-
 // Oracle represents a Oracle repository.
 type Oracle struct {
 	DB *sqlx.DB
@@ -32,7 +30,7 @@ type Oracle struct {
 
 // New opens a database and pings it.
 func New(url string) (*Oracle, error) {
-	db, err := sqlx.Open(driverName, url)
+	db, err := sqlx.Open("godror", url)
 	if err != nil {
 		return nil, fmt.Errorf("open connection: %w", err)
 	}
