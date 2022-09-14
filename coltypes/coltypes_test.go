@@ -51,21 +51,21 @@ func TestConvertStructureData(t *testing.T) {
 	columnTypes[key] = ColumnData{
 		Type: "TIMESTAMP(6)",
 	}
-	payload[key] = 623499255
+	payload[key] = 623510055
 	expected[key] = expectedTime
 
 	key = "TS_FLOAT64"
 	columnTypes[key] = ColumnData{
 		Type: "TIMESTAMP(6)",
 	}
-	payload[key] = float64(623499255)
+	payload[key] = float64(623510055)
 	expected[key] = expectedTime
 
 	key = "TS_STRING"
 	columnTypes[key] = ColumnData{
 		Type: "TIMESTAMP(6)",
 	}
-	payload[key] = "623499255"
+	payload[key] = "623510055"
 	expected[key] = expectedTime
 
 	got, err := ConvertStructureData(columnTypes, payload)

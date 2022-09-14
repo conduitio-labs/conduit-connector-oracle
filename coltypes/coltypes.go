@@ -170,21 +170,21 @@ func ConvertStructureData(
 					return nil, fmt.Errorf("convert value %q to int64: %w", valueStr, err)
 				}
 
-				result[key] = strings.ToUpper(time.Unix(valueInt64, 0).Format(timeLayout))
+				result[key] = strings.ToUpper(time.Unix(valueInt64, 0).UTC().Format(timeLayout))
 
 				continue
 			}
 
 			valueFloat64, ok := value.(float64)
 			if ok {
-				result[key] = strings.ToUpper(time.Unix(int64(valueFloat64), 0).Format(timeLayout))
+				result[key] = strings.ToUpper(time.Unix(int64(valueFloat64), 0).UTC().Format(timeLayout))
 
 				continue
 			}
 
 			valueInt, ok := value.(int)
 			if ok {
-				result[key] = strings.ToUpper(time.Unix(int64(valueInt), 0).Format(timeLayout))
+				result[key] = strings.ToUpper(time.Unix(int64(valueInt), 0).UTC().Format(timeLayout))
 
 				continue
 			}
