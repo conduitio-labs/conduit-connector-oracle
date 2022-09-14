@@ -73,6 +73,6 @@ func TestConvertStructureData(t *testing.T) {
 	is.True(got != nil)
 	is.Equal(len(payload), len(got))
 	for k, v := range got {
-		is.True(expected[k] == v)
+		is.Equal(expected[k], v)
 	}
 }
