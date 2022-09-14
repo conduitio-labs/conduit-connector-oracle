@@ -78,17 +78,20 @@ func (d *Destination) Configure(_ context.Context, cfg map[string]string) error 
 }
 
 // Open initializes a publisher client.
-func (d *Destination) Open(_ context.Context) (err error) {
+func (d *Destination) Open(ctx context.Context) (err error) {
 	d.repo, err = repository.New(d.cfg.URL)
 	if err != nil {
 		return fmt.Errorf("new repository: %w", err)
 	}
 
-	d.writer = writer.New(writer.Params{
+	d.writer, err = writer.New(ctx, writer.Params{
 		Repo:      d.repo,
 		Table:     d.cfg.Table,
 		KeyColumn: d.cfg.KeyColumn,
 	})
+	if err != nil {
+		return fmt.Errorf("new writer: %w", err)
+	}
 
 	return nil
 }

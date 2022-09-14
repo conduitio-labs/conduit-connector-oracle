@@ -21,6 +21,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/conduitio-labs/conduit-connector-oracle/coltypes"
 	"github.com/conduitio-labs/conduit-connector-oracle/repository"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 	"github.com/huandu/go-sqlbuilder"
@@ -28,9 +29,10 @@ import (
 
 // Writer implements a writer logic for Oracle destination.
 type Writer struct {
-	repo      *repository.Oracle
-	table     string
-	keyColumn string
+	repo        *repository.Oracle
+	table       string
+	keyColumn   string
+	columnTypes map[string]coltypes.ColumnData
 }
 
 // Params is an incoming params for the New function.
@@ -41,12 +43,29 @@ type Params struct {
 }
 
 // New creates new instance of the Writer.
-func New(params Params) *Writer {
-	return &Writer{
+func New(ctx context.Context, params Params) (*Writer, error) {
+	writer := &Writer{
 		repo:      params.Repo,
 		table:     params.Table,
 		keyColumn: params.KeyColumn,
 	}
+
+	columnTypes, err := coltypes.GetColumnTypes(ctx, writer.repo, writer.table)
+	if err != nil {
+		return nil, fmt.Errorf("get column types: %w", err)
+	}
+	writer.columnTypes = columnTypes
+
+	// update formats of date and timestamp types
+	// to insert/update values of these types as strings
+	// (instead of using TO_DATE and TO_TIMESTAMP functions)
+	_, err = writer.repo.DB.ExecContext(ctx, "ALTER SESSION SET NLS_DATE_FORMAT='YYYY-MM-DD HH24:MI:SS' "+
+		"NLS_TIMESTAMP_FORMAT='YYYY-MM-DD HH24:MI:SS'")
+	if err != nil {
+		return nil, fmt.Errorf("exec update formats in session: %w", err)
+	}
+
+	return writer, nil
 }
 
 // Write writes a sdk.Record into a Destination.
@@ -68,6 +87,11 @@ func (w *Writer) upsert(ctx context.Context, record sdk.Record) error {
 		return fmt.Errorf("structurize payload: %w", err)
 	}
 
+	payload, err = coltypes.ConvertStructureData(w.columnTypes, payload)
+	if err != nil {
+		return fmt.Errorf("convert structure data: %w", err)
+	}
+
 	// if payload is empty return empty payload error
 	if payload == nil {
 		return ErrEmptyPayload
@@ -75,7 +99,9 @@ func (w *Writer) upsert(ctx context.Context, record sdk.Record) error {
 
 	key, err := w.structurizeData(record.Key)
 	if err != nil {
-		return fmt.Errorf("structurize key during upsert: %v", err)
+		// if the key is not structured, we simply ignore it
+		// we'll try to insert just a payload in this case
+		sdk.Logger(ctx).Debug().Msgf("structurize key during upsert: %v", err)
 	}
 
 	keyColumn, err := w.getKeyColumn(key)
@@ -99,7 +125,7 @@ func (w *Writer) upsert(ctx context.Context, record sdk.Record) error {
 
 	_, err = w.repo.DB.ExecContext(ctx, query)
 	if err != nil {
-		return fmt.Errorf("exec upsert: %w", err)
+		return fmt.Errorf("exec upsert %q: %w", query, err)
 	}
 
 	return nil
@@ -133,7 +159,7 @@ func (w *Writer) delete(ctx context.Context, record sdk.Record) error {
 
 	_, err = w.repo.DB.ExecContext(ctx, query)
 	if err != nil {
-		return fmt.Errorf("exec delete: %w", err)
+		return fmt.Errorf("exec delete %q: %w", query, err)
 	}
 
 	return nil
@@ -244,7 +270,7 @@ func (w *Writer) structurizeData(data sdk.Data) (sdk.StructuredData, error) {
 
 	unmarshalledData := make(sdk.StructuredData)
 	if err := json.Unmarshal(data.Bytes(), &unmarshalledData); err != nil {
-		return nil, fmt.Errorf("unmarshal data into structured data: %w", err)
+		return nil, fmt.Errorf("unmarshal %q into structured data: %w", string(data.Bytes()), err)
 	}
 
 	structuredData := make(sdk.StructuredData, len(unmarshalledData))

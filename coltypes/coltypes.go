@@ -18,12 +18,29 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/conduitio-labs/conduit-connector-oracle/repository"
+	sdk "github.com/conduitio/conduit-connector-sdk"
 	"github.com/godror/godror"
 )
 
-const numberType = "NUMBER"
+const (
+	// oracle's data types.
+	numberType = "NUMBER"
+	date       = "DATE"
+	timestamp  = "TIMESTAMP"
+
+	// oracle's date and timestamp layouts.
+	timeLayout = "2006-01-02 15:04:05"
+)
+
+var (
+	timeLayouts = []string{time.RFC3339, time.RFC3339Nano, time.Layout, time.ANSIC, time.UnixDate, time.RubyDate,
+		time.RFC822, time.RFC822Z, time.RFC850, time.RFC1123, time.RFC1123Z, time.RFC3339, time.RFC3339,
+		time.RFC3339Nano, time.Kitchen, time.Stamp, time.StampMilli, time.StampMicro, time.StampNano}
+)
 
 // queryColumnData is a query that selects columns' data by the table name.
 var queryColumnData = `
@@ -106,4 +123,91 @@ func GetColumnTypes(ctx context.Context, repo *repository.Oracle, tableName stri
 	}
 
 	return columnTypes, nil
+}
+
+// ConvertStructureData converts a sdk.StructureData values to a proper database types.
+func ConvertStructureData(
+	columnTypes map[string]ColumnData,
+	data sdk.StructuredData,
+) (sdk.StructuredData, error) {
+	result := make(sdk.StructuredData, len(data))
+
+	for key, value := range data {
+		if value == nil {
+			result[key] = nil
+
+			continue
+		}
+
+		switch datatype := columnTypes[strings.ToUpper(key)].Type; {
+		case datatype == date:
+			valueTime, ok := value.(time.Time)
+			if ok {
+				result[key] = valueTime.Format(timeLayout)
+
+				continue
+			}
+
+			valueStr, ok := value.(string)
+			if ok {
+				val, err := parseToTime(valueStr)
+				if err != nil {
+					return nil, fmt.Errorf("convert value %q to time.Time: %w", valueStr, err)
+				}
+
+				result[key] = val.Format(timeLayout)
+
+				continue
+			}
+
+			return nil, fmt.Errorf("parse value %q of type date", value)
+
+		case strings.Contains(datatype, timestamp):
+			valueStr, ok := value.(string)
+			if ok {
+				valueInt64, err := strconv.ParseInt(valueStr, 0, 64)
+				if err != nil {
+					return nil, fmt.Errorf("convert value %q to int64: %w", valueStr, err)
+				}
+
+				result[key] = strings.ToUpper(time.Unix(valueInt64, 0).Format(timeLayout))
+
+				continue
+			}
+
+			valueFloat64, ok := value.(float64)
+			if ok {
+				result[key] = strings.ToUpper(time.Unix(int64(valueFloat64), 0).Format(timeLayout))
+
+				continue
+			}
+
+			valueInt, ok := value.(int)
+			if ok {
+				result[key] = strings.ToUpper(time.Unix(int64(valueInt), 0).Format(timeLayout))
+
+				continue
+			}
+
+			return nil, fmt.Errorf("parse value %q of type timestamp", value)
+
+		default:
+			result[key] = value
+		}
+	}
+
+	return result, nil
+}
+
+func parseToTime(val string) (time.Time, error) {
+	for i := range timeLayouts {
+		timeValue, err := time.Parse(timeLayouts[i], val)
+		if err != nil {
+			continue
+		}
+
+		return timeValue, nil
+	}
+
+	return time.Time{}, fmt.Errorf("%s - %w", val, errInvalidTimeLayout)
 }
