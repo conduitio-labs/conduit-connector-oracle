@@ -5,6 +5,9 @@
 Oracle connector is one of [Conduit](https://github.com/ConduitIO/conduit) plugins. It provides both, a source and
 a destination Oracle connector.
 
+Connector uses [godror - Go DRiver for ORacle](https://godror.github.io/godror/). This driver is required to be
+installed. See [Godror Installation](https://godror.github.io/godror/doc/installation.html) for more information.
+
 ## Prerequisites
 
 - [Go](https://go.dev/) 1.18
@@ -97,6 +100,14 @@ information [inside the Change Data Capture section](#change-data-capture)).
 | `orderingColumn` | column name of a column that the connector will use for ordering rows                                  | **true** | `created_at`                                |
 | `columns`        | list of column names that should be included in each Record's payload, by default includes all columns | false    | `id,name,age`                               |
 | `batchSize`      | size of rows batch. Min is 1 and max is 100000                                                         | false    | `100`                                       |
+
+### Type convention
+
+Type convention describes the conversion from Oracle to Go types.
+
+| Oracle        | Go     |
+|---------------|--------|
+| `NUMBER(1,0)` | `bool` |
 
 ## Destination
 
