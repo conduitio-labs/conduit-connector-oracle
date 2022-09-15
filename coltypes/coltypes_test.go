@@ -33,7 +33,39 @@ func TestConvertStructureData(t *testing.T) {
 	payload := make(sdk.StructuredData)
 	expected := make(map[string]interface{})
 
-	key := "CREATED_AT"
+	key := "DATA_MAP"
+	payload[key] = map[string]interface{}{
+		"int_val":    123,
+		"bool_val":   true,
+		"string_val": "test",
+	}
+	expected[key] = `{"bool_val":true,"int_val":123,"string_val":"test"}`
+
+	key = "DATA_SLICE"
+	payload[key] = []interface{}{123, true, "test"}
+	expected[key] = `[123,true,"test"]`
+
+	key = "IS_ACTIVE_TRUE"
+	precision, scale := 1, 0
+	columnTypes[key] = ColumnData{
+		Type:      "NUMBER",
+		Precision: &precision,
+		Scale:     &scale,
+	}
+	payload[key] = true
+	expected[key] = 1
+
+	key = "IS_ACTIVE_FALSE"
+	precision, scale = 1, 0
+	columnTypes[key] = ColumnData{
+		Type:      "NUMBER",
+		Precision: &precision,
+		Scale:     &scale,
+	}
+	payload[key] = false
+	expected[key] = 0
+
+	key = "CREATED_AT"
 	columnTypes[key] = ColumnData{
 		Type: "DATE",
 	}

@@ -101,14 +101,6 @@ information [inside the Change Data Capture section](#change-data-capture)).
 | `columns`        | list of column names that should be included in each Record's payload, by default includes all columns | false    | `id,name,age`                               |
 | `batchSize`      | size of rows batch. Min is 1 and max is 100000                                                         | false    | `100`                                       |
 
-### Type convention
-
-Type convention describes the conversion from Oracle to Go types.
-
-| Oracle        | Go     |
-|---------------|--------|
-| `NUMBER(1,0)` | `bool` |
-
 ## Destination
 
 The Oracle Destination takes a `record.Record` and parses it into a valid SQL query. The Destination is designed to
@@ -133,6 +125,14 @@ assigned from the Source.
 | `url`       | string line for connection to Oracle                                               | **true** | `username/password@path:1521/my.domain.com` |
 | `table`     | the name of a table in the database that the connector should write to, by default | **true** | `users`                                     |
 | `keyColumn` | column name uses to detect if the target table already contains the record         | **true** | `id`                                        |
+
+## Type convention
+
+Type convention describes the conversion between Oracle to Go types.
+
+| Oracle        | Go     |
+|---------------|--------|
+| `NUMBER(1,0)` | `bool` |
 
 ## Known limitations
 

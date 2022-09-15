@@ -15,7 +15,6 @@
 package writer
 
 import (
-	"reflect"
 	"testing"
 	"time"
 )
@@ -43,16 +42,18 @@ func TestWriter_buildUpsertQuery(t *testing.T) {
 				table:     "users",
 				keyColumn: "id",
 				keyValue:  "someId",
-				columns:   []string{"name", "age", "created", "metadata"},
-				values:    []any{"John", 42, time.Unix(1257894000, 0).UTC(), map[string]string{"action": "insert"}},
+				columns:   []string{"col_string", "col_int", "col_ts", "col_map", "col_slice"},
+				values: []any{
+					"John", 42, time.Unix(1257894000, 0).UTC(), "{\"key\":\"value\"}", "[1,\"test\"]",
+				},
 			},
 			want: "MERGE INTO users USING DUAL ON (id = 'someId') " +
 				"WHEN MATCHED THEN " +
-				"UPDATE SET name = 'John', age = 42, created = '2009-11-10 23:00:00', " +
-				"metadata = '{\\\"action\\\":\\\"insert\\\"}' " +
+				"UPDATE SET col_string = 'John', col_int = 42, col_ts = '2009-11-10 23:00:00', " +
+				"col_map = '{\\\"key\\\":\\\"value\\\"}', col_slice = '[1,\\\"test\\\"]' " +
 				"WHEN NOT MATCHED THEN " +
-				"INSERT (name, age, created, metadata) " +
-				"VALUES ('John', 42, '2009-11-10 23:00:00', '{\\\"action\\\":\\\"insert\\\"}')",
+				"INSERT (col_string, col_int, col_ts, col_map, col_slice) " +
+				"VALUES ('John', 42, '2009-11-10 23:00:00', '{\\\"key\\\":\\\"value\\\"}', '[1,\\\"test\\\"]')",
 		},
 		{
 			name: "mismatch columns and values length",
@@ -136,56 +137,6 @@ func TestWriter_buildDeleteQuery(t *testing.T) {
 
 			if got != tt.want {
 				t.Errorf("got: %v, want: %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestWriter_convertValues(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name   string
-		values []any
-		want   []any
-	}{
-		{
-			name:   "success with true value",
-			values: []any{"John", true},
-			want:   []any{"John", 1},
-		},
-		{
-			name:   "success with false value",
-			values: []any{"John", false},
-			want:   []any{"John", 0},
-		},
-		{
-			name:   "success with map type",
-			values: []any{"John", map[string]string{"action": "insert"}},
-			want:   []any{"John", "{\"action\":\"insert\"}"},
-		},
-	}
-	for _, tt := range tests {
-		tt := tt
-
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			w := &Writer{}
-
-			err := w.encodeValues(tt.values)
-			if err != nil {
-				t.Errorf("unexpected error %s", err.Error())
-			}
-
-			if len(tt.values) != len(tt.want) {
-				t.Error("values length must stay the same")
-
-				return
-			}
-
-			if !reflect.DeepEqual(tt.values, tt.want) {
-				t.Errorf("got: %v, want: %v", tt.values, tt.want)
 			}
 		})
 	}
