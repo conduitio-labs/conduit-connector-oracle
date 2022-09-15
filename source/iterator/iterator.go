@@ -212,77 +212,42 @@ func (i *Iterator) Close() (err error) {
 	return multierr.Append(err, i.repo.Close())
 }
 
-// initSnapshotTable formats snapshot name and returns if it's not the first start.
-// If it is - creates a new snapshot.
+// initSnapshotTable creates a new snapshot table, if id does not exist.
 func (i *Iterator) initSnapshotTable(ctx context.Context) error {
-	tx, err := i.repo.DB.Begin()
+	exists, err := i.checkIfTableExists(ctx, i.snapshotTable)
 	if err != nil {
-		return fmt.Errorf("begin db transaction: %w", err)
-	}
-	defer tx.Rollback() // nolint:errcheck,nolintlint
-
-	// check if the snapshot exists
-	rows, err := tx.QueryContext(ctx, fmt.Sprintf(queryTableIsExists, i.snapshotTable))
-	if err != nil {
-		return fmt.Errorf("request with check if the snapshot already exists: %w", err)
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var name string
-		err = rows.Scan(&name)
-		if err != nil {
-			return fmt.Errorf("scan tables to check if the snapshot already exists: %w", err)
-		}
-
-		if name == i.snapshotTable {
-			// table exists, initialization is not needed
-			return nil
-		}
+		return fmt.Errorf("check if table exists: %w", err)
 	}
 
-	// create a snapshot
-	_, err = tx.ExecContext(ctx, fmt.Sprintf(querySnapshotTable, i.snapshotTable, i.table))
+	if exists {
+		return nil
+	}
+
+	// create a snapshot table
+	_, err = i.repo.DB.ExecContext(ctx, fmt.Sprintf(querySnapshotTable, i.snapshotTable, i.table))
 	if err != nil {
 		return fmt.Errorf("create snapshot: %w", err)
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return fmt.Errorf("commit db transaction: %w", err)
 	}
 
 	return nil
 }
 
-// initTrackingTable formats tracking table name and returns if it's not the first start.
-// If it is - creates a new tracking table with trigger.
+// initTrackingTable creates a new tracking table and trigger, if they do not exist.
 func (i *Iterator) initTrackingTable(ctx context.Context) error {
+	exists, err := i.checkIfTableExists(ctx, i.trackingTable)
+	if err != nil {
+		return fmt.Errorf("check if table exists: %w", err)
+	}
+
+	if exists {
+		return nil
+	}
+
 	tx, err := i.repo.DB.Begin()
 	if err != nil {
 		return fmt.Errorf("begin db transaction: %w", err)
 	}
 	defer tx.Rollback() // nolint:errcheck,nolintlint
-
-	// check if the table exists
-	rows, err := tx.QueryContext(ctx, fmt.Sprintf(queryTableIsExists, i.trackingTable))
-	if err != nil {
-		return fmt.Errorf("request with check if the table exists: %w", err)
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var name string
-		err = rows.Scan(&name)
-		if err != nil {
-			return fmt.Errorf("scan table name to check if the table exists: %w", err)
-		}
-
-		if name == i.trackingTable {
-			// table exists, initialization is not needed
-			return nil
-		}
-	}
 
 	// create a copy of table
 	_, err = tx.ExecContext(ctx, fmt.Sprintf(queryTableCopy, i.trackingTable, i.table, i.table))
@@ -316,6 +281,49 @@ func (i *Iterator) initTrackingTable(ctx context.Context) error {
 	return nil
 }
 
+// dropSnapshotTable drops a snapshot, if it exists.
+func (i *Iterator) dropSnapshotTable(ctx context.Context) error {
+	exists, err := i.checkIfTableExists(ctx, i.snapshotTable)
+	if err != nil {
+		return fmt.Errorf("check if table exists: %w", err)
+	}
+
+	if !exists {
+		return nil
+	}
+
+	_, err = i.repo.DB.ExecContext(ctx, fmt.Sprintf("DROP SNAPSHOT %s", i.snapshotTable))
+	if err != nil {
+		return fmt.Errorf("exec drop snapshot: %w", err)
+	}
+
+	return nil
+}
+
+// checkIfTableExists checks if table exist.
+func (i *Iterator) checkIfTableExists(ctx context.Context, table string) (bool, error) {
+	rows, err := i.repo.DB.QueryContext(ctx, fmt.Sprintf(queryIfTableExists, table))
+	if err != nil {
+		return false, fmt.Errorf("request with check if the table already exists: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var name string
+		err = rows.Scan(&name)
+		if err != nil {
+			return false, fmt.Errorf("scan tables to check if the table already exists: %w", err)
+		}
+
+		if name == table {
+			// table exists
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
 // switchToCDCIterator stops Snapshot and initializes CDC iterator.
 func (i *Iterator) switchToCDCIterator(ctx context.Context) error {
 	err := i.snapshot.Close()
@@ -326,9 +334,9 @@ func (i *Iterator) switchToCDCIterator(ctx context.Context) error {
 	i.snapshot = nil
 
 	// drop a snapshot
-	_, err = i.repo.DB.ExecContext(ctx, fmt.Sprintf("DROP SNAPSHOT %s", i.snapshotTable))
+	err = i.dropSnapshotTable(ctx)
 	if err != nil {
-		return fmt.Errorf("exec drop snapshot: %w", err)
+		return fmt.Errorf("drop snapshot: %w", err)
 	}
 
 	i.cdc, err = NewCDC(ctx, CDCParams{

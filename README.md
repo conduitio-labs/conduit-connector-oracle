@@ -68,9 +68,6 @@ with `CONDUIT_TRACKING_ID` ordering column.
 The Ack method collects the `CONDUIT_TRACKING_ID` of those records that have been successfully applied, in order to
 remove them later in a batch from the tracking table (every 5 seconds or when the connector is closed).
 
-**Important**: If there is a need to change the columns in the target table, these changes must be made in the tracking
-table as well. If the tracking table was deleted, it will be recreated on the next start.
-
 ### Position
 
 Example of the position:
@@ -89,6 +86,13 @@ Snapshot mode it is the value from `orderingColumn` column you chose. This means
 unique values and suitable for sorting, otherwise the snapshot won't work correctly. For the CDC mode it is the value
 from `CONDUIT_TRACKING_ID` column of the tracking table (more
 information [inside the Change Data Capture section](#change-data-capture)).
+
+**Important**:
+
+- if there is a need to change the columns in the target table, these changes must be made in the tracking table as
+  well;
+- if the tracking table was deleted, it will be recreated on the next start;
+- creating two completely identical source connectors is not allowed.
 
 ### Configuration Options
 
