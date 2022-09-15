@@ -18,7 +18,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"reflect"
 	"strings"
 
 	"github.com/conduitio-labs/conduit-connector-oracle/coltypes"
@@ -179,11 +178,6 @@ func (w *Writer) buildUpsertQuery(
 		return "", errColumnsValuesLenMismatch
 	}
 
-	err := w.encodeValues(values)
-	if err != nil {
-		return "", fmt.Errorf("convert values: %w", err)
-	}
-
 	// arguments for the query
 	args := make([]any, 0, len(values)*2)
 
@@ -298,29 +292,4 @@ func (w *Writer) extractColumnsAndValues(payload sdk.StructuredData) ([]string, 
 	}
 
 	return columns, values
-}
-
-// encodes values to right Oracle's types.
-func (w *Writer) encodeValues(values []any) error {
-	for i := range values {
-		if values[i] != nil {
-			switch reflect.TypeOf(values[i]).Kind() {
-			case reflect.Bool: // convert the boolean type to the int, for the NUMBER(1,0) Oracle type
-				if values[i].(bool) {
-					values[i] = 1
-				} else {
-					values[i] = 0
-				}
-			case reflect.Map, reflect.Slice: // convert the map type to the string, for the VARCHAR2 Oracle type
-				bs, err := json.Marshal(values[i])
-				if err != nil {
-					return fmt.Errorf("marshal map: %w", err)
-				}
-
-				values[i] = string(bs)
-			}
-		}
-	}
-
-	return nil
 }

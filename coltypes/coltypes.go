@@ -16,7 +16,9 @@ package coltypes
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -28,12 +30,12 @@ import (
 
 const (
 	// oracle's data types.
-	numberType = "NUMBER"
-	date       = "DATE"
-	timestamp  = "TIMESTAMP"
+	oracleTypeNumber    = "NUMBER"
+	oracleTypeDate      = "DATE"
+	oracleTypeTimestamp = "TIMESTAMP"
 
 	// oracle's date and timestamp layouts.
-	timeLayout = "2006-01-02 15:04:05"
+	oracleLayoutTime = "2006-01-02 15:04:05"
 )
 
 var (
@@ -71,7 +73,7 @@ func TransformRow(row map[string]any, columnTypes map[string]ColumnData) (map[st
 			continue
 		}
 
-		if columnTypes[key].Type == numberType {
+		if columnTypes[key].Type == oracleTypeNumber {
 			v, err := godror.Num.ConvertValue(value)
 			if err != nil {
 				return nil, fmt.Errorf("convert the oracle number type to the interface: %w", err)
@@ -139,57 +141,58 @@ func ConvertStructureData(
 			continue
 		}
 
-		switch datatype := columnTypes[strings.ToUpper(key)].Type; {
-		case datatype == date:
-			valueTime, ok := value.(time.Time)
-			if ok {
-				result[key] = valueTime.Format(timeLayout)
+		switch reflect.TypeOf(value).Kind() {
+		case reflect.Map, reflect.Slice: // convert the map type to the string, for the VARCHAR2 Oracle type
+			bs, err := json.Marshal(value)
+			if err != nil {
+				return nil, fmt.Errorf("marshal map or slice: %w", err)
+			}
+
+			result[key] = string(bs)
+
+			continue
+		}
+
+		switch oracleColumnData := columnTypes[strings.ToUpper(key)]; {
+		// if the column type is a NUMBER, precision is 1, scale is 0, and value is a boolean,
+		// convert it to the integer, when the "true" value is 1, and "false" is 0
+		case oracleColumnData.Type == oracleTypeNumber &&
+			oracleColumnData.Precision != nil && *oracleColumnData.Precision == 1 &&
+			oracleColumnData.Scale != nil && *oracleColumnData.Scale == 0:
+			valueBool, ok := value.(bool)
+			if !ok {
+				result[key] = value
 
 				continue
 			}
 
-			valueStr, ok := value.(string)
-			if ok {
-				val, err := parseToTime(valueStr)
-				if err != nil {
-					return nil, fmt.Errorf("convert value %q to time.Time: %w", valueStr, err)
-				}
-
-				result[key] = val.Format(timeLayout)
-
-				continue
+			if valueBool {
+				result[key] = 1
+			} else {
+				result[key] = 0
 			}
 
-			return nil, fmt.Errorf("parse value %q of type date", value)
+			continue
 
-		case strings.Contains(datatype, timestamp):
-			valueStr, ok := value.(string)
-			if ok {
-				valueInt64, err := strconv.ParseInt(valueStr, 0, 64)
-				if err != nil {
-					return nil, fmt.Errorf("convert value %q to int64: %w", valueStr, err)
-				}
-
-				result[key] = strings.ToUpper(time.Unix(valueInt64, 0).UTC().Format(timeLayout))
-
-				continue
+		case oracleColumnData.Type == oracleTypeDate:
+			v, err := formatDate(value)
+			if err != nil {
+				return nil, err
 			}
 
-			valueFloat64, ok := value.(float64)
-			if ok {
-				result[key] = strings.ToUpper(time.Unix(int64(valueFloat64), 0).UTC().Format(timeLayout))
+			result[key] = v
 
-				continue
+			continue
+
+		case strings.Contains(oracleColumnData.Type, oracleTypeTimestamp):
+			v, err := formatTimestamp(value)
+			if err != nil {
+				return nil, err
 			}
 
-			valueInt, ok := value.(int)
-			if ok {
-				result[key] = strings.ToUpper(time.Unix(int64(valueInt), 0).UTC().Format(timeLayout))
+			result[key] = v
 
-				continue
-			}
-
-			return nil, fmt.Errorf("parse value %q of type timestamp", value)
+			continue
 
 		default:
 			result[key] = value
@@ -199,7 +202,50 @@ func ConvertStructureData(
 	return result, nil
 }
 
-func parseToTime(val string) (time.Time, error) {
+func formatTimestamp(value interface{}) (string, error) {
+	valueStr, ok := value.(string)
+	if ok {
+		valueInt64, err := strconv.ParseInt(valueStr, 0, 64)
+		if err != nil {
+			return "", fmt.Errorf("convert value %q to int64: %w", valueStr, err)
+		}
+
+		return strings.ToUpper(time.Unix(valueInt64, 0).UTC().Format(oracleLayoutTime)), nil
+	}
+
+	valueFloat64, ok := value.(float64)
+	if ok {
+		return strings.ToUpper(time.Unix(int64(valueFloat64), 0).UTC().Format(oracleLayoutTime)), nil
+	}
+
+	valueInt, ok := value.(int)
+	if ok {
+		return strings.ToUpper(time.Unix(int64(valueInt), 0).UTC().Format(oracleLayoutTime)), nil
+	}
+
+	return "", fmt.Errorf("format value %q of type timestamp", value)
+}
+
+func formatDate(value interface{}) (string, error) {
+	valueTime, ok := value.(time.Time)
+	if ok {
+		return valueTime.Format(oracleLayoutTime), nil
+	}
+
+	valueStr, ok := value.(string)
+	if ok {
+		val, err := parseTime(valueStr)
+		if err != nil {
+			return "", fmt.Errorf("convert value %q to time.Time: %w", valueStr, err)
+		}
+
+		return val.Format(oracleLayoutTime), nil
+	}
+
+	return "", fmt.Errorf("format value %q of type date", value)
+}
+
+func parseTime(val string) (time.Time, error) {
 	for i := range timeLayouts {
 		timeValue, err := time.Parse(timeLayouts[i], val)
 		if err != nil {
