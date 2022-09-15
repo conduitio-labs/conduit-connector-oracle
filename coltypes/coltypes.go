@@ -154,6 +154,8 @@ func ConvertStructureData(
 		}
 
 		switch oracleColumnData := columnTypes[strings.ToUpper(key)]; {
+		// if the column type is a NUMBER, precision is 1, scale is 0, and value is a boolean,
+		// convert it to the integer, when the "true" value is 1, and "false" is 0
 		case oracleColumnData.Type == oracleTypeNumber &&
 			oracleColumnData.Precision != nil && *oracleColumnData.Precision == 1 &&
 			oracleColumnData.Scale != nil && *oracleColumnData.Scale == 0:

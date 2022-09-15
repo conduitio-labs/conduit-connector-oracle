@@ -130,9 +130,9 @@ assigned from the Source.
 
 Type convention describes the conversion between Oracle to Go types.
 
-| Oracle        | Go     |
-|---------------|--------|
-| `NUMBER(1,0)` | `bool` |
+| oracle        | go     | explanation                                                                                       |
+|---------------|--------|---------------------------------------------------------------------------------------------------|
+| `NUMBER(1,0)` | `bool` | oracle does not have support a boolean type, so the best practice is to keep the values as 0 or 1 |
 
 ## Known limitations
 
