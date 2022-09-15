@@ -64,7 +64,7 @@ func Validate(s interface{}) error {
 				err = multierr.Append(err, RequiredErr(models.ConfigKeyName(e.Field())))
 			case "oracle":
 				err = multierr.Append(err, InvalidOracleObjectErr(models.ConfigKeyName(e.Field())))
-			case "lte":
+			case "gte", "lte":
 				err = multierr.Append(err, OutOfRangeErr(models.ConfigKeyName(e.Field())))
 			}
 		}

@@ -68,6 +68,44 @@ func TestParseSource(t *testing.T) {
 			},
 		},
 		{
+			name: "valid config, batch size is maximum",
+			in: map[string]string{
+				models.ConfigURL:            "test_user/test_pass_123@localhost:1521/db_name",
+				models.ConfigTable:          "test_table",
+				models.ConfigOrderingColumn: "id",
+				models.ConfigKeyColumn:      "id",
+				models.ConfigBatchSize:      "100000",
+			},
+			want: Source{
+				General: General{
+					URL:       "test_user/test_pass_123@localhost:1521/db_name",
+					Table:     "TEST_TABLE",
+					KeyColumn: "ID",
+				},
+				OrderingColumn: "ID",
+				BatchSize:      100000,
+			},
+		},
+		{
+			name: "valid config, batch size is minimum",
+			in: map[string]string{
+				models.ConfigURL:            "test_user/test_pass_123@localhost:1521/db_name",
+				models.ConfigTable:          "test_table",
+				models.ConfigOrderingColumn: "id",
+				models.ConfigKeyColumn:      "id",
+				models.ConfigBatchSize:      "1",
+			},
+			want: Source{
+				General: General{
+					URL:       "test_user/test_pass_123@localhost:1521/db_name",
+					Table:     "TEST_TABLE",
+					KeyColumn: "ID",
+				},
+				OrderingColumn: "ID",
+				BatchSize:      1,
+			},
+		},
+		{
 			name: "valid config, custom columns",
 			in: map[string]string{
 				models.ConfigURL:            "test_user/test_pass_123@localhost:1521/db_name",
@@ -139,6 +177,39 @@ func TestParseSource(t *testing.T) {
 				models.ConfigColumns:        "id,age",
 			},
 			err: errors.New(validator.ColumnsIncludeErrMsg),
+		},
+		{
+			name: "invalid config, batchSize is too big",
+			in: map[string]string{
+				models.ConfigURL:            "test_user/test_pass_123@localhost:1521/db_name",
+				models.ConfigTable:          "test_table",
+				models.ConfigOrderingColumn: "id",
+				models.ConfigKeyColumn:      "id",
+				models.ConfigBatchSize:      "100001",
+			},
+			err: validator.OutOfRangeErr(models.ConfigBatchSize),
+		},
+		{
+			name: "invalid config, batchSize is zero",
+			in: map[string]string{
+				models.ConfigURL:            "test_user/test_pass_123@localhost:1521/db_name",
+				models.ConfigTable:          "test_table",
+				models.ConfigOrderingColumn: "id",
+				models.ConfigKeyColumn:      "id",
+				models.ConfigBatchSize:      "0",
+			},
+			err: validator.OutOfRangeErr(models.ConfigBatchSize),
+		},
+		{
+			name: "invalid config, batchSize is negative",
+			in: map[string]string{
+				models.ConfigURL:            "test_user/test_pass_123@localhost:1521/db_name",
+				models.ConfigTable:          "test_table",
+				models.ConfigOrderingColumn: "id",
+				models.ConfigKeyColumn:      "id",
+				models.ConfigBatchSize:      "-1",
+			},
+			err: validator.OutOfRangeErr(models.ConfigBatchSize),
 		},
 	}
 
