@@ -92,7 +92,7 @@ information [inside the Change Data Capture section](#change-data-capture)).
 - if there is a need to change the columns in the target table, these changes must be made in the tracking table as
   well;
 - if the tracking table was deleted, it will be recreated on the next start;
-- creating two completely identical source connectors is not allowed.
+- creating two source connectors using the same table is not allowed.
 
 ### Configuration Options
 
