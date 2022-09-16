@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	queryTableIsExists = `
+	queryIfTableExists = `
 SELECT table_name FROM user_tables WHERE table_name='%s'`
 
 	querySnapshotTable = `
