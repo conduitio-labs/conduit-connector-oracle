@@ -18,12 +18,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/conduitio-labs/conduit-connector-oracle/coltypes"
 	"github.com/conduitio-labs/conduit-connector-oracle/repository"
 	sdk "github.com/conduitio/conduit-connector-sdk"
-	"github.com/huandu/go-sqlbuilder"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -163,32 +163,23 @@ func (i *Snapshot) Close() error {
 // LoadRows selects a batch of rows from a database, based on the
 // table, columns, orderingColumn, batchSize and the current position.
 func (i *Snapshot) loadRows(ctx context.Context) error {
-	selectBuilder := sqlbuilder.NewSelectBuilder().
-		From(i.snapshotTable).
-		OrderBy(i.orderingColumn)
-
+	columns := "*"
 	if len(i.columns) > 0 {
-		selectBuilder.Select(i.columns...)
-	} else {
-		selectBuilder.Select("*")
+		columns = strings.Join(i.columns, ",")
 	}
 
+	whereClause := ""
+	args := make([]any, 0)
 	if i.position != nil {
-		selectBuilder.Where(
-			selectBuilder.GreaterThan(i.orderingColumn, i.position.LastProcessedVal),
-		)
+		whereClause = fmt.Sprintf(" WHERE %s > :1", i.orderingColumn)
+		args = append(args, i.position.LastProcessedVal)
 	}
 
-	query, err := sqlbuilder.DefaultFlavor.Interpolate(
-		sqlbuilder.Buildf("%v FETCH NEXT %v ROWS ONLY", selectBuilder, i.batchSize).Build(),
-	)
-	if err != nil {
-		return fmt.Errorf("interpolate arguments to SQL: %w", err)
-	}
+	query := fmt.Sprintf(querySelectRowsFmt, columns, i.snapshotTable, whereClause, i.orderingColumn, i.batchSize)
 
-	rows, err := i.repo.DB.QueryxContext(ctx, query)
+	rows, err := i.repo.DB.QueryxContext(ctx, query, args...)
 	if err != nil {
-		return fmt.Errorf("execute select query: %s: %w", query, err)
+		return fmt.Errorf("execute select query %q, %v: %w", query, args, err)
 	}
 
 	i.rows = rows

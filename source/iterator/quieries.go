@@ -67,6 +67,12 @@ END;`
 INSERT INTO %s (%s, %s) 
 VALUES (%s, transaction_type);
 `
+
+	querySelectRowsFmt = `
+SELECT %s FROM %s%s ORDER BY %s ASC FETCH NEXT %d ROWS ONLY`
+
+	queryDeleteByIDs = `
+DELETE FROM %s WHERE %s IN (%s)`
 )
 
 func buildExpandTrackingTableQuery(trackingTable string) string {
@@ -106,4 +112,13 @@ func buildCreateTriggerQuery(params buildCreateTriggerParams) string {
 		strings.Join(columnNames, ","), columnOperationType, strings.Join(oldValues, ","))
 
 	return fmt.Sprintf(queryTriggerCreate, params.name, params.table, insertOnInsertingOrUpdating, insertOnDeleting)
+}
+
+func buildDeleteByIDsQuery(table, column string, ids []any) string {
+	placeholders := make([]string, len(ids))
+	for i := range ids {
+		placeholders[i] = fmt.Sprintf(":%d", i+1)
+	}
+
+	return fmt.Sprintf(queryDeleteByIDs, table, column, strings.Join(placeholders, ","))
 }

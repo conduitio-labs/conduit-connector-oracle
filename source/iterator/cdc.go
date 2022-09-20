@@ -18,13 +18,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/conduitio-labs/conduit-connector-oracle/coltypes"
 	"github.com/conduitio-labs/conduit-connector-oracle/repository"
 	sdk "github.com/conduitio/conduit-connector-sdk"
-	"github.com/huandu/go-sqlbuilder"
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/multierr"
 )
@@ -230,34 +230,27 @@ func (i *CDC) Close() (err error) {
 // loadRows selects a batch of rows from a database, based on the
 // table, columns, orderingColumn, batchSize and the current position.
 func (i *CDC) loadRows(ctx context.Context) error {
-	selectBuilder := sqlbuilder.NewSelectBuilder().
-		From(i.trackingTable).
-		OrderBy(columnTrackingID)
-
+	columns := "*"
 	if len(i.columns) > 0 {
-		selectBuilder.Select(append(i.columns,
-			[]string{columnTrackingID, columnOperationType, columnTimeCreatedAt}...)...)
-	} else {
-		selectBuilder.Select("*")
+		columns = strings.Join(append(i.columns,
+			[]string{columnTrackingID, columnOperationType, columnTimeCreatedAt}...), ",")
 	}
 
+	whereClause := ""
+	args := make([]any, 0)
 	if i.position != nil {
-		selectBuilder.Where(
-			selectBuilder.GreaterThan(columnTrackingID, i.position.LastProcessedVal),
-		)
+		whereClause = fmt.Sprintf(" WHERE %s > :1", columnTrackingID)
+		args = append(args, i.position.LastProcessedVal)
 	}
 
-	query, err := sqlbuilder.DefaultFlavor.Interpolate(
-		sqlbuilder.Buildf("%v FETCH NEXT %v ROWS ONLY", selectBuilder, i.batchSize).Build(),
-	)
+	query := fmt.Sprintf(querySelectRowsFmt, columns, i.trackingTable, whereClause, columnTrackingID, i.batchSize)
+
+	rows, err := i.repo.DB.QueryxContext(ctx, query, args...)
 	if err != nil {
-		return fmt.Errorf("interpolate arguments to SQL: %w", err)
+		return fmt.Errorf("execute select query %q, %v: %w", query, args, err)
 	}
 
-	i.rows, err = i.repo.DB.QueryxContext(ctx, query)
-	if err != nil {
-		return fmt.Errorf("execute select query: %s: %w", query, err)
-	}
+	i.rows = rows
 
 	return nil
 }
@@ -312,7 +305,7 @@ func (i *CDC) clearTrackingTable(ctx context.Context) {
 		select {
 		// connector is stopping, clear table last time
 		case <-i.tableSrv.stopCh:
-			err := i.deleteRows(ctx)
+			err := i.deleteTrackingTableRows(ctx)
 			if err != nil {
 				i.tableSrv.errCh <- err
 			}
@@ -323,7 +316,7 @@ func (i *CDC) clearTrackingTable(ctx context.Context) {
 			return
 
 		case <-time.After(timeoutToClearTrackingTableSec * time.Second):
-			err := i.deleteRows(ctx)
+			err := i.deleteTrackingTableRows(ctx)
 			if err != nil {
 				i.tableSrv.errCh <- err
 
@@ -333,8 +326,8 @@ func (i *CDC) clearTrackingTable(ctx context.Context) {
 	}
 }
 
-// deleteRows deletes processed rows from tracking table.
-func (i *CDC) deleteRows(ctx context.Context) error {
+// deleteTrackingTableRows deletes processed rows from tracking table.
+func (i *CDC) deleteTrackingTableRows(ctx context.Context) error {
 	i.tableSrv.m.Lock()
 	defer i.tableSrv.m.Unlock()
 
@@ -342,29 +335,11 @@ func (i *CDC) deleteRows(ctx context.Context) error {
 		return nil
 	}
 
-	tx, err := i.repo.DB.Begin()
+	query := buildDeleteByIDsQuery(i.trackingTable, columnTrackingID, i.tableSrv.idsToDelete)
+
+	_, err := i.repo.DB.ExecContext(ctx, query, i.tableSrv.idsToDelete...)
 	if err != nil {
-		return fmt.Errorf("begin db transaction: %w", err)
-	}
-	defer tx.Rollback() // nolint:errcheck,nolintlint
-
-	db := sqlbuilder.NewDeleteBuilder()
-
-	db.DeleteFrom(i.trackingTable).Where(db.In(columnTrackingID, i.tableSrv.idsToDelete...))
-
-	query, err := sqlbuilder.DefaultFlavor.Interpolate(db.Build())
-	if err != nil {
-		return fmt.Errorf("interpolate arguments to sql: %w", err)
-	}
-
-	_, err = tx.ExecContext(ctx, query)
-	if err != nil {
-		return fmt.Errorf("execute delete query: %w", err)
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return fmt.Errorf("commit db transaction: %w", err)
+		return fmt.Errorf("execute delete query %q: %w", query, err)
 	}
 
 	i.tableSrv.idsToDelete = nil
