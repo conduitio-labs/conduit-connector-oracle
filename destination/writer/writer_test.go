@@ -17,127 +17,61 @@ package writer
 import (
 	"testing"
 	"time"
+
+	"github.com/conduitio-labs/conduit-connector-oracle/coltypes"
+	sdk "github.com/conduitio/conduit-connector-sdk"
+	"github.com/matryer/is"
 )
 
 func TestWriter_buildUpsertQuery(t *testing.T) {
 	t.Parallel()
 
-	type args struct {
-		table     string
-		keyColumn string
-		keyValue  any
-		columns   []string
-		values    []any
-	}
+	is := is.New(t)
 
-	tests := []struct {
-		name string
-		args args
-		want string
-		err  error
-	}{
-		{
-			name: "success",
-			args: args{
-				table:     "users",
-				keyColumn: "id",
-				keyValue:  "someId",
-				columns:   []string{"col_string", "col_int", "col_ts", "col_map", "col_slice"},
-				values: []any{
-					"John", 42, time.Unix(1257894000, 0).UTC(), "{\"key\":\"value\"}", "[1,\"test\"]",
-				},
+	w := &Writer{
+		columnTypes: map[string]coltypes.ColumnData{
+			"TS": {
+				Type: "TIMESTAMP",
 			},
-			want: "MERGE INTO users USING DUAL ON (id = 'someId') " +
-				"WHEN MATCHED THEN " +
-				"UPDATE SET col_string = 'John', col_int = 42, col_ts = '2009-11-10 23:00:00', " +
-				"col_map = '{\\\"key\\\":\\\"value\\\"}', col_slice = '[1,\\\"test\\\"]' " +
-				"WHEN NOT MATCHED THEN " +
-				"INSERT (col_string, col_int, col_ts, col_map, col_slice) " +
-				"VALUES ('John', 42, '2009-11-10 23:00:00', '{\\\"key\\\":\\\"value\\\"}', '[1,\\\"test\\\"]')",
-		},
-		{
-			name: "mismatch columns and values length",
-			args: args{
-				table:   "users",
-				columns: []string{"name"},
-				values:  []any{"John", 42},
+			"CREATED": {
+				Type: "DATE",
 			},
-			err: errColumnsValuesLenMismatch,
+			"FILE": {
+				Type: "BLOB",
+			},
 		},
 	}
 
-	for _, tt := range tests {
-		tt := tt
-
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			w := &Writer{}
-			got, err := w.buildUpsertQuery(
-				tt.args.table, tt.args.keyColumn, tt.args.keyValue, tt.args.columns, tt.args.values)
-			if err != nil {
-				if tt.err == nil {
-					t.Errorf("unexpected error: %s", err.Error())
-
-					return
-				}
-
-				if err.Error() != tt.err.Error() {
-					t.Errorf("unexpected error, got: %s, want: %s", err.Error(), tt.err.Error())
-
-					return
-				}
-
-				return
-			}
-
-			if got != tt.want {
-				t.Errorf("got: %v, want: %v", got, tt.want)
-			}
-		})
+	payload := sdk.StructuredData{
+		"id":      42,
+		"name":    "John",
+		"ts":      time.Unix(1257894000, 0).UTC(),
+		"created": time.Unix(1257894000, 0).UTC(),
+		"file":    []byte("test123"),
 	}
-}
 
-func TestWriter_buildDeleteQuery(t *testing.T) {
-	t.Parallel()
+	wantQuery := "MERGE INTO tbl1 USING DUAL ON (id = :1) " +
+		"WHEN MATCHED THEN UPDATE SET created=TO_DATE(:2, 'YYYY-MM-DD HH24:MI:SS'),file=utl_raw.cast_to_raw(:3)," +
+		"name=:4,ts=TO_DATE(:5, 'YYYY-MM-DD HH24:MI:SS') " +
+		"WHEN NOT MATCHED THEN INSERT (created,file,id,name,ts) VALUES (TO_DATE(:6, 'YYYY-MM-DD HH24:MI:SS')," +
+		"utl_raw.cast_to_raw(:7),:8,:9,TO_DATE(:10, 'YYYY-MM-DD HH24:MI:SS'))"
 
-	type args struct {
-		table     string
-		keyColumn string
-		keyValue  any
+	wantArgs := []any{
+		42,
+		"2009-11-10 23:00:00",
+		[]byte("test123"),
+		"John",
+		"2009-11-10 23:00:00",
+		"2009-11-10 23:00:00",
+		[]byte("test123"),
+		42,
+		"John",
+		"2009-11-10 23:00:00",
 	}
-	tests := []struct {
-		name string
-		args args
-		want string
-	}{
-		{
-			name: "success",
-			args: args{
-				table:     "users",
-				keyColumn: "id",
-				keyValue:  1,
-			},
-			want: "DELETE FROM users WHERE id = 1",
-		},
-	}
-	for _, tt := range tests {
-		tt := tt
 
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			w := &Writer{}
-			got, err := w.buildDeleteQuery(tt.args.table, tt.args.keyColumn, tt.args.keyValue)
-			if err != nil {
-				t.Errorf("unexpected error: %s", err.Error())
-
-				return
-			}
-
-			if got != tt.want {
-				t.Errorf("got: %v, want: %v", got, tt.want)
-			}
-		})
-	}
+	query, args, err := w.buildUpsertQuery("tbl1", "id", payload)
+	is.NoErr(err)
+	is.Equal(query, wantQuery)
+	is.Equal(args, wantArgs)
+	is.Equal(len(args), len(payload)*2)
 }

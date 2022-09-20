@@ -22,7 +22,7 @@ import (
 	"github.com/matryer/is"
 )
 
-func TestConvertStructureData(t *testing.T) {
+func TestFormatData(t *testing.T) {
 	t.Parallel()
 
 	is := is.New(t)
@@ -31,7 +31,8 @@ func TestConvertStructureData(t *testing.T) {
 
 	columnTypes := make(map[string]ColumnData)
 	payload := make(sdk.StructuredData)
-	expected := make(map[string]interface{})
+	expectedPlaceholder := make(map[string]interface{})
+	expectedArg := map[string]any{}
 
 	key := "DATA_MAP"
 	payload[key] = map[string]interface{}{
@@ -39,11 +40,13 @@ func TestConvertStructureData(t *testing.T) {
 		"bool_val":   true,
 		"string_val": "test",
 	}
-	expected[key] = `{"bool_val":true,"int_val":123,"string_val":"test"}`
+	expectedPlaceholder[key] = ":{placeholder}"
+	expectedArg[key] = `{"bool_val":true,"int_val":123,"string_val":"test"}`
 
 	key = "DATA_SLICE"
 	payload[key] = []interface{}{123, true, "test"}
-	expected[key] = `[123,true,"test"]`
+	expectedPlaceholder[key] = ":{placeholder}"
+	expectedArg[key] = `[123,true,"test"]`
 
 	key = "IS_ACTIVE_TRUE"
 	precision, scale := 1, 0
@@ -53,7 +56,8 @@ func TestConvertStructureData(t *testing.T) {
 		Scale:     &scale,
 	}
 	payload[key] = true
-	expected[key] = 1
+	expectedPlaceholder[key] = ":{placeholder}"
+	expectedArg[key] = 1
 
 	key = "IS_ACTIVE_FALSE"
 	precision, scale = 1, 0
@@ -63,48 +67,29 @@ func TestConvertStructureData(t *testing.T) {
 		Scale:     &scale,
 	}
 	payload[key] = false
-	expected[key] = 0
+	expectedPlaceholder[key] = ":{placeholder}"
+	expectedArg[key] = 0
 
 	key = "CREATED_AT"
 	columnTypes[key] = ColumnData{
 		Type: "DATE",
 	}
 	payload[key] = time.Date(1989, 10, 04, 13, 14, 15, 0, time.UTC)
-	expected[key] = expectedTime
+	expectedPlaceholder[key] = "TO_DATE(:{placeholder}, 'YYYY-MM-DD HH24:MI:SS')"
+	expectedArg[key] = expectedTime
 
 	key = "CREATED_AT_STRING"
 	columnTypes[key] = ColumnData{
 		Type: "DATE",
 	}
 	payload[key] = "Wed, 04 Oct 1989 13:14:15 UTC"
-	expected[key] = expectedTime
+	expectedPlaceholder[key] = "TO_DATE(:{placeholder}, 'YYYY-MM-DD HH24:MI:SS')"
+	expectedArg[key] = expectedTime
 
-	key = "TS_INT"
-	columnTypes[key] = ColumnData{
-		Type: "TIMESTAMP(6)",
-	}
-	payload[key] = 623510055
-	expected[key] = expectedTime
-
-	key = "TS_FLOAT64"
-	columnTypes[key] = ColumnData{
-		Type: "TIMESTAMP(6)",
-	}
-	payload[key] = float64(623510055)
-	expected[key] = expectedTime
-
-	key = "TS_STRING"
-	columnTypes[key] = ColumnData{
-		Type: "TIMESTAMP(6)",
-	}
-	payload[key] = "623510055"
-	expected[key] = expectedTime
-
-	got, err := ConvertStructureData(columnTypes, payload)
-	is.NoErr(err)
-	is.True(got != nil)
-	is.Equal(len(payload), len(got))
-	for k, v := range got {
-		is.Equal(expected[k], v)
+	for k, v := range payload {
+		placeholder, arg, err := FormatData(columnTypes, k, v)
+		is.NoErr(err)
+		is.Equal(placeholder, expectedPlaceholder[k])
+		is.Equal(arg, expectedArg[k])
 	}
 }

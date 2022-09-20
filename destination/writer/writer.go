@@ -18,12 +18,21 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/conduitio-labs/conduit-connector-oracle/coltypes"
 	"github.com/conduitio-labs/conduit-connector-oracle/repository"
 	sdk "github.com/conduitio/conduit-connector-sdk"
-	"github.com/huandu/go-sqlbuilder"
+)
+
+const (
+	upsertFmt = "MERGE INTO %s USING DUAL ON (%s = %s) " +
+		"WHEN MATCHED THEN UPDATE SET %s WHEN NOT MATCHED THEN INSERT (%s) VALUES (%s)"
+	deleteFmt = "DELETE FROM %s WHERE %s = :1"
+	coma      = ","
+	equal     = "="
 )
 
 // Writer implements a writer logic for Oracle destination.
@@ -55,15 +64,6 @@ func New(ctx context.Context, params Params) (*Writer, error) {
 	}
 	writer.columnTypes = columnTypes
 
-	// update formats of date and timestamp types
-	// to insert/update values of these types as strings
-	// (instead of using TO_DATE and TO_TIMESTAMP functions)
-	_, err = writer.repo.DB.ExecContext(ctx, "ALTER SESSION SET NLS_DATE_FORMAT='YYYY-MM-DD HH24:MI:SS' "+
-		"NLS_TIMESTAMP_FORMAT='YYYY-MM-DD HH24:MI:SS'")
-	if err != nil {
-		return nil, fmt.Errorf("exec update formats in session: %w", err)
-	}
-
 	return writer, nil
 }
 
@@ -84,11 +84,6 @@ func (w *Writer) upsert(ctx context.Context, record sdk.Record) error {
 	payload, err := w.structurizeData(record.Payload.After)
 	if err != nil {
 		return fmt.Errorf("structurize payload: %w", err)
-	}
-
-	payload, err = coltypes.ConvertStructureData(w.columnTypes, payload)
-	if err != nil {
-		return fmt.Errorf("convert structure data: %w", err)
 	}
 
 	// if payload is empty return empty payload error
@@ -115,16 +110,14 @@ func (w *Writer) upsert(ctx context.Context, record sdk.Record) error {
 		}
 	}
 
-	columns, values := w.extractColumnsAndValues(payload)
-
-	query, err := w.buildUpsertQuery(tableName, keyColumn, payload[keyColumn], columns, values)
+	query, args, err := w.buildUpsertQuery(tableName, keyColumn, payload)
 	if err != nil {
 		return fmt.Errorf("build upsert query: %w", err)
 	}
 
-	_, err = w.repo.DB.ExecContext(ctx, query)
+	_, err = w.repo.DB.ExecContext(ctx, query, args...)
 	if err != nil {
-		return fmt.Errorf("exec upsert %q: %w", query, err)
+		return fmt.Errorf("exec upsert %q, %v: %w", query, args, err)
 	}
 
 	return nil
@@ -151,14 +144,11 @@ func (w *Writer) delete(ctx context.Context, record sdk.Record) error {
 		return errEmptyKey
 	}
 
-	query, err := w.buildDeleteQuery(tableName, keyColumn, keyValue)
-	if err != nil {
-		return fmt.Errorf("build delete query: %w", err)
-	}
+	query := fmt.Sprintf(deleteFmt, tableName, keyColumn)
 
-	_, err = w.repo.DB.ExecContext(ctx, query)
+	_, err = w.repo.DB.ExecContext(ctx, query, keyValue)
 	if err != nil {
-		return fmt.Errorf("exec delete %q: %w", query, err)
+		return fmt.Errorf("exec delete %q, %v: %w", query, keyValue, err)
 	}
 
 	return nil
@@ -167,68 +157,51 @@ func (w *Writer) delete(ctx context.Context, record sdk.Record) error {
 // generates an SQL INSERT or UPDATE statement query via MERGE.
 func (w *Writer) buildUpsertQuery(
 	table, keyColumn string,
-	keyValue any,
-	columns []string,
-	values []any,
-) (string, error) {
-	const upsertFmt = "MERGE INTO %s USING DUAL ON (%s = ?) " +
-		"WHEN MATCHED THEN UPDATE SET %s WHEN NOT MATCHED THEN INSERT (%s) VALUES (%s)"
-
-	if len(columns) != len(values) {
-		return "", errColumnsValuesLenMismatch
+	payload sdk.StructuredData,
+) (string, []any, error) {
+	columns, placeholdersMap, argsMap, err := w.extractPayload(payload)
+	if err != nil {
+		return "", nil, err
 	}
 
 	// arguments for the query
-	args := make([]any, 0, len(values)*2)
+	args := make([]any, 0, len(columns)*2)
 
 	// append a key value as an argument
-	args = append(args, keyValue)
+	args = append(args, payload[keyColumn])
 
 	updateData := make([]string, 0, len(columns))
-	for i := 0; i < len(columns); i++ {
+	placeholders := make([]string, 0, len(columns))
+	insertArgs := make([]any, 0, len(columns))
+
+	for i := range columns {
+		placeholders = append(placeholders, placeholdersMap[columns[i]])
+
+		// append all arguments for insert
+		insertArgs = append(insertArgs, argsMap[columns[i]])
+
 		if columns[i] == keyColumn {
 			continue
 		}
 
-		updateData = append(updateData, columns[i]+" = ?")
+		updateData = append(updateData, columns[i]+equal+placeholdersMap[columns[i]])
 
-		// append all values for update (except the keyValue for update)
-		args = append(args, values[i])
+		// append all arguments for update (except the keyValue)
+		args = append(args, argsMap[columns[i]])
 	}
 
-	// append all values and question marks for insert
-	placeholders := make([]string, len(values))
-	for i := range values {
-		args = append(args, values[i])
-		placeholders[i] = "?"
+	// append insert arguments to the end
+	args = append(args, insertArgs...)
+
+	query := fmt.Sprintf(upsertFmt, table, keyColumn, coltypes.QueryPlaceholder,
+		strings.Join(updateData, coma), strings.Join(columns, coma), strings.Join(placeholders, coma))
+
+	// replace all strings '{placeholder}' to the Oracle's format (:1, :2, ...)
+	for i := 0; i < len(args); i++ {
+		query = strings.Replace(query, coltypes.QueryPlaceholder[1:], strconv.Itoa(i+1), 1)
 	}
 
-	sql := fmt.Sprintf(upsertFmt, table, keyColumn,
-		strings.Join(updateData, ", "), strings.Join(columns, ", "), strings.Join(placeholders, ", "))
-
-	query, err := sqlbuilder.DefaultFlavor.Interpolate(sql, args)
-	if err != nil {
-		return "", fmt.Errorf("interpolate arguments to SQL: %w", err)
-	}
-
-	return query, nil
-}
-
-// generates an SQL DELETE statement query.
-func (w *Writer) buildDeleteQuery(table string, keyColumn string, keyValue any) (string, error) {
-	db := sqlbuilder.NewDeleteBuilder()
-
-	db.DeleteFrom(table)
-	db.Where(
-		db.Equal(keyColumn, keyValue),
-	)
-
-	query, err := sqlbuilder.DefaultFlavor.Interpolate(db.Build())
-	if err != nil {
-		return "", fmt.Errorf("interpolate arguments to SQL: %w", err)
-	}
-
-	return query, nil
+	return query, args, nil
 }
 
 // returns either the record metadata value for the table
@@ -275,21 +248,29 @@ func (w *Writer) structurizeData(data sdk.Data) (sdk.StructuredData, error) {
 	return structuredData, nil
 }
 
-// turns the payload into slices of columns and values for use in queries to Oracle.
-func (w *Writer) extractColumnsAndValues(payload sdk.StructuredData) ([]string, []any) {
+// turns the payload into slice of columns, a map of placeholders, and a map of arguments.
+func (w *Writer) extractPayload(payload sdk.StructuredData) ([]string, map[string]string, map[string]any, error) {
 	var (
-		i = 0
+		i               = 0
+		columns         = make([]string, len(payload))
+		placeholdersMap = make(map[string]string, len(payload))
+		argsMap         = make(map[string]any, len(payload))
 
-		columns = make([]string, len(payload))
-		values  = make([]any, len(payload))
+		err error
 	)
 
 	for key, value := range payload {
 		columns[i] = key
-		values[i] = value
+
+		placeholdersMap[key], argsMap[key], err = coltypes.FormatData(w.columnTypes, key, value)
+		if err != nil {
+			return nil, nil, nil, err
+		}
 
 		i++
 	}
 
-	return columns, values
+	sort.Strings(columns)
+
+	return columns, placeholdersMap, argsMap, nil
 }
