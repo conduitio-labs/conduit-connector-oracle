@@ -188,36 +188,30 @@ func FormatData(
 }
 
 func formatDate(value interface{}) (string, error) {
-	valueTime, ok := value.(time.Time)
-	if ok {
-		return valueTime.Format(oracleLayoutTime), nil
-	}
-
-	valueStr, ok := value.(string)
-	if ok {
-		val, err := parseTime(valueStr)
+	switch t := value.(type) {
+	case time.Time:
+		return t.Format(oracleLayoutTime), nil
+	case string:
+		val, err := parseTime(t)
 		if err != nil {
-			return "", fmt.Errorf("convert value %q to time.Time: %w", valueStr, err)
+			return "", fmt.Errorf("convert value %q to time.Time: %w", t, err)
 		}
 
 		return val.Format(oracleLayoutTime), nil
+	default:
+		return "", fmt.Errorf("format value %q of type date", value)
 	}
-
-	return "", fmt.Errorf("format value %q of type date", value)
 }
 
 func formatBlob(value interface{}) ([]byte, error) {
-	valueBytes, ok := value.([]byte)
-	if ok {
-		return valueBytes, nil
+	switch t := value.(type) {
+	case []byte:
+		return t, nil
+	case string:
+		return []byte(t), nil
+	default:
+		return nil, fmt.Errorf("format value %q of type []byte", value)
 	}
-
-	valueStr, ok := value.(string)
-	if ok {
-		return []byte(valueStr), nil
-	}
-
-	return nil, fmt.Errorf("format value %q of type []byte", value)
 }
 
 func parseTime(val string) (time.Time, error) {
