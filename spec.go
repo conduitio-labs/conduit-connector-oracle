@@ -18,6 +18,11 @@ import (
 	sdk "github.com/conduitio/conduit-connector-sdk"
 )
 
+// version is set during the build process (i.e. the Makefile).
+// It follows Go's convention for module version, where the version
+// starts with the letter v, followed by a semantic version.
+var version = "v0.0.0-dev"
+
 // Specification returns specification of the connector.
 func Specification() sdk.Specification {
 	return sdk.Specification{
@@ -25,7 +30,7 @@ func Specification() sdk.Specification {
 		Summary: "Oracle source and destination plugin for Conduit, written in Go.",
 		Description: "Oracle connector is one of Conduit plugins. " +
 			"It provides a source and a destination Oracle connector.",
-		Version: "v0.1.0",
+		Version: version,
 		Author:  "Meroxa, Inc.",
 	}
 }
