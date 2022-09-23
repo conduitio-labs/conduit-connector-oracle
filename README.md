@@ -91,8 +91,7 @@ information [inside the Change Data Capture section](#change-data-capture)).
 
 - if there is a need to change the columns in the target table, these changes must be made in the tracking table as
   well;
-- if the tracking table was deleted, it will be recreated on the next start;
-- creating two source connectors using the same table is not allowed.
+- if the tracking table was deleted, it will be recreated on the next start.
 
 ### Configuration Options
 
@@ -142,3 +141,5 @@ Type convention describes the conversion between Oracle to Go types.
 
 Changing a table name during a connector update can cause quite unexpected results. Therefore, it's highly not
 recommended to do this.
+
+Creating two source or destination connectors using the same table is not allowed.
