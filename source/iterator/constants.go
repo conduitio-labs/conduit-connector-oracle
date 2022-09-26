@@ -16,7 +16,7 @@ package iterator
 
 const (
 	// metadata related.
-	metadataTable = "table"
+	metadataTable = "oracle.table"
 
 	// actions.
 	actionInsert = "insert"
