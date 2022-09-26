@@ -33,6 +33,8 @@ const (
 	deleteFmt = "DELETE FROM %s WHERE %s = :1"
 	coma      = ","
 	equal     = "="
+
+	metadataTable = "oracle.table"
 )
 
 // Writer implements a writer logic for Oracle destination.
@@ -207,7 +209,7 @@ func (w *Writer) buildUpsertQuery(
 // returns either the record metadata value for the table
 // or the default configured value for the table.
 func (w *Writer) getTableName(metadata map[string]string) string {
-	tableName, ok := metadata["table"]
+	tableName, ok := metadata[metadataTable]
 	if !ok {
 		return w.table
 	}
