@@ -12,18 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package oracle
+package coltypes
 
-import (
-	"github.com/conduitio-labs/conduit-connector-oracle/destination"
-	"github.com/conduitio-labs/conduit-connector-oracle/source"
+import "errors"
 
-	sdk "github.com/conduitio/conduit-connector-sdk"
+var (
+	// errInvalidTimeLayout occurs when the time layout is invalid.
+	errInvalidTimeLayout = errors.New("invalid time layout")
 )
-
-// Connector represents a sdk.Connector of Oracle.
-var Connector = sdk.Connector{
-	NewSpecification: Specification,
-	NewSource:        source.NewSource,
-	NewDestination:   destination.NewDestination,
-}
