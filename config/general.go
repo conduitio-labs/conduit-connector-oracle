@@ -27,8 +27,7 @@ type General struct {
 	URL string `json:"url" validate:"required"`
 	// Table is the configuration of the table name.
 	Table string `json:"table" validate:"required,lte=128,oracle"`
-	// KeyColumn is a column name that records should use for their `Key` fields (source) or
-	// is a column name uses to detect if the target table already contains the record (destination).
+	// KeyColumn is a column name that records should use for their `Key` fields.
 	KeyColumn string `validate:"required,lte=128,oracle"`
 }
 

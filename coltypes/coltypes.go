@@ -16,35 +16,16 @@ package coltypes
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"reflect"
 	"strconv"
-	"strings"
-	"time"
 
 	"github.com/conduitio-labs/conduit-connector-oracle/repository"
 	"github.com/godror/godror"
 )
 
 const (
-	// QueryPlaceholder is a temporary placeholder to replace with the Oracle's placeholders.
-	QueryPlaceholder = ":{placeholder}"
-
 	// oracle's data types.
-	oracleTypeNumber    = "NUMBER"
-	oracleTypeDate      = "DATE"
-	oracleTypeTimestamp = "TIMESTAMP"
-	oracleTypeBlob      = "BLOB"
-
-	// oracle's date and timestamp layouts.
-	oracleLayoutTime = "2006-01-02 15:04:05"
-)
-
-var (
-	timeLayouts = []string{time.RFC3339, time.RFC3339Nano, time.Layout, time.ANSIC, time.UnixDate, time.RubyDate,
-		time.RFC822, time.RFC822Z, time.RFC850, time.RFC1123, time.RFC1123Z, time.RFC3339, time.RFC3339,
-		time.RFC3339Nano, time.Kitchen, time.Stamp, time.StampMilli, time.StampMicro, time.StampNano}
+	oracleTypeNumber = "NUMBER"
 )
 
 // queryColumnData is a query that selects columns' data by the table name.
@@ -128,101 +109,4 @@ func GetColumnTypes(ctx context.Context, repo *repository.Oracle, tableName stri
 	}
 
 	return columnTypes, nil
-}
-
-// FormatData formats the data into Oracle types
-// and wraps the placeholder in a special function, if necessary.
-func FormatData(
-	columnTypes map[string]ColumnData,
-	key string, value any,
-) (string, any, error) {
-	if value == nil {
-		return QueryPlaceholder, nil, nil
-	}
-
-	switch oracleColumnData := columnTypes[strings.ToUpper(key)]; {
-	// if the column type is a NUMBER, precision is 1, scale is 0, and value is a boolean,
-	// convert it to the integer, when the "true" value is 1, and "false" is 0
-	case oracleColumnData.Type == oracleTypeNumber &&
-		oracleColumnData.Precision != nil && *oracleColumnData.Precision == 1 &&
-		oracleColumnData.Scale != nil && *oracleColumnData.Scale == 0:
-		valueBool, ok := value.(bool)
-		if !ok {
-			return QueryPlaceholder, value, nil
-		}
-
-		if valueBool {
-			return QueryPlaceholder, 1, nil
-		}
-
-		return QueryPlaceholder, 0, nil
-
-	case oracleColumnData.Type == oracleTypeDate, strings.Contains(oracleColumnData.Type, oracleTypeTimestamp):
-		v, err := formatDate(value)
-		if err != nil {
-			return "", nil, err
-		}
-
-		return fmt.Sprintf("TO_DATE(%s, 'YYYY-MM-DD HH24:MI:SS')", QueryPlaceholder), v, nil
-
-	case strings.Contains(oracleColumnData.Type, oracleTypeBlob):
-		v, err := formatBlob(value)
-		if err != nil {
-			return "", nil, err
-		}
-
-		return fmt.Sprintf("utl_raw.cast_to_raw(%s)", QueryPlaceholder), v, nil
-	}
-
-	switch reflect.TypeOf(value).Kind() {
-	case reflect.Map, reflect.Slice: // convert the map type to the string, for the VARCHAR2 Oracle type
-		bs, err := json.Marshal(value)
-		if err != nil {
-			return "", nil, fmt.Errorf("marshal map or slice: %w", err)
-		}
-
-		return QueryPlaceholder, string(bs), nil
-	}
-
-	return QueryPlaceholder, value, nil
-}
-
-func formatDate(value interface{}) (string, error) {
-	switch t := value.(type) {
-	case time.Time:
-		return t.Format(oracleLayoutTime), nil
-	case string:
-		val, err := parseTime(t)
-		if err != nil {
-			return "", fmt.Errorf("convert value %q to time.Time: %w", t, err)
-		}
-
-		return val.Format(oracleLayoutTime), nil
-	default:
-		return "", fmt.Errorf("format value %q of type date", value)
-	}
-}
-
-func formatBlob(value interface{}) ([]byte, error) {
-	switch t := value.(type) {
-	case []byte:
-		return t, nil
-	case string:
-		return []byte(t), nil
-	default:
-		return nil, fmt.Errorf("format value %q of type []byte", value)
-	}
-}
-
-func parseTime(val string) (time.Time, error) {
-	for i := range timeLayouts {
-		timeValue, err := time.Parse(timeLayouts[i], val)
-		if err != nil {
-			continue
-		}
-
-		return timeValue, nil
-	}
-
-	return time.Time{}, fmt.Errorf("%s - %w", val, errInvalidTimeLayout)
 }

@@ -45,7 +45,7 @@ func (d *driver) GenerateRecord(t *testing.T, operation sdk.Operation) sdk.Recor
 		Position:  nil,
 		Operation: operation,
 		Metadata: map[string]string{
-			models.ConfigTable: strings.ToUpper(d.Config.DestinationConfig[models.ConfigTable]),
+			models.ConfigTable: strings.ToUpper(d.Config.SourceConfig[models.ConfigTable]),
 		},
 		Key: sdk.RawData(
 			fmt.Sprintf(`{"ID":%d}`, d.counter),
@@ -66,7 +66,7 @@ func TestAcceptance(t *testing.T) {
 			Config: sdk.ConfigurableAcceptanceTestDriverConfig{
 				Connector:         Connector,
 				SourceConfig:      cfg,
-				DestinationConfig: cfg,
+				DestinationConfig: nil,
 				BeforeTest: func(t *testing.T) {
 					err := createTable(cfg[models.ConfigURL], cfg[models.ConfigTable])
 					is.NoErr(err)
