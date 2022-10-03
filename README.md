@@ -20,8 +20,8 @@ Run `make build`.
 
 ## Testing
 
-Run `make test` to run all unit and integration tests, as well as an acceptance test. To pass the integration and
-acceptance tests, set the Oracle database URL to the environment variables as an `ORACLE_URL`.
+Run `make test` to run all unit and integration tests, as well as an acceptance test from the Conduit Connector SDK. To
+pass the integration and acceptance tests, set the Oracle database URL to the environment variables as an `ORACLE_URL`.
 
 ## Source
 
@@ -33,7 +33,7 @@ Source switches to CDC mode. More information [inside the Change Data Capture se
 
 ### Snapshot
 
-The connector in the Snapshot mode makes a snapshot of target table, and reads all rows from the table in batches via
+The connector in the Snapshot mode makes a snapshot of a source table, and reads all rows from the table in batches via
 SELECT, FETCH NEXT and ORDER BY statements.
 
 Example of a query:
@@ -51,8 +51,8 @@ When all records have been returned, the snapshot is deleted and the connector s
 ### Change Data Capture
 
 This connector implements CDC features for Oracle by adding a tracking table and a trigger to populate it. The tracking
-table and trigger name have the same names as a target table wit the prefix `CONDUIT`. The tracking table has all the
-same columns as the target table plus three additional columns:
+table and trigger name have the same names as a source table with the prefix `CONDUIT`. The tracking table has all the
+same columns as the source table plus three additional columns:
 
 | name                          | description                                          |
 |-------------------------------|------------------------------------------------------|
@@ -60,7 +60,7 @@ same columns as the target table plus three additional columns:
 | `CONDUIT_OPERATION_TYPE`      | Operation type: `insert`, `update`, or `delete`.     |
 | `CONDUIT_TRACKING_CREATED_AT` | Date when the event was added to the tacking table.  |
 
-Every time data is added, changed, or deleted from the target table, this event will be written to the tracking table.
+Every time data is added, changed, or deleted from the source table, this event will be written to the tracking table.
 
 Queries to retrieve change data from a tracking table are very similar to queries in a Snapshot mode, but
 with `CONDUIT_TRACKING_ID` ordering column.
@@ -89,7 +89,7 @@ information [inside the Change Data Capture section](#change-data-capture)).
 
 **Important**:
 
-- if there is a need to change the columns in the target table, these changes must be made in the tracking table as
+- if there is a need to change the columns in the source table, these changes must be made in the tracking table as
   well;
 - if the tracking table was deleted, it will be recreated on the next start.
 
@@ -102,11 +102,10 @@ information [inside the Change Data Capture section](#change-data-capture)).
 | `keyColumn`      | column name records should use for their `Key` fields                                                  | **true** | `id`                                        |
 | `orderingColumn` | column name of a column that the connector will use for ordering rows                                  | **true** | `created_at`                                |
 | `columns`        | list of column names that should be included in each Record's payload, by default includes all columns | false    | `id,name,age`                               |
-| `batchSize`      | size of rows batch. Min is 1 and max is 100000                                                         | false    | `100`                                       |
+| `batchSize`      | size of rows batch. Min is 1 and max is 100000. The default is 1000                                    | false    | `100`                                       |
 
 ## Known limitations
 
-Changing a table name during a connector update can cause quite unexpected results. Therefore, it's highly not
-recommended to do this.
+Updating the configuration can cause completely unexpected results.
 
 Creating two source connectors using the same table is not allowed.
