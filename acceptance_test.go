@@ -21,7 +21,6 @@ import (
 	"hash/fnv"
 	"os"
 	"strings"
-	"sync/atomic"
 	"testing"
 
 	"github.com/conduitio-labs/conduit-connector-oracle/models"
@@ -33,13 +32,11 @@ import (
 
 type driver struct {
 	sdk.ConfigurableAcceptanceTestDriver
-
-	counter int32
 }
 
 // GenerateRecord generates a random sdk.Record.
 func (d *driver) GenerateRecord(t *testing.T, operation sdk.Operation) sdk.Record {
-	atomic.AddInt32(&d.counter, 1)
+	randUUID := uuid.NewString()
 
 	return sdk.Record{
 		Position:  nil,
@@ -48,10 +45,10 @@ func (d *driver) GenerateRecord(t *testing.T, operation sdk.Operation) sdk.Recor
 			models.ConfigTable: strings.ToUpper(d.Config.SourceConfig[models.ConfigTable]),
 		},
 		Key: sdk.RawData(
-			fmt.Sprintf(`{"ID":%d}`, d.counter),
+			fmt.Sprintf(`{"ID":"%s"}`, randUUID),
 		),
 		Payload: sdk.Change{After: sdk.RawData(
-			fmt.Sprintf(`{"ID":%d,"NAME":"%s"}`, d.counter, uuid.NewString()),
+			fmt.Sprintf(`{"ID":"%s","NAME":"%s"}`, randUUID, randUUID),
 		)},
 	}
 }
@@ -109,7 +106,7 @@ func createTable(url, table string) error {
 
 	_, err = repo.DB.Exec(fmt.Sprintf(`
 	CREATE TABLE %s (
-		id NUMBER NOT NULL, 
+		id VARCHAR2(36) NOT NULL, 
 		name VARCHAR2(100)
 	)`, table))
 	if err != nil {
