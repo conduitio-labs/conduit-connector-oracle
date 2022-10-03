@@ -23,7 +23,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/conduitio-labs/conduit-connector-oracle/models"
+	"github.com/conduitio-labs/conduit-connector-oracle/config"
 	"github.com/conduitio-labs/conduit-connector-oracle/repository"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 	"github.com/google/uuid"
@@ -42,7 +42,7 @@ func (d *driver) GenerateRecord(t *testing.T, operation sdk.Operation) sdk.Recor
 		Position:  nil,
 		Operation: operation,
 		Metadata: map[string]string{
-			models.ConfigTable: strings.ToUpper(d.Config.SourceConfig[models.ConfigTable]),
+			config.Table: strings.ToUpper(d.Config.SourceConfig[config.Table]),
 		},
 		Key: sdk.RawData(
 			fmt.Sprintf(`{"ID":"%s"}`, randUUID),
@@ -65,11 +65,11 @@ func TestAcceptance(t *testing.T) {
 				SourceConfig:      cfg,
 				DestinationConfig: cfg,
 				BeforeTest: func(t *testing.T) {
-					err := createTable(cfg[models.ConfigURL], cfg[models.ConfigTable])
+					err := createTable(cfg[config.URL], cfg[config.Table])
 					is.NoErr(err)
 				},
 				AfterTest: func(t *testing.T) {
-					err := dropTables(cfg[models.ConfigURL], cfg[models.ConfigTable])
+					err := dropTables(cfg[config.URL], cfg[config.Table])
 					is.NoErr(err)
 				},
 			},
@@ -88,10 +88,10 @@ func prepareConfig(t *testing.T) map[string]string {
 	}
 
 	return map[string]string{
-		models.ConfigURL:            url,
-		models.ConfigTable:          fmt.Sprintf("CONDUIT_TEST_%s", randString(6)),
-		models.ConfigKeyColumn:      "ID",
-		models.ConfigOrderingColumn: "ID",
+		config.URL:            url,
+		config.Table:          fmt.Sprintf("CONDUIT_TEST_%s", randString(6)),
+		config.KeyColumn:      "ID",
+		config.OrderingColumn: "ID",
 	}
 }
 

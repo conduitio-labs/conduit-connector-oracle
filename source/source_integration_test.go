@@ -24,7 +24,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/conduitio-labs/conduit-connector-oracle/models"
+	"github.com/conduitio-labs/conduit-connector-oracle/config"
 	"github.com/conduitio-labs/conduit-connector-oracle/repository"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 	"github.com/matryer/is"
@@ -39,7 +39,7 @@ func TestSource_Read_NoTable(t *testing.T) {
 		is  = is.New(t)
 	)
 
-	repo, err := repository.New(cfg[models.ConfigURL])
+	repo, err := repository.New(cfg[config.URL])
 	is.NoErr(err)
 	defer repo.Close()
 
@@ -66,15 +66,15 @@ func TestSource_Read_EmptyTable(t *testing.T) {
 		is  = is.New(t)
 	)
 
-	repo, err := repository.New(cfg[models.ConfigURL])
+	repo, err := repository.New(cfg[config.URL])
 	is.NoErr(err)
 	defer repo.Close()
 
-	err = createTable(repo, cfg[models.ConfigTable])
+	err = createTable(repo, cfg[config.Table])
 	is.NoErr(err)
 
 	defer func() {
-		err = dropTables(repo, cfg[models.ConfigTable])
+		err = dropTables(repo, cfg[config.Table])
 		is.NoErr(err)
 	}()
 
@@ -107,20 +107,20 @@ func TestSource_Snapshot_Read(t *testing.T) {
 		is  = is.New(t)
 	)
 
-	repo, err := repository.New(cfg[models.ConfigURL])
+	repo, err := repository.New(cfg[config.URL])
 	is.NoErr(err)
 	defer repo.Close()
 
-	err = createTable(repo, cfg[models.ConfigTable])
+	err = createTable(repo, cfg[config.Table])
 	is.NoErr(err)
 
 	defer func() {
-		err = dropTables(repo, cfg[models.ConfigTable])
+		err = dropTables(repo, cfg[config.Table])
 		is.NoErr(err)
 	}()
 
 	// insert snapshot data
-	err = insertSnapshotData(repo, cfg[models.ConfigTable])
+	err = insertSnapshotData(repo, cfg[config.Table])
 	is.NoErr(err)
 
 	ctx, cancel := context.WithCancel(ctx)
@@ -194,20 +194,20 @@ func TestSource_CDC_Read(t *testing.T) {
 		is  = is.New(t)
 	)
 
-	repo, err := repository.New(cfg[models.ConfigURL])
+	repo, err := repository.New(cfg[config.URL])
 	is.NoErr(err)
 	defer repo.Close()
 
-	err = createTable(repo, cfg[models.ConfigTable])
+	err = createTable(repo, cfg[config.Table])
 	is.NoErr(err)
 
 	defer func() {
-		err = dropTables(repo, cfg[models.ConfigTable])
+		err = dropTables(repo, cfg[config.Table])
 		is.NoErr(err)
 	}()
 
 	// insert snapshot data (3 records)
-	err = insertSnapshotData(repo, cfg[models.ConfigTable])
+	err = insertSnapshotData(repo, cfg[config.Table])
 	is.NoErr(err)
 
 	ctx, cancel := context.WithCancel(ctx)
@@ -230,7 +230,7 @@ func TestSource_CDC_Read(t *testing.T) {
 	is.NoErr(err)
 
 	// update the second record to check that the CDC iterator will start immediately after the snapshot
-	err = updateCDCData(repo, cfg[models.ConfigTable])
+	err = updateCDCData(repo, cfg[config.Table])
 	is.NoErr(err)
 
 	// read the third snapshot record
@@ -249,7 +249,7 @@ func TestSource_CDC_Read(t *testing.T) {
 	cancel()
 
 	// insert two records more
-	err = insertCDCData(repo, cfg[models.ConfigTable])
+	err = insertCDCData(repo, cfg[config.Table])
 	is.NoErr(err)
 
 	err = src.Teardown(context.Background())
@@ -287,7 +287,7 @@ func TestSource_CDC_Read(t *testing.T) {
 	is.Equal(err, sdk.ErrBackoffRetry)
 
 	// delete the row with ID=3
-	err = deleteCDCData(repo, cfg[models.ConfigTable])
+	err = deleteCDCData(repo, cfg[config.Table])
 	is.NoErr(err)
 
 	record, err = src.Read(ctx)
@@ -315,10 +315,10 @@ func prepareConfig(t *testing.T) map[string]string {
 	}
 
 	return map[string]string{
-		models.ConfigURL:            url,
-		models.ConfigTable:          fmt.Sprintf("CONDUIT_SRC_TEST_%s", randString(6)),
-		models.ConfigKeyColumn:      "id",
-		models.ConfigOrderingColumn: "id",
+		config.URL:            url,
+		config.Table:          fmt.Sprintf("CONDUIT_SRC_TEST_%s", randString(6)),
+		config.KeyColumn:      "id",
+		config.OrderingColumn: "id",
 	}
 }
 

@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	"github.com/conduitio-labs/conduit-connector-oracle/config"
-	"github.com/conduitio-labs/conduit-connector-oracle/models"
 	"github.com/conduitio-labs/conduit-connector-oracle/source/mock"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 	"github.com/golang/mock/gomock"
@@ -36,10 +35,10 @@ func TestSource_ConfigureSuccess(t *testing.T) {
 	s := Source{}
 
 	err := s.Configure(context.Background(), map[string]string{
-		models.ConfigURL:            "test_user/test_pass_123@localhost:1521/db_name",
-		models.ConfigTable:          "test_table",
-		models.ConfigKeyColumn:      "id",
-		models.ConfigOrderingColumn: "created_at",
+		config.URL:            "test_user/test_pass_123@localhost:1521/db_name",
+		config.Table:          "test_table",
+		config.KeyColumn:      "id",
+		config.OrderingColumn: "created_at",
 	})
 	is.NoErr(err)
 	is.Equal(s.config, config.Source{
@@ -61,9 +60,9 @@ func TestSource_ConfigureFail(t *testing.T) {
 	s := Source{}
 
 	err := s.Configure(context.Background(), map[string]string{
-		models.ConfigURL:       "test_user/test_pass_123@localhost:1521/db_name",
-		models.ConfigTable:     "test_table",
-		models.ConfigKeyColumn: "id",
+		config.URL:       "test_user/test_pass_123@localhost:1521/db_name",
+		config.Table:     "test_table",
+		config.KeyColumn: "id",
 	})
 	is.True(err != nil)
 }

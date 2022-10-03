@@ -105,9 +105,9 @@ func GetColumnTypes(
 	for rows.Next() {
 		columnDescription := ColumnDescription{}
 
-		if er := rows.Scan(&columnName,
-			&columnDescription.Type, &columnDescription.Precision, &columnDescription.Scale); er != nil {
-			return nil, fmt.Errorf("scan rows: %w", er)
+		if err = rows.Scan(&columnName,
+			&columnDescription.Type, &columnDescription.Precision, &columnDescription.Scale); err != nil {
+			return nil, fmt.Errorf("scan rows: %w", err)
 		}
 
 		columnTypes[columnName] = columnDescription

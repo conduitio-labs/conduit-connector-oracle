@@ -16,9 +16,15 @@ package config
 
 import (
 	"strings"
+)
 
-	"github.com/conduitio-labs/conduit-connector-oracle/config/validator"
-	"github.com/conduitio-labs/conduit-connector-oracle/models"
+const (
+	// URL is the configuration name of the url.
+	URL = "url"
+	// Table is the configuration name of the table.
+	Table = "table"
+	// KeyColumn is the configuration name of the key column.
+	KeyColumn = "keyColumn"
 )
 
 // A General represents a general configuration needed to connect to Oracle database.
@@ -34,12 +40,12 @@ type General struct {
 // Parse parses general configuration.
 func Parse(cfg map[string]string) (General, error) {
 	config := General{
-		URL:       cfg[models.ConfigURL],
-		Table:     strings.ToUpper(cfg[models.ConfigTable]),
-		KeyColumn: strings.ToUpper(cfg[models.ConfigKeyColumn]),
+		URL:       cfg[URL],
+		Table:     strings.ToUpper(cfg[Table]),
+		KeyColumn: strings.ToUpper(cfg[KeyColumn]),
 	}
 
-	err := validator.Validate(config)
+	err := validate(config)
 	if err != nil {
 		return General{}, err
 	}

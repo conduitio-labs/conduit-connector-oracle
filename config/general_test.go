@@ -18,8 +18,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/conduitio-labs/conduit-connector-oracle/config/validator"
-	"github.com/conduitio-labs/conduit-connector-oracle/models"
 	"go.uber.org/multierr"
 )
 
@@ -35,9 +33,9 @@ func TestParseGeneral(t *testing.T) {
 		{
 			name: "valid config",
 			in: map[string]string{
-				models.ConfigURL:       "test_user/test_pass_123@localhost:1521/db_name",
-				models.ConfigTable:     "test_table",
-				models.ConfigKeyColumn: "id",
+				URL:       "test_user/test_pass_123@localhost:1521/db_name",
+				Table:     "test_table",
+				KeyColumn: "id",
 			},
 			want: General{
 				URL:       "test_user/test_pass_123@localhost:1521/db_name",
@@ -46,44 +44,44 @@ func TestParseGeneral(t *testing.T) {
 			},
 		},
 		{
-			name: "url is required",
+			name: "URL is required",
 			in: map[string]string{
-				models.ConfigTable:     "test_table",
-				models.ConfigKeyColumn: "id",
+				Table:     "test_table",
+				KeyColumn: "id",
 			},
-			err: validator.RequiredErr(models.ConfigURL),
+			err: errRequired(URL),
 		},
 		{
 			name: "table is required",
 			in: map[string]string{
-				models.ConfigURL:       "test_user/test_pass_123@localhost:1521/db_name",
-				models.ConfigKeyColumn: "id",
+				URL:       "test_user/test_pass_123@localhost:1521/db_name",
+				KeyColumn: "id",
 			},
-			err: validator.RequiredErr(models.ConfigTable),
+			err: errRequired(Table),
 		},
 		{
 			name: "keyColumn is required",
 			in: map[string]string{
-				models.ConfigURL:   "test_user/test_pass_123@localhost:1521/db_name",
-				models.ConfigTable: "test_table",
+				URL:   "test_user/test_pass_123@localhost:1521/db_name",
+				Table: "test_table",
 			},
-			err: validator.RequiredErr(models.ConfigKeyColumn),
+			err: errRequired(KeyColumn),
 		},
 		{
-			name: "a couple required fields are empty (a password and an url)",
+			name: "a couple required fields are empty (a password and an URL)",
 			in: map[string]string{
-				models.ConfigKeyColumn: "id",
+				KeyColumn: "id",
 			},
-			err: multierr.Combine(validator.RequiredErr(models.ConfigURL), validator.RequiredErr(models.ConfigTable)),
+			err: multierr.Combine(errRequired(URL), errRequired(Table)),
 		},
 		{
 			name: "table begins with a number",
 			in: map[string]string{
-				models.ConfigURL:       "test_user/test_pass_123@localhost:1521/db_name",
-				models.ConfigTable:     "1_test_table",
-				models.ConfigKeyColumn: "id",
+				URL:       "test_user/test_pass_123@localhost:1521/db_name",
+				Table:     "1_test_table",
+				KeyColumn: "id",
 			},
-			err: validator.InvalidOracleObjectErr(models.ConfigTable),
+			err: errInvalidOracleObject(Table),
 		},
 	}
 

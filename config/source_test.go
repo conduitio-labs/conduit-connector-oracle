@@ -18,9 +18,6 @@ import (
 	"errors"
 	"reflect"
 	"testing"
-
-	"github.com/conduitio-labs/conduit-connector-oracle/config/validator"
-	"github.com/conduitio-labs/conduit-connector-oracle/models"
 )
 
 func TestParseSource(t *testing.T) {
@@ -33,10 +30,10 @@ func TestParseSource(t *testing.T) {
 		{
 			name: "valid config",
 			in: map[string]string{
-				models.ConfigURL:            "test_user/test_pass_123@localhost:1521/db_name",
-				models.ConfigTable:          "test_table",
-				models.ConfigOrderingColumn: "id",
-				models.ConfigKeyColumn:      "id",
+				URL:            "test_user/test_pass_123@localhost:1521/db_name",
+				Table:          "test_table",
+				OrderingColumn: "id",
+				KeyColumn:      "id",
 			},
 			want: Source{
 				General: General{
@@ -51,11 +48,11 @@ func TestParseSource(t *testing.T) {
 		{
 			name: "valid config, custom batch size",
 			in: map[string]string{
-				models.ConfigURL:            "test_user/test_pass_123@localhost:1521/db_name",
-				models.ConfigTable:          "test_table",
-				models.ConfigOrderingColumn: "id",
-				models.ConfigKeyColumn:      "id",
-				models.ConfigBatchSize:      "100",
+				URL:            "test_user/test_pass_123@localhost:1521/db_name",
+				Table:          "test_table",
+				OrderingColumn: "id",
+				KeyColumn:      "id",
+				BatchSize:      "100",
 			},
 			want: Source{
 				General: General{
@@ -70,11 +67,11 @@ func TestParseSource(t *testing.T) {
 		{
 			name: "valid config, batch size is maximum",
 			in: map[string]string{
-				models.ConfigURL:            "test_user/test_pass_123@localhost:1521/db_name",
-				models.ConfigTable:          "test_table",
-				models.ConfigOrderingColumn: "id",
-				models.ConfigKeyColumn:      "id",
-				models.ConfigBatchSize:      "100000",
+				URL:            "test_user/test_pass_123@localhost:1521/db_name",
+				Table:          "test_table",
+				OrderingColumn: "id",
+				KeyColumn:      "id",
+				BatchSize:      "100000",
 			},
 			want: Source{
 				General: General{
@@ -89,11 +86,11 @@ func TestParseSource(t *testing.T) {
 		{
 			name: "valid config, batch size is minimum",
 			in: map[string]string{
-				models.ConfigURL:            "test_user/test_pass_123@localhost:1521/db_name",
-				models.ConfigTable:          "test_table",
-				models.ConfigOrderingColumn: "id",
-				models.ConfigKeyColumn:      "id",
-				models.ConfigBatchSize:      "1",
+				URL:            "test_user/test_pass_123@localhost:1521/db_name",
+				Table:          "test_table",
+				OrderingColumn: "id",
+				KeyColumn:      "id",
+				BatchSize:      "1",
 			},
 			want: Source{
 				General: General{
@@ -108,11 +105,11 @@ func TestParseSource(t *testing.T) {
 		{
 			name: "valid config, custom columns",
 			in: map[string]string{
-				models.ConfigURL:            "test_user/test_pass_123@localhost:1521/db_name",
-				models.ConfigTable:          "test_table",
-				models.ConfigOrderingColumn: "id",
-				models.ConfigKeyColumn:      "id",
-				models.ConfigColumns:        "id, name,age",
+				URL:            "test_user/test_pass_123@localhost:1521/db_name",
+				Table:          "test_table",
+				OrderingColumn: "id",
+				KeyColumn:      "id",
+				Columns:        "id, name,age",
 			},
 			want: Source{
 				General: General{
@@ -128,88 +125,88 @@ func TestParseSource(t *testing.T) {
 		{
 			name: "invalid config, missed ordering column",
 			in: map[string]string{
-				models.ConfigURL:       "test_user/test_pass_123@localhost:1521/db_name",
-				models.ConfigTable:     "test_table",
-				models.ConfigKeyColumn: "id",
-				models.ConfigColumns:   "id,name,age",
+				URL:       "test_user/test_pass_123@localhost:1521/db_name",
+				Table:     "test_table",
+				KeyColumn: "id",
+				Columns:   "id,name,age",
 			},
 			err: errors.New(`"orderingColumn" value must be set`),
 		},
 		{
 			name: "invalid config, missed key",
 			in: map[string]string{
-				models.ConfigURL:            "test_user/test_pass_123@localhost:1521/db_name",
-				models.ConfigTable:          "test_table",
-				models.ConfigColumns:        "id,name,age",
-				models.ConfigOrderingColumn: "id",
+				URL:            "test_user/test_pass_123@localhost:1521/db_name",
+				Table:          "test_table",
+				Columns:        "id,name,age",
+				OrderingColumn: "id",
 			},
 			err: errors.New(`"keyColumn" value must be set`),
 		},
 		{
 			name: "invalid config, invalid batch size",
 			in: map[string]string{
-				models.ConfigURL:            "test_user/test_pass_123@localhost:1521/db_name",
-				models.ConfigTable:          "test_table",
-				models.ConfigOrderingColumn: "id",
-				models.ConfigKeyColumn:      "id",
-				models.ConfigBatchSize:      "a",
+				URL:            "test_user/test_pass_123@localhost:1521/db_name",
+				Table:          "test_table",
+				OrderingColumn: "id",
+				KeyColumn:      "id",
+				BatchSize:      "a",
 			},
-			err: errors.New(`parse batchSize: strconv.Atoi: parsing "a": invalid syntax`),
+			err: errors.New(`parse BatchSize: strconv.Atoi: parsing "a": invalid syntax`),
 		},
 		{
 			name: "invalid config, missed orderingColumn in columns",
 			in: map[string]string{
-				models.ConfigURL:            "test_user/test_pass_123@localhost:1521/db_name",
-				models.ConfigTable:          "test_table",
-				models.ConfigOrderingColumn: "id",
-				models.ConfigKeyColumn:      "name",
-				models.ConfigColumns:        "name,age",
+				URL:            "test_user/test_pass_123@localhost:1521/db_name",
+				Table:          "test_table",
+				OrderingColumn: "id",
+				KeyColumn:      "name",
+				Columns:        "name,age",
 			},
-			err: errors.New(validator.ColumnsIncludeErrMsg),
+			err: errColumnInclude(),
 		},
 		{
 			name: "invalid config, missed keyColumn in columns",
 			in: map[string]string{
-				models.ConfigURL:            "test_user/test_pass_123@localhost:1521/db_name",
-				models.ConfigTable:          "test_table",
-				models.ConfigOrderingColumn: "id",
-				models.ConfigKeyColumn:      "name",
-				models.ConfigColumns:        "id,age",
+				URL:            "test_user/test_pass_123@localhost:1521/db_name",
+				Table:          "test_table",
+				OrderingColumn: "id",
+				KeyColumn:      "name",
+				Columns:        "id,age",
 			},
-			err: errors.New(validator.ColumnsIncludeErrMsg),
+			err: errColumnInclude(),
 		},
 		{
-			name: "invalid config, batchSize is too big",
+			name: "invalid config, BatchSize is too big",
 			in: map[string]string{
-				models.ConfigURL:            "test_user/test_pass_123@localhost:1521/db_name",
-				models.ConfigTable:          "test_table",
-				models.ConfigOrderingColumn: "id",
-				models.ConfigKeyColumn:      "id",
-				models.ConfigBatchSize:      "100001",
+				URL:            "test_user/test_pass_123@localhost:1521/db_name",
+				Table:          "test_table",
+				OrderingColumn: "id",
+				KeyColumn:      "id",
+				BatchSize:      "100001",
 			},
-			err: validator.OutOfRangeErr(models.ConfigBatchSize),
+			err: errOutOfRange(BatchSize),
 		},
 		{
-			name: "invalid config, batchSize is zero",
+			name: "invalid config, BatchSize is zero",
 			in: map[string]string{
-				models.ConfigURL:            "test_user/test_pass_123@localhost:1521/db_name",
-				models.ConfigTable:          "test_table",
-				models.ConfigOrderingColumn: "id",
-				models.ConfigKeyColumn:      "id",
-				models.ConfigBatchSize:      "0",
+				URL:            "test_user/test_pass_123@localhost:1521/db_name",
+				Table:          "test_table",
+				OrderingColumn: "id",
+				KeyColumn:      "id",
+				BatchSize:      "0",
 			},
-			err: validator.OutOfRangeErr(models.ConfigBatchSize),
+			err: errOutOfRange(BatchSize),
 		},
 		{
-			name: "invalid config, batchSize is negative",
+			name: "invalid config, BatchSize is negative",
 			in: map[string]string{
-				models.ConfigURL:            "test_user/test_pass_123@localhost:1521/db_name",
-				models.ConfigTable:          "test_table",
-				models.ConfigOrderingColumn: "id",
-				models.ConfigKeyColumn:      "id",
-				models.ConfigBatchSize:      "-1",
+				URL:            "test_user/test_pass_123@localhost:1521/db_name",
+				Table:          "test_table",
+				OrderingColumn: "id",
+				KeyColumn:      "id",
+				BatchSize:      "-1",
 			},
-			err: validator.OutOfRangeErr(models.ConfigBatchSize),
+			err: errOutOfRange(BatchSize),
 		},
 	}
 
