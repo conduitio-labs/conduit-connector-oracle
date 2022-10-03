@@ -346,3 +346,13 @@ func (i *CDC) deleteTrackingTableRows(ctx context.Context) error {
 
 	return nil
 }
+
+// buildDeleteByIDsQuery returns delete by id query.
+func buildDeleteByIDsQuery(table, column string, ids []any) string {
+	placeholders := make([]string, len(ids))
+	for i := range ids {
+		placeholders[i] = fmt.Sprintf(":%d", i+1)
+	}
+
+	return fmt.Sprintf(queryDeleteByIDs, table, column, strings.Join(placeholders, ","))
+}

@@ -19,6 +19,7 @@ import (
 	"database/sql"
 	"fmt"
 	"hash/fnv"
+	"strings"
 
 	"github.com/conduitio-labs/conduit-connector-oracle/coltypes"
 	"github.com/conduitio-labs/conduit-connector-oracle/repository"
@@ -262,24 +263,63 @@ func (i *Iterator) initTrackingTable(ctx context.Context, tx *sql.Tx) error {
 	}
 
 	// add tracking columns to a tracking table
-	_, err = tx.ExecContext(ctx, buildExpandTrackingTableQuery(i.trackingTable))
+	_, err = tx.ExecContext(ctx, buildToExpandTrackingTableQuery(i.trackingTable))
 	if err != nil {
 		return fmt.Errorf("expand tracking table with conduit columns: %w", err)
 	}
 
 	// add trigger
-	_, err = tx.ExecContext(ctx, buildCreateTriggerQuery(buildCreateTriggerParams{
-		name:          fmt.Sprintf("CONDUIT_%d", i.hashedTable),
-		table:         i.table,
-		trackingTable: i.trackingTable,
-		columnTypes:   i.columnTypes,
-		columns:       i.columns,
-	}))
+	_, err = tx.ExecContext(ctx, buildCreateTriggerQuery(
+		fmt.Sprintf("CONDUIT_%d", i.hashedTable),
+		i.table,
+		i.trackingTable,
+		i.columnTypes,
+		i.columns,
+	))
 	if err != nil {
 		return fmt.Errorf("create trigger: %w", err)
 	}
 
 	return nil
+}
+
+// buildToExpandTrackingTableQuery returns a query to expand the tracking table.
+func buildToExpandTrackingTableQuery(trackingTable string) string {
+	return fmt.Sprintf(queryTrackingTableExtendWithConduitColumns, trackingTable, columnTrackingID, columnOperationType,
+		columnOperationType, columnTimeCreatedAt, trackingTable, columnTrackingID)
+}
+
+// buildCreateTriggerQuery returns a create trigger query.
+func buildCreateTriggerQuery(
+	name string,
+	table string,
+	trackingTable string,
+	columnTypes map[string]coltypes.ColumnDescription,
+	columns []string,
+) string {
+	var columnNames []string
+
+	if columns != nil {
+		columnNames = append(columnNames, columns...)
+	} else {
+		for key := range columnTypes {
+			columnNames = append(columnNames, key)
+		}
+	}
+
+	newValues := make([]string, len(columnNames))
+	oldValues := make([]string, len(columnNames))
+	for i := range columnNames {
+		newValues[i] = fmt.Sprintf("%s%s", referencingNew, columnNames[i])
+		oldValues[i] = fmt.Sprintf("%s%s", referencingOld, columnNames[i])
+	}
+
+	insertOnInsertingOrUpdating := fmt.Sprintf(queryTriggerInsertPart, trackingTable,
+		strings.Join(columnNames, ","), columnOperationType, strings.Join(newValues, ","))
+	insertOnDeleting := fmt.Sprintf(queryTriggerInsertPart, trackingTable,
+		strings.Join(columnNames, ","), columnOperationType, strings.Join(oldValues, ","))
+
+	return fmt.Sprintf(queryTriggerCreate, name, table, insertOnInsertingOrUpdating, insertOnDeleting)
 }
 
 // dropSnapshotTable drops a snapshot, if it exists.
