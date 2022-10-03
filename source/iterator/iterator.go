@@ -44,8 +44,8 @@ type Iterator struct {
 	// batchSize represents a size of batch
 	batchSize int
 
-	// columnTypes represents a columns' data from table
-	columnTypes   map[string]coltypes.ColumnData
+	// columnTypes represents a columns' description from table
+	columnTypes   map[string]coltypes.ColumnDescription
 	hashedTable   uint32
 	trackingTable string
 	snapshotTable string

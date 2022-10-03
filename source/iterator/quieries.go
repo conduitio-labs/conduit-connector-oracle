@@ -84,7 +84,7 @@ type buildCreateTriggerParams struct {
 	name          string
 	table         string
 	trackingTable string
-	columnTypes   map[string]coltypes.ColumnData
+	columnTypes   map[string]coltypes.ColumnDescription
 	columns       []string
 }
 

@@ -28,8 +28,8 @@ const (
 	oracleTypeNumber = "NUMBER"
 )
 
-// queryColumnData is a query that selects columns' data by the table name.
-var queryColumnData = `
+// queryColumnDescription is a query that selects columns' description by the table name.
+var queryColumnDescription = `
 SELECT 
     COLUMN_NAME as NAME,
     DATA_TYPE as TYPE,
@@ -39,15 +39,15 @@ FROM ALL_TAB_COLUMNS
 WHERE TABLE_NAME ='%s'
 `
 
-// ColumnData represents a columns' data.
-type ColumnData struct {
+// ColumnDescription describes columns.
+type ColumnDescription struct {
 	Type      string
 	Precision *int
 	Scale     *int
 }
 
 // TransformRow converts row map values to appropriate Go types, based on the columnTypes.
-func TransformRow(row map[string]any, columnTypes map[string]ColumnData) (map[string]any, error) {
+func TransformRow(row map[string]any, columnTypes map[string]ColumnDescription) (map[string]any, error) {
 	result := make(map[string]any, len(row))
 
 	for key, value := range row {
@@ -89,23 +89,28 @@ func TransformRow(row map[string]any, columnTypes map[string]ColumnData) (map[st
 }
 
 // GetColumnTypes returns a map containing all table's columns and their database data.
-func GetColumnTypes(ctx context.Context, repo *repository.Oracle, tableName string) (map[string]ColumnData, error) {
+func GetColumnTypes(
+	ctx context.Context,
+	repo *repository.Oracle,
+	tableName string,
+) (map[string]ColumnDescription, error) {
 	var columnName string
 
-	rows, err := repo.DB.QueryxContext(ctx, fmt.Sprintf(queryColumnData, tableName))
+	rows, err := repo.DB.QueryxContext(ctx, fmt.Sprintf(queryColumnDescription, tableName))
 	if err != nil {
 		return nil, fmt.Errorf("query column types: %w", err)
 	}
 
-	columnTypes := make(map[string]ColumnData)
+	columnTypes := make(map[string]ColumnDescription)
 	for rows.Next() {
-		columnData := ColumnData{}
+		columnDescription := ColumnDescription{}
 
-		if er := rows.Scan(&columnName, &columnData.Type, &columnData.Precision, &columnData.Scale); er != nil {
+		if er := rows.Scan(&columnName,
+			&columnDescription.Type, &columnDescription.Precision, &columnDescription.Scale); er != nil {
 			return nil, fmt.Errorf("scan rows: %w", er)
 		}
 
-		columnTypes[columnName] = columnData
+		columnTypes[columnName] = columnDescription
 	}
 
 	return columnTypes, nil

@@ -47,8 +47,8 @@ type Snapshot struct {
 	batchSize int
 
 	rows *sqlx.Rows
-	// columnTypes represents a columns' data from table
-	columnTypes map[string]coltypes.ColumnData
+	// columnTypes represents a columns' description from table
+	columnTypes map[string]coltypes.ColumnDescription
 }
 
 // SnapshotParams represents an incoming params for the NewSnapshot function.
@@ -61,7 +61,7 @@ type SnapshotParams struct {
 	OrderingColumn string
 	Columns        []string
 	BatchSize      int
-	ColumnTypes    map[string]coltypes.ColumnData
+	ColumnTypes    map[string]coltypes.ColumnDescription
 }
 
 // NewSnapshot creates a new instance of the Snapshot iterator.

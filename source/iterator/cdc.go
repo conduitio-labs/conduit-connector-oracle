@@ -52,8 +52,8 @@ type CDC struct {
 	batchSize int
 
 	rows *sqlx.Rows
-	// columnTypes represents a columns' data from table
-	columnTypes map[string]coltypes.ColumnData
+	// columnTypes represents a columns' description from table
+	columnTypes map[string]coltypes.ColumnDescription
 }
 
 // CDCParams represents an incoming params for the NewCDC function.
