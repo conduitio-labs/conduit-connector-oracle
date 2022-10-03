@@ -63,15 +63,14 @@ func TestAcceptance(t *testing.T) {
 			Config: sdk.ConfigurableAcceptanceTestDriverConfig{
 				Connector:         Connector,
 				SourceConfig:      cfg,
-				DestinationConfig: nil,
+				DestinationConfig: cfg,
 				BeforeTest: func(t *testing.T) {
 					err := createTable(cfg[models.ConfigURL], cfg[models.ConfigTable])
 					is.NoErr(err)
-
-					t.Cleanup(func() {
-						err = dropTables(cfg[models.ConfigURL], cfg[models.ConfigTable])
-						is.NoErr(err)
-					})
+				},
+				AfterTest: func(t *testing.T) {
+					err := dropTables(cfg[models.ConfigURL], cfg[models.ConfigTable])
+					is.NoErr(err)
 				},
 			},
 		},
