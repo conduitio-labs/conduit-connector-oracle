@@ -107,5 +107,3 @@ information [inside the Change Data Capture section](#change-data-capture)).
 ## Known limitations
 
 Updating the configuration can cause completely unexpected results.
-
-Creating two source connectors using the same table is not allowed.

@@ -16,6 +16,7 @@ package iterator
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"hash/fnv"
 
@@ -95,16 +96,27 @@ func New(ctx context.Context, params Params) (*Iterator, error) {
 
 	switch position := params.Position; {
 	case position == nil || position.Mode == ModeSnapshot:
+		tx, err := iterator.repo.DB.Begin()
+		if err != nil {
+			return nil, fmt.Errorf("begin db transaction: %w", err)
+		}
+		defer tx.Rollback() // nolint:errcheck,nolintlint
+
 		// initialize a snapshot
-		err = iterator.initSnapshotTable(ctx)
+		err = iterator.initSnapshotTable(ctx, tx)
 		if err != nil {
 			return nil, fmt.Errorf("initialize snapshot: %w", err)
 		}
 
 		// initialize tracking table
-		err = iterator.initTrackingTable(ctx)
+		err = iterator.initTrackingTable(ctx, tx)
 		if err != nil {
 			return nil, fmt.Errorf("initialize tracking table: %w", err)
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			return nil, fmt.Errorf("commit db transaction: %w", err)
 		}
 
 		iterator.snapshot, err = NewSnapshot(ctx, SnapshotParams{
@@ -213,8 +225,8 @@ func (i *Iterator) Close() (err error) {
 }
 
 // initSnapshotTable creates a new snapshot table, if id does not exist.
-func (i *Iterator) initSnapshotTable(ctx context.Context) error {
-	exists, err := i.checkIfTableExists(ctx, i.snapshotTable)
+func (i *Iterator) initSnapshotTable(ctx context.Context, tx *sql.Tx) error {
+	exists, err := i.checkIfTableExists(ctx, tx, i.snapshotTable)
 	if err != nil {
 		return fmt.Errorf("check if table exists: %w", err)
 	}
@@ -224,7 +236,7 @@ func (i *Iterator) initSnapshotTable(ctx context.Context) error {
 	}
 
 	// create a snapshot table
-	_, err = i.repo.DB.ExecContext(ctx, fmt.Sprintf(querySnapshotTable, i.snapshotTable, i.table))
+	_, err = tx.ExecContext(ctx, fmt.Sprintf(querySnapshotTable, i.snapshotTable, i.table))
 	if err != nil {
 		return fmt.Errorf("create snapshot: %w", err)
 	}
@@ -233,8 +245,8 @@ func (i *Iterator) initSnapshotTable(ctx context.Context) error {
 }
 
 // initTrackingTable creates a new tracking table and trigger, if they do not exist.
-func (i *Iterator) initTrackingTable(ctx context.Context) error {
-	exists, err := i.checkIfTableExists(ctx, i.trackingTable)
+func (i *Iterator) initTrackingTable(ctx context.Context, tx *sql.Tx) error {
+	exists, err := i.checkIfTableExists(ctx, tx, i.trackingTable)
 	if err != nil {
 		return fmt.Errorf("check if table exists: %w", err)
 	}
@@ -242,12 +254,6 @@ func (i *Iterator) initTrackingTable(ctx context.Context) error {
 	if exists {
 		return nil
 	}
-
-	tx, err := i.repo.DB.Begin()
-	if err != nil {
-		return fmt.Errorf("begin db transaction: %w", err)
-	}
-	defer tx.Rollback() // nolint:errcheck,nolintlint
 
 	// create a copy of table
 	_, err = tx.ExecContext(ctx, fmt.Sprintf(queryTableCopy, i.trackingTable, i.table, i.table))
@@ -273,17 +279,18 @@ func (i *Iterator) initTrackingTable(ctx context.Context) error {
 		return fmt.Errorf("create trigger: %w", err)
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		return fmt.Errorf("commit db transaction: %w", err)
-	}
-
 	return nil
 }
 
 // dropSnapshotTable drops a snapshot, if it exists.
 func (i *Iterator) dropSnapshotTable(ctx context.Context) error {
-	exists, err := i.checkIfTableExists(ctx, i.snapshotTable)
+	tx, err := i.repo.DB.Begin()
+	if err != nil {
+		return fmt.Errorf("begin db transaction: %w", err)
+	}
+	defer tx.Rollback() // nolint:errcheck,nolintlint
+
+	exists, err := i.checkIfTableExists(ctx, tx, i.snapshotTable)
 	if err != nil {
 		return fmt.Errorf("check if table exists: %w", err)
 	}
@@ -292,17 +299,22 @@ func (i *Iterator) dropSnapshotTable(ctx context.Context) error {
 		return nil
 	}
 
-	_, err = i.repo.DB.ExecContext(ctx, fmt.Sprintf("DROP SNAPSHOT %s", i.snapshotTable))
+	_, err = tx.ExecContext(ctx, fmt.Sprintf("DROP SNAPSHOT %s", i.snapshotTable))
 	if err != nil {
 		return fmt.Errorf("exec drop snapshot: %w", err)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return fmt.Errorf("commit db transaction: %w", err)
 	}
 
 	return nil
 }
 
 // checkIfTableExists checks if table exist.
-func (i *Iterator) checkIfTableExists(ctx context.Context, table string) (bool, error) {
-	rows, err := i.repo.DB.QueryContext(ctx, fmt.Sprintf(queryIfTableExists, table))
+func (i *Iterator) checkIfTableExists(ctx context.Context, tx *sql.Tx, table string) (bool, error) {
+	rows, err := tx.QueryContext(ctx, fmt.Sprintf(queryIfTableExists, table))
 	if err != nil {
 		return false, fmt.Errorf("request with check if the table already exists: %w", err)
 	}
