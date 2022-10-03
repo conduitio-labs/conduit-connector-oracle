@@ -116,7 +116,8 @@ func (i *Snapshot) Next(_ context.Context) (sdk.Record, error) {
 	}
 
 	i.position = &Position{
-		Mode:             ModeSnapshot,
+		Mode: ModeSnapshot,
+		// set the value from i.orderingColumn column you chose
 		LastProcessedVal: transformedRow[i.orderingColumn],
 	}
 

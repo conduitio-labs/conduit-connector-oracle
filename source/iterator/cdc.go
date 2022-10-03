@@ -145,7 +145,8 @@ func (i *CDC) Next(ctx context.Context) (sdk.Record, error) {
 	}
 
 	i.position = &Position{
-		Mode:             ModeCDC,
+		Mode: ModeCDC,
+		// set the value from columnTrackingID column of the tracking table
 		LastProcessedVal: transformedRow[columnTrackingID],
 	}
 
