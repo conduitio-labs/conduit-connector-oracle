@@ -121,7 +121,7 @@ func (i *Snapshot) Next(_ context.Context) (sdk.Record, error) {
 		LastProcessedVal: transformedRow[i.orderingColumn],
 	}
 
-	convertedPosition, err := i.position.marshalPosition()
+	convertedPosition, err := i.position.marshal()
 	if err != nil {
 		return sdk.Record{}, fmt.Errorf("convert position %w", err)
 	}

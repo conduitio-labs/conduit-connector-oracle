@@ -150,7 +150,7 @@ func (i *CDC) Next(ctx context.Context) (sdk.Record, error) {
 		LastProcessedVal: transformedRow[columnTrackingID],
 	}
 
-	convertedPosition, err := i.position.marshalPosition()
+	convertedPosition, err := i.position.marshal()
 	if err != nil {
 		return sdk.Record{}, fmt.Errorf("convert position %w", err)
 	}

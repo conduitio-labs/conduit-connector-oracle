@@ -53,8 +53,8 @@ func ParseSDKPosition(position sdk.Position) (*Position, error) {
 	return &pos, nil
 }
 
-// marshalPosition marshals Position and returns sdk.Position or an error.
-func (p Position) marshalPosition() (sdk.Position, error) {
+// marshal marshals Position and returns sdk.Position or an error.
+func (p Position) marshal() (sdk.Position, error) {
 	positionBytes, err := json.Marshal(p)
 	if err != nil {
 		return nil, fmt.Errorf("marshal position: %w", err)
