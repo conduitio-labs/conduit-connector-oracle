@@ -144,6 +144,8 @@ func (i *CDC) Next(ctx context.Context) (sdk.Record, error) {
 		return sdk.Record{}, errWrongTrackingOperationType
 	}
 
+	// set a new position into the variable,
+	// to avoid saving position into the struct until we marshal the position
 	position := &Position{
 		Mode: ModeCDC,
 		// set the value from columnTrackingID column of the tracking table
