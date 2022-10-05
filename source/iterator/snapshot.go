@@ -127,7 +127,7 @@ func (i *Snapshot) Next(_ context.Context) (sdk.Record, error) {
 	}
 
 	if _, ok := transformedRow[i.keyColumn]; !ok {
-		return sdk.Record{}, errKeyIsNotExist
+		return sdk.Record{}, errNoKey
 	}
 
 	transformedRowBytes, err := json.Marshal(transformedRow)

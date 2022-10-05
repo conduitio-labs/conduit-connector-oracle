@@ -156,7 +156,7 @@ func (i *CDC) Next(ctx context.Context) (sdk.Record, error) {
 	}
 
 	if _, ok = transformedRow[i.keyColumn]; !ok {
-		return sdk.Record{}, errKeyIsNotExist
+		return sdk.Record{}, errNoKey
 	}
 
 	// delete tracking columns
