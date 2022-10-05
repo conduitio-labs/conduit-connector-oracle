@@ -144,13 +144,13 @@ func (i *CDC) Next(ctx context.Context) (sdk.Record, error) {
 		return sdk.Record{}, errWrongTrackingOperationType
 	}
 
-	i.position = &Position{
+	position := &Position{
 		Mode: ModeCDC,
 		// set the value from columnTrackingID column of the tracking table
 		LastProcessedVal: transformedRow[columnTrackingID],
 	}
 
-	convertedPosition, err := i.position.marshal()
+	convertedPosition, err := position.marshal()
 	if err != nil {
 		return sdk.Record{}, fmt.Errorf("convert position %w", err)
 	}
@@ -168,6 +168,8 @@ func (i *CDC) Next(ctx context.Context) (sdk.Record, error) {
 	if err != nil {
 		return sdk.Record{}, fmt.Errorf("marshal row: %w", err)
 	}
+
+	i.position = position
 
 	metadata := sdk.Metadata{
 		metadataTable: i.table,

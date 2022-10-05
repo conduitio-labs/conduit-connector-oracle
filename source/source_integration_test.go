@@ -137,14 +137,14 @@ func TestSource_Snapshot_Read(t *testing.T) {
 	// read records
 	record, err := src.Read(ctx)
 	is.NoErr(err)
-	is.Equal(string(record.Position), `{"mode":"snapshot","last_processed_val":1}`)
+	is.Equal(record.Position, sdk.Position(`{"mode":"snapshot","last_processed_val":1}`))
 	is.Equal(record.Operation, sdk.OperationSnapshot)
 	is.Equal(record.Key, sdk.StructuredData(map[string]interface{}{"ID": 1}))
 	is.Equal(record.Payload.After, sdk.RawData(`{"AGE":42,"ID":1,"IS_ACTIVE":true,"NAME":"John"}`))
 
 	record, err = src.Read(ctx)
 	is.NoErr(err)
-	is.Equal(string(record.Position), `{"mode":"snapshot","last_processed_val":2}`)
+	is.Equal(record.Position, sdk.Position(`{"mode":"snapshot","last_processed_val":2}`))
 	is.Equal(record.Operation, sdk.OperationSnapshot)
 	is.Equal(record.Key, sdk.StructuredData(map[string]interface{}{"ID": 2}))
 	is.Equal(record.Payload.After, sdk.RawData(`{"AGE":12,"ID":2,"IS_ACTIVE":false,"NAME":"Jane"}`))
@@ -168,7 +168,7 @@ func TestSource_Snapshot_Read(t *testing.T) {
 
 	record, err = src.Read(ctx)
 	is.NoErr(err)
-	is.Equal(string(record.Position), `{"mode":"snapshot","last_processed_val":3}`)
+	is.Equal(record.Position, sdk.Position(`{"mode":"snapshot","last_processed_val":3}`))
 	is.Equal(record.Operation, sdk.OperationSnapshot)
 	is.Equal(record.Key, sdk.StructuredData(map[string]interface{}{"ID": 3}))
 	is.Equal(record.Payload.After, sdk.RawData(`{"AGE":98,"ID":3,"IS_ACTIVE":true,"NAME":"Sam"}`))
@@ -237,7 +237,7 @@ func TestSource_CDC_Read(t *testing.T) {
 	// read the first cdc record without sdk.ErrBackoffRetry error between iterators
 	record, err := src.Read(ctx)
 	is.NoErr(err)
-	is.Equal(string(record.Position), `{"mode":"cdc","last_processed_val":1}`)
+	is.Equal(record.Position, sdk.Position(`{"mode":"cdc","last_processed_val":1}`))
 	is.Equal(record.Operation, sdk.OperationUpdate)
 	is.Equal(record.Key, sdk.StructuredData(map[string]interface{}{"ID": 2}))
 	is.Equal(record.Payload.After, sdk.RawData(`{"AGE":33,"ID":2,"IS_ACTIVE":false,"NAME":"Jane"}`))
@@ -265,14 +265,14 @@ func TestSource_CDC_Read(t *testing.T) {
 
 	record, err = src.Read(ctx)
 	is.NoErr(err)
-	is.Equal(string(record.Position), `{"mode":"cdc","last_processed_val":2}`)
+	is.Equal(record.Position, sdk.Position(`{"mode":"cdc","last_processed_val":2}`))
 	is.Equal(record.Operation, sdk.OperationCreate)
 	is.Equal(record.Key, sdk.StructuredData(map[string]interface{}{"ID": 4}))
 	is.Equal(record.Payload.After, sdk.RawData(`{"AGE":81,"ID":4,"IS_ACTIVE":false,"NAME":"Smith"}`))
 
 	record, err = src.Read(ctx)
 	is.NoErr(err)
-	is.Equal(string(record.Position), `{"mode":"cdc","last_processed_val":3}`)
+	is.Equal(record.Position, sdk.Position(`{"mode":"cdc","last_processed_val":3}`))
 	is.Equal(record.Operation, sdk.OperationCreate)
 	is.Equal(record.Key, sdk.StructuredData(map[string]interface{}{"ID": 5}))
 	is.Equal(record.Payload.After, sdk.RawData(`{"AGE":26,"ID":5,"IS_ACTIVE":true,"NAME":"Elizabeth"}`))
@@ -286,7 +286,7 @@ func TestSource_CDC_Read(t *testing.T) {
 
 	record, err = src.Read(ctx)
 	is.NoErr(err)
-	is.Equal(string(record.Position), `{"mode":"cdc","last_processed_val":4}`)
+	is.Equal(record.Position, sdk.Position(`{"mode":"cdc","last_processed_val":4}`))
 	is.Equal(record.Operation, sdk.OperationDelete)
 	is.Equal(record.Key, sdk.StructuredData(map[string]interface{}{"ID": 3}))
 	is.Equal(record.Payload, sdk.Change{})

@@ -38,7 +38,7 @@ const (
 	queryIfTableExists     = "SELECT table_name FROM user_tables WHERE table_name='%s'"
 	querySnapshotTable     = "CREATE SNAPSHOT %s AS SELECT * FROM %s"
 	queryTableCopy         = "CREATE TABLE %s AS SELECT * FROM %s WHERE 1=2 UNION ALL SELECT * FROM %s WHERE 1=2"
-	queryTriggerInsertPart = "INSERT INTO %s (%s, %s) VALUES (%s, transaction_type)"
+	queryTriggerInsertPart = "INSERT INTO %s (%s, %s) VALUES (%s, transaction_type);"
 	querySelectRowsFmt     = "SELECT %s FROM %s%s ORDER BY %s ASC FETCH NEXT %d ROWS ONLY"
 	queryDeleteByIDs       = "DELETE FROM %s WHERE %s IN (%s)"
 

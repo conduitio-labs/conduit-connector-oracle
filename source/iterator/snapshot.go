@@ -115,17 +115,6 @@ func (i *Snapshot) Next(_ context.Context) (sdk.Record, error) {
 		return sdk.Record{}, errOrderingColumnIsNotExist
 	}
 
-	i.position = &Position{
-		Mode: ModeSnapshot,
-		// set the value from i.orderingColumn column you chose
-		LastProcessedVal: transformedRow[i.orderingColumn],
-	}
-
-	convertedPosition, err := i.position.marshal()
-	if err != nil {
-		return sdk.Record{}, fmt.Errorf("convert position %w", err)
-	}
-
 	if _, ok := transformedRow[i.keyColumn]; !ok {
 		return sdk.Record{}, errNoKey
 	}
@@ -134,6 +123,21 @@ func (i *Snapshot) Next(_ context.Context) (sdk.Record, error) {
 	if err != nil {
 		return sdk.Record{}, fmt.Errorf("marshal row: %w", err)
 	}
+
+	// set a new position into the variable,
+	// to avoid saving position into the struct until we marshal the position
+	position := &Position{
+		Mode: ModeSnapshot,
+		// set the value from i.orderingColumn column you chose
+		LastProcessedVal: transformedRow[i.orderingColumn],
+	}
+
+	convertedPosition, err := position.marshal()
+	if err != nil {
+		return sdk.Record{}, fmt.Errorf("convert position %w", err)
+	}
+
+	i.position = position
 
 	metadata := sdk.Metadata{
 		metadataTable: i.table,
