@@ -340,7 +340,7 @@ func (i *CDC) deleteTrackingTableRows(ctx context.Context) error {
 		return nil
 	}
 
-	query := buildDeleteByIDsQuery(i.trackingTable, columnTrackingID, i.tableSrv.idsToDelete)
+	query := i.buildDeleteByIDsQuery()
 
 	_, err := i.repo.DB.ExecContext(ctx, query, i.tableSrv.idsToDelete...)
 	if err != nil {
@@ -353,11 +353,11 @@ func (i *CDC) deleteTrackingTableRows(ctx context.Context) error {
 }
 
 // buildDeleteByIDsQuery returns delete by id query.
-func buildDeleteByIDsQuery(table, column string, ids []any) string {
-	placeholders := make([]string, len(ids))
-	for i := range ids {
+func (i *CDC) buildDeleteByIDsQuery() string {
+	placeholders := make([]string, len(i.tableSrv.idsToDelete))
+	for i := range i.tableSrv.idsToDelete {
 		placeholders[i] = fmt.Sprintf(":%d", i+1)
 	}
 
-	return fmt.Sprintf(queryDeleteByIDs, table, column, strings.Join(placeholders, ","))
+	return fmt.Sprintf(queryDeleteByIDs, i.trackingTable, columnTrackingID, strings.Join(placeholders, ","))
 }
