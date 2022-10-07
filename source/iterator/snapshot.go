@@ -87,35 +87,35 @@ func NewSnapshot(ctx context.Context, params SnapshotParams) (*Snapshot, error) 
 }
 
 // HasNext returns a bool indicating whether the iterator has the next record to return or not.
-func (i *Snapshot) HasNext(ctx context.Context) (bool, error) {
-	if i.rows != nil && i.rows.Next() {
+func (iter *Snapshot) HasNext(ctx context.Context) (bool, error) {
+	if iter.rows != nil && iter.rows.Next() {
 		return true, nil
 	}
 
-	if err := i.loadRows(ctx); err != nil {
+	if err := iter.loadRows(ctx); err != nil {
 		return false, fmt.Errorf("load rows: %w", err)
 	}
 
-	return i.rows.Next(), nil
+	return iter.rows.Next(), nil
 }
 
 // Next returns the next record.
-func (i *Snapshot) Next(_ context.Context) (sdk.Record, error) {
+func (iter *Snapshot) Next(_ context.Context) (sdk.Record, error) {
 	row := make(map[string]any)
-	if err := i.rows.MapScan(row); err != nil {
+	if err := iter.rows.MapScan(row); err != nil {
 		return sdk.Record{}, fmt.Errorf("scan rows: %w", err)
 	}
 
-	transformedRow, err := coltypes.TransformRow(row, i.columnTypes)
+	transformedRow, err := coltypes.TransformRow(row, iter.columnTypes)
 	if err != nil {
 		return sdk.Record{}, fmt.Errorf("transform row column types: %w", err)
 	}
 
-	if _, ok := transformedRow[i.orderingColumn]; !ok {
+	if _, ok := transformedRow[iter.orderingColumn]; !ok {
 		return sdk.Record{}, errOrderingColumnIsNotExist
 	}
 
-	if _, ok := transformedRow[i.keyColumn]; !ok {
+	if _, ok := transformedRow[iter.keyColumn]; !ok {
 		return sdk.Record{}, errNoKey
 	}
 
@@ -128,8 +128,8 @@ func (i *Snapshot) Next(_ context.Context) (sdk.Record, error) {
 	// to avoid saving position into the struct until we marshal the position
 	position := &Position{
 		Mode: ModeSnapshot,
-		// set the value from i.orderingColumn column you chose
-		LastProcessedVal: transformedRow[i.orderingColumn],
+		// set the value from iter.orderingColumn column you chose
+		LastProcessedVal: transformedRow[iter.orderingColumn],
 	}
 
 	convertedPosition, err := position.marshal()
@@ -137,10 +137,10 @@ func (i *Snapshot) Next(_ context.Context) (sdk.Record, error) {
 		return sdk.Record{}, fmt.Errorf("convert position %w", err)
 	}
 
-	i.position = position
+	iter.position = position
 
 	metadata := sdk.Metadata{
-		metadataTable: i.table,
+		metadataTable: iter.table,
 	}
 	metadata.SetCreatedAt(time.Now())
 
@@ -148,7 +148,7 @@ func (i *Snapshot) Next(_ context.Context) (sdk.Record, error) {
 		convertedPosition,
 		metadata,
 		sdk.StructuredData{
-			i.keyColumn: transformedRow[i.keyColumn],
+			iter.keyColumn: transformedRow[iter.keyColumn],
 		},
 		sdk.RawData(transformedRowBytes),
 	)
@@ -157,9 +157,9 @@ func (i *Snapshot) Next(_ context.Context) (sdk.Record, error) {
 }
 
 // Close closes database rows of Snapshot iterator.
-func (i *Snapshot) Close() error {
-	if i.rows != nil {
-		return i.rows.Close()
+func (iter *Snapshot) Close() error {
+	if iter.rows != nil {
+		return iter.rows.Close()
 	}
 
 	return nil
@@ -167,27 +167,27 @@ func (i *Snapshot) Close() error {
 
 // LoadRows selects a batch of rows from a database, based on the
 // table, columns, orderingColumn, batchSize and the current position.
-func (i *Snapshot) loadRows(ctx context.Context) error {
+func (iter *Snapshot) loadRows(ctx context.Context) error {
 	columns := "*"
-	if len(i.columns) > 0 {
-		columns = strings.Join(i.columns, ",")
+	if len(iter.columns) > 0 {
+		columns = strings.Join(iter.columns, ",")
 	}
 
 	whereClause := ""
 	args := make([]any, 0)
-	if i.position != nil {
-		whereClause = fmt.Sprintf(" WHERE %s > :1", i.orderingColumn)
-		args = append(args, i.position.LastProcessedVal)
+	if iter.position != nil {
+		whereClause = fmt.Sprintf(" WHERE %s > :1", iter.orderingColumn)
+		args = append(args, iter.position.LastProcessedVal)
 	}
 
-	query := fmt.Sprintf(querySelectRowsFmt, columns, i.snapshotTable, whereClause, i.orderingColumn, i.batchSize)
+	query := fmt.Sprintf(querySelectRowsFmt, columns, iter.snapshotTable, whereClause, iter.orderingColumn, iter.batchSize)
 
-	rows, err := i.repo.DB.QueryxContext(ctx, query, args...)
+	rows, err := iter.repo.DB.QueryxContext(ctx, query, args...)
 	if err != nil {
 		return fmt.Errorf("execute select query %q, %v: %w", query, args, err)
 	}
 
-	i.rows = rows
+	iter.rows = rows
 
 	return nil
 }

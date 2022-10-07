@@ -115,26 +115,26 @@ func NewCDC(ctx context.Context, params CDCParams) (*CDC, error) {
 }
 
 // HasNext returns a bool indicating whether the iterator has the next record to return or not.
-func (i *CDC) HasNext(ctx context.Context) (bool, error) {
-	if i.rows != nil && i.rows.Next() {
+func (iter *CDC) HasNext(ctx context.Context) (bool, error) {
+	if iter.rows != nil && iter.rows.Next() {
 		return true, nil
 	}
 
-	if err := i.loadRows(ctx); err != nil {
+	if err := iter.loadRows(ctx); err != nil {
 		return false, fmt.Errorf("load rows: %w", err)
 	}
 
-	return i.rows.Next(), nil
+	return iter.rows.Next(), nil
 }
 
 // Next returns the next record.
-func (i *CDC) Next(ctx context.Context) (sdk.Record, error) {
+func (iter *CDC) Next(ctx context.Context) (sdk.Record, error) {
 	row := make(map[string]any)
-	if err := i.rows.MapScan(row); err != nil {
+	if err := iter.rows.MapScan(row); err != nil {
 		return sdk.Record{}, fmt.Errorf("scan rows: %w", err)
 	}
 
-	transformedRow, err := coltypes.TransformRow(row, i.columnTypes)
+	transformedRow, err := coltypes.TransformRow(row, iter.columnTypes)
 	if err != nil {
 		return sdk.Record{}, fmt.Errorf("transform row column types: %w", err)
 	}
@@ -157,7 +157,7 @@ func (i *CDC) Next(ctx context.Context) (sdk.Record, error) {
 		return sdk.Record{}, fmt.Errorf("convert position %w", err)
 	}
 
-	if _, ok = transformedRow[i.keyColumn]; !ok {
+	if _, ok = transformedRow[iter.keyColumn]; !ok {
 		return sdk.Record{}, errNoKey
 	}
 
@@ -171,10 +171,10 @@ func (i *CDC) Next(ctx context.Context) (sdk.Record, error) {
 		return sdk.Record{}, fmt.Errorf("marshal row: %w", err)
 	}
 
-	i.position = position
+	iter.position = position
 
 	metadata := sdk.Metadata{
-		metadataTable: i.table,
+		metadataTable: iter.table,
 	}
 	metadata.SetCreatedAt(time.Now())
 
@@ -184,7 +184,7 @@ func (i *CDC) Next(ctx context.Context) (sdk.Record, error) {
 			convertedPosition,
 			metadata,
 			sdk.StructuredData{
-				i.keyColumn: transformedRow[i.keyColumn],
+				iter.keyColumn: transformedRow[iter.keyColumn],
 			},
 			sdk.RawData(transformedRowBytes),
 		), nil
@@ -193,7 +193,7 @@ func (i *CDC) Next(ctx context.Context) (sdk.Record, error) {
 			convertedPosition,
 			metadata,
 			sdk.StructuredData{
-				i.keyColumn: transformedRow[i.keyColumn],
+				iter.keyColumn: transformedRow[iter.keyColumn],
 			},
 			nil,
 			sdk.RawData(transformedRowBytes),
@@ -203,7 +203,7 @@ func (i *CDC) Next(ctx context.Context) (sdk.Record, error) {
 			convertedPosition,
 			metadata,
 			sdk.StructuredData{
-				i.keyColumn: transformedRow[i.keyColumn],
+				iter.keyColumn: transformedRow[iter.keyColumn],
 			},
 		), nil
 	default:
@@ -212,50 +212,50 @@ func (i *CDC) Next(ctx context.Context) (sdk.Record, error) {
 }
 
 // Close closes database rows of CDC iterator.
-func (i *CDC) Close() (err error) {
+func (iter *CDC) Close() (err error) {
 	// send a signal to stop clearing the tracking table
-	i.tableSrv.stopCh <- struct{}{}
+	iter.tableSrv.stopCh <- struct{}{}
 
-	if i.rows != nil {
-		err = i.rows.Close()
+	if iter.rows != nil {
+		err = iter.rows.Close()
 	}
 
 	select {
 	// wait until clearing tracking table will be finished
-	case <-i.tableSrv.canCloseCh:
+	case <-iter.tableSrv.canCloseCh:
 	// or until time out
 	case <-time.After(timeoutBeforeCloseDBSec * time.Second):
 	}
 
-	i.tableSrv.close()
+	iter.tableSrv.close()
 
 	return
 }
 
 // loadRows selects a batch of rows from a database, based on the
 // table, columns, orderingColumn, batchSize and the current position.
-func (i *CDC) loadRows(ctx context.Context) error {
+func (iter *CDC) loadRows(ctx context.Context) error {
 	columns := "*"
-	if len(i.columns) > 0 {
-		columns = strings.Join(append(i.columns,
+	if len(iter.columns) > 0 {
+		columns = strings.Join(append(iter.columns,
 			[]string{columnTrackingID, columnOperationType, columnTimeCreatedAt}...), ",")
 	}
 
 	whereClause := ""
 	args := make([]any, 0)
-	if i.position != nil {
+	if iter.position != nil {
 		whereClause = fmt.Sprintf(" WHERE %s > :1", columnTrackingID)
-		args = append(args, i.position.LastProcessedVal)
+		args = append(args, iter.position.LastProcessedVal)
 	}
 
-	query := fmt.Sprintf(querySelectRowsFmt, columns, i.trackingTable, whereClause, columnTrackingID, i.batchSize)
+	query := fmt.Sprintf(querySelectRowsFmt, columns, iter.trackingTable, whereClause, columnTrackingID, iter.batchSize)
 
-	rows, err := i.repo.DB.QueryxContext(ctx, query, args...)
+	rows, err := iter.repo.DB.QueryxContext(ctx, query, args...)
 	if err != nil {
 		return fmt.Errorf("execute select query %q, %v: %w", query, args, err)
 	}
 
-	i.rows = rows
+	iter.rows = rows
 
 	return nil
 }
@@ -282,9 +282,9 @@ func (t *trackingTableService) close() {
 }
 
 // pushValueToDelete appends the last processed value to the slice to clear the tracking table in the future.
-func (i *CDC) pushValueToDelete(lastProcessedVal any) (err error) {
-	if len(i.tableSrv.errCh) > 0 {
-		for e := range i.tableSrv.errCh {
+func (iter *CDC) pushValueToDelete(lastProcessedVal any) (err error) {
+	if len(iter.tableSrv.errCh) > 0 {
+		for e := range iter.tableSrv.errCh {
 			err = multierr.Append(err, e)
 		}
 
@@ -293,37 +293,37 @@ func (i *CDC) pushValueToDelete(lastProcessedVal any) (err error) {
 		}
 	}
 
-	i.tableSrv.m.Lock()
-	defer i.tableSrv.m.Unlock()
+	iter.tableSrv.m.Lock()
+	defer iter.tableSrv.m.Unlock()
 
-	if i.tableSrv.idsToDelete == nil {
-		i.tableSrv.idsToDelete = make([]any, 0)
+	if iter.tableSrv.idsToDelete == nil {
+		iter.tableSrv.idsToDelete = make([]any, 0)
 	}
 
-	i.tableSrv.idsToDelete = append(i.tableSrv.idsToDelete, lastProcessedVal)
+	iter.tableSrv.idsToDelete = append(iter.tableSrv.idsToDelete, lastProcessedVal)
 
 	return nil
 }
 
-func (i *CDC) clearTrackingTable(ctx context.Context) {
+func (iter *CDC) clearTrackingTable(ctx context.Context) {
 	for {
 		select {
 		// connector is stopping, clear table last time
-		case <-i.tableSrv.stopCh:
-			err := i.deleteTrackingTableRows(ctx)
+		case <-iter.tableSrv.stopCh:
+			err := iter.deleteTrackingTableRows(ctx)
 			if err != nil {
-				i.tableSrv.errCh <- err
+				iter.tableSrv.errCh <- err
 			}
 
 			// query finished, db can be closed.
-			i.tableSrv.canCloseCh <- struct{}{}
+			iter.tableSrv.canCloseCh <- struct{}{}
 
 			return
 
 		case <-time.After(timeoutToClearTrackingTableSec * time.Second):
-			err := i.deleteTrackingTableRows(ctx)
+			err := iter.deleteTrackingTableRows(ctx)
 			if err != nil {
-				i.tableSrv.errCh <- err
+				iter.tableSrv.errCh <- err
 
 				return
 			}
@@ -332,32 +332,32 @@ func (i *CDC) clearTrackingTable(ctx context.Context) {
 }
 
 // deleteTrackingTableRows deletes processed rows from tracking table.
-func (i *CDC) deleteTrackingTableRows(ctx context.Context) error {
-	i.tableSrv.m.Lock()
-	defer i.tableSrv.m.Unlock()
+func (iter *CDC) deleteTrackingTableRows(ctx context.Context) error {
+	iter.tableSrv.m.Lock()
+	defer iter.tableSrv.m.Unlock()
 
-	if len(i.tableSrv.idsToDelete) == 0 {
+	if len(iter.tableSrv.idsToDelete) == 0 {
 		return nil
 	}
 
-	query := i.buildDeleteByIDsQuery()
+	query := iter.buildDeleteByIDsQuery()
 
-	_, err := i.repo.DB.ExecContext(ctx, query, i.tableSrv.idsToDelete...)
+	_, err := iter.repo.DB.ExecContext(ctx, query, iter.tableSrv.idsToDelete...)
 	if err != nil {
 		return fmt.Errorf("execute delete query %q: %w", query, err)
 	}
 
-	i.tableSrv.idsToDelete = nil
+	iter.tableSrv.idsToDelete = nil
 
 	return nil
 }
 
 // buildDeleteByIDsQuery returns delete by id query.
-func (i *CDC) buildDeleteByIDsQuery() string {
-	placeholders := make([]string, len(i.tableSrv.idsToDelete))
-	for i := range i.tableSrv.idsToDelete {
+func (iter *CDC) buildDeleteByIDsQuery() string {
+	placeholders := make([]string, len(iter.tableSrv.idsToDelete))
+	for i := range iter.tableSrv.idsToDelete {
 		placeholders[i] = fmt.Sprintf(":%d", i+1)
 	}
 
-	return fmt.Sprintf(queryDeleteByIDs, i.trackingTable, columnTrackingID, strings.Join(placeholders, ","))
+	return fmt.Sprintf(queryDeleteByIDs, iter.trackingTable, columnTrackingID, strings.Join(placeholders, ","))
 }
