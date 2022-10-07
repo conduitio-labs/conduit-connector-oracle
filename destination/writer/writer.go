@@ -22,7 +22,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/conduitio-labs/conduit-connector-oracle/coltypes"
+	"github.com/conduitio-labs/conduit-connector-oracle/columntypes"
 	"github.com/conduitio-labs/conduit-connector-oracle/repository"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 )
@@ -42,7 +42,7 @@ type Writer struct {
 	repo        *repository.Oracle
 	table       string
 	keyColumn   string
-	columnTypes map[string]coltypes.ColumnData
+	columnTypes map[string]columntypes.ColumnData
 }
 
 // Params is an incoming params for the New function.
@@ -60,7 +60,7 @@ func New(ctx context.Context, params Params) (*Writer, error) {
 		keyColumn: params.KeyColumn,
 	}
 
-	columnTypes, err := coltypes.GetColumnTypes(ctx, writer.repo, writer.table)
+	columnTypes, err := columntypes.GetColumnTypes(ctx, writer.repo, writer.table)
 	if err != nil {
 		return nil, fmt.Errorf("get column types: %w", err)
 	}
@@ -195,12 +195,12 @@ func (w *Writer) buildUpsertQuery(
 	// append insert arguments to the end
 	args = append(args, insertArgs...)
 
-	query := fmt.Sprintf(upsertFmt, table, keyColumn, coltypes.QueryPlaceholder,
+	query := fmt.Sprintf(upsertFmt, table, keyColumn, columntypes.QueryPlaceholder,
 		strings.Join(updateData, coma), strings.Join(columns, coma), strings.Join(placeholders, coma))
 
 	// replace all strings '{placeholder}' to the Oracle's format (:1, :2, ...)
 	for i := 0; i < len(args); i++ {
-		query = strings.Replace(query, coltypes.QueryPlaceholder[1:], strconv.Itoa(i+1), 1)
+		query = strings.Replace(query, columntypes.QueryPlaceholder[1:], strconv.Itoa(i+1), 1)
 	}
 
 	return query, args, nil
@@ -264,7 +264,7 @@ func (w *Writer) extractPayload(payload sdk.StructuredData) ([]string, map[strin
 	for key, value := range payload {
 		columns[i] = key
 
-		placeholdersMap[key], argsMap[key], err = coltypes.FormatData(w.columnTypes, key, value)
+		placeholdersMap[key], argsMap[key], err = columntypes.FormatData(w.columnTypes, key, value)
 		if err != nil {
 			return nil, nil, nil, err
 		}

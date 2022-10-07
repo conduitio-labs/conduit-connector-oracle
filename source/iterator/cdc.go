@@ -22,7 +22,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/conduitio-labs/conduit-connector-oracle/coltypes"
+	"github.com/conduitio-labs/conduit-connector-oracle/columntypes"
 	"github.com/conduitio-labs/conduit-connector-oracle/repository"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 	"github.com/jmoiron/sqlx"
@@ -53,7 +53,7 @@ type CDC struct {
 
 	rows *sqlx.Rows
 	// columnTypes represents a columns' data from table
-	columnTypes map[string]coltypes.ColumnData
+	columnTypes map[string]columntypes.ColumnData
 }
 
 // CDCParams represents an incoming params for the NewCDC function.
@@ -98,7 +98,7 @@ func NewCDC(ctx context.Context, params CDCParams) (*CDC, error) {
 	}
 
 	// get column types of tracking table for converting
-	iterator.columnTypes, err = coltypes.GetColumnTypes(ctx, iterator.repo, iterator.trackingTable)
+	iterator.columnTypes, err = columntypes.GetColumnTypes(ctx, iterator.repo, iterator.trackingTable)
 	if err != nil {
 		return nil, fmt.Errorf("get tracking table column types: %w", err)
 	}
@@ -134,7 +134,7 @@ func (i *CDC) Next(ctx context.Context) (sdk.Record, error) {
 		return sdk.Record{}, fmt.Errorf("scan rows: %w", err)
 	}
 
-	transformedRow, err := coltypes.TransformRow(row, i.columnTypes)
+	transformedRow, err := columntypes.TransformRow(row, i.columnTypes)
 	if err != nil {
 		return sdk.Record{}, fmt.Errorf("transform row column types: %w", err)
 	}

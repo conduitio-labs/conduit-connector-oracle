@@ -237,7 +237,7 @@ func TestDestination_Write_Delete(t *testing.T) {
 	err = insertData(repo, cfg[models.ConfigTable])
 	is.NoErr(err)
 
-	// check that row is exists
+	// check if row exists
 	_, err = getNameByID(repo, cfg[models.ConfigTable], 42)
 	is.NoErr(err)
 

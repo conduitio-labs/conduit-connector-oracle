@@ -18,7 +18,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/conduitio-labs/conduit-connector-oracle/coltypes"
+	"github.com/conduitio-labs/conduit-connector-oracle/columntypes"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 	"github.com/matryer/is"
 )
@@ -29,7 +29,7 @@ func TestWriter_buildUpsertQuery(t *testing.T) {
 	is := is.New(t)
 
 	w := &Writer{
-		columnTypes: map[string]coltypes.ColumnData{
+		columnTypes: map[string]columntypes.ColumnData{
 			"TS": {
 				Type: "TIMESTAMP",
 			},

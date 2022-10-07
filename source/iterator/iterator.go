@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"hash/fnv"
 
-	"github.com/conduitio-labs/conduit-connector-oracle/coltypes"
+	"github.com/conduitio-labs/conduit-connector-oracle/columntypes"
 	"github.com/conduitio-labs/conduit-connector-oracle/repository"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 	"go.uber.org/multierr"
@@ -44,7 +44,7 @@ type Iterator struct {
 	batchSize int
 
 	// columnTypes represents a columns' data from table
-	columnTypes   map[string]coltypes.ColumnData
+	columnTypes   map[string]columntypes.ColumnData
 	hashedTable   uint32
 	trackingTable string
 	snapshotTable string
@@ -88,7 +88,7 @@ func New(ctx context.Context, params Params) (*Iterator, error) {
 	}
 
 	// get column types of table for converting
-	iterator.columnTypes, err = coltypes.GetColumnTypes(ctx, iterator.repo, params.Table)
+	iterator.columnTypes, err = columntypes.GetColumnTypes(ctx, iterator.repo, params.Table)
 	if err != nil {
 		return nil, fmt.Errorf("get table column types: %w", err)
 	}

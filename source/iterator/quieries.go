@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/conduitio-labs/conduit-connector-oracle/coltypes"
+	"github.com/conduitio-labs/conduit-connector-oracle/columntypes"
 )
 
 const (
@@ -84,7 +84,7 @@ type buildCreateTriggerParams struct {
 	name          string
 	table         string
 	trackingTable string
-	columnTypes   map[string]coltypes.ColumnData
+	columnTypes   map[string]columntypes.ColumnData
 	columns       []string
 }
 

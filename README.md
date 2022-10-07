@@ -106,20 +106,20 @@ information [inside the Change Data Capture section](#change-data-capture)).
 
 ## Destination
 
-The Oracle Destination takes a `record.Record` and parses it into a valid SQL query. The Destination is designed to
-handle different payloads and keys. Because of this, each record is individually parses and upsertes.
+The Oracle Destination takes a `sdk.Record` and parses it into a valid SQL query. The Destination is designed to
+handle different payloads and keys. Because of this, each record is individually parsed and upserted.
 
 ### Table name
 
-If a record contains a `table` property in its metadata it will be inserted in that table, otherwise it will fall back
+If a record contains a `table` property in its metadata, it will be inserted in that table, otherwise, it will fall back
 to use the table configured in the connector. Thus, a Destination can support multiple tables in a single connector, as
 long as the user has proper access to those tables.
 
 ### Upsert Behavior
 
-If the target table already contains a record with the same key, the Destination will upsert with its current received
-values. Because Keys must be unique, this can lead to overwriting and potential data loss, so the keys must be correctly
-assigned from the Source.
+If the target table already contains a record with the same key, the Destination will still upsert the new record value.
+Since keys must be unique, this can lead to overwriting and potential data loss, so the keys must be correctly assigned
+from the Source.
 
 ### Configuration Options
 
@@ -127,15 +127,15 @@ assigned from the Source.
 |-------------|------------------------------------------------------------------------------------|----------|---------------------------------------------|
 | `url`       | string line for connection to Oracle                                               | **true** | `username/password@path:1521/my.domain.com` |
 | `table`     | the name of a table in the database that the connector should write to, by default | **true** | `users`                                     |
-| `keyColumn` | column name uses to detect if the target table already contains the record         | **true** | `id`                                        |
+| `keyColumn` | column name used to detect if the target table already contains the record         | **true** | `id`                                        |
 
 ## Type convention
 
 Type convention describes the conversion between Oracle to Go types.
 
-| oracle        | go     | explanation                                                                                       |
-|---------------|--------|---------------------------------------------------------------------------------------------------|
-| `NUMBER(1,0)` | `bool` | oracle does not have support a boolean type, so the best practice is to keep the values as 0 or 1 |
+| oracle        | go     | explanation                                                                                  |
+|---------------|--------|----------------------------------------------------------------------------------------------|
+| `NUMBER(1,0)` | `bool` | oracle does not support a boolean type, so the best practice is to keep the values as 0 or 1 |
 
 ## Known limitations
 
