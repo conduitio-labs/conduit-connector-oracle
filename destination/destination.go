@@ -20,7 +20,6 @@ import (
 
 	"github.com/conduitio-labs/conduit-connector-oracle/config"
 	"github.com/conduitio-labs/conduit-connector-oracle/destination/writer"
-	"github.com/conduitio-labs/conduit-connector-oracle/models"
 	"github.com/conduitio-labs/conduit-connector-oracle/repository"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 )
@@ -47,17 +46,17 @@ func NewDestination() sdk.Destination {
 // Parameters returns a map of named Parameters that describe how to configure the Source.
 func (d *Destination) Parameters() map[string]sdk.Parameter {
 	return map[string]sdk.Parameter{
-		models.ConfigURL: {
+		config.URL: {
 			Default:     "",
 			Required:    true,
 			Description: "The connection string to connect to Oracle database.",
 		},
-		models.ConfigTable: {
+		config.Table: {
 			Default:     "",
 			Required:    true,
 			Description: "The table name of the table in Oracle that the connector should write to, by default.",
 		},
-		models.ConfigKeyColumn: {
+		config.KeyColumn: {
 			Default:     "",
 			Required:    true,
 			Description: "A column name uses to detect if the target table already contains the record.",

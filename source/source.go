@@ -18,7 +18,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/conduitio-labs/conduit-connector-oracle/models"
 	"github.com/conduitio-labs/conduit-connector-oracle/source/iterator"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 
@@ -49,32 +48,32 @@ func NewSource() sdk.Source {
 // Parameters returns a map of named Parameters that describe how to configure the Source.
 func (s *Source) Parameters() map[string]sdk.Parameter {
 	return map[string]sdk.Parameter{
-		models.ConfigURL: {
+		config.URL: {
 			Default:     "",
 			Required:    true,
 			Description: "The connection string to connect to Oracle database.",
 		},
-		models.ConfigTable: {
+		config.Table: {
 			Default:     "",
 			Required:    true,
 			Description: "The table name of the table in Oracle that the connector should write to, by default.",
 		},
-		models.ConfigKeyColumn: {
+		config.KeyColumn: {
 			Default:     "",
 			Required:    true,
 			Description: "A column name that used to detect if the target table already contains the record.",
 		},
-		models.ConfigOrderingColumn: {
+		config.OrderingColumn: {
 			Default:     "",
 			Required:    true,
 			Description: "A name of a column that the connector will use for ordering rows.",
 		},
-		models.ConfigColumns: {
+		config.Columns: {
 			Default:     "",
 			Required:    false,
 			Description: "The list of column names that should be included in each Record's payload",
 		},
-		models.ConfigBatchSize: {
+		config.BatchSize: {
 			Default:     "1000",
 			Required:    false,
 			Description: "The size of rows batch",

@@ -23,7 +23,6 @@ import (
 	"github.com/conduitio-labs/conduit-connector-oracle/config"
 	"github.com/conduitio-labs/conduit-connector-oracle/destination/mock"
 	"github.com/conduitio-labs/conduit-connector-oracle/destination/writer"
-	"github.com/conduitio-labs/conduit-connector-oracle/models"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 	"github.com/golang/mock/gomock"
 	"github.com/matryer/is"
@@ -37,9 +36,9 @@ func TestDestination_ConfigureSuccess(t *testing.T) {
 	d := Destination{}
 
 	err := d.Configure(context.Background(), map[string]string{
-		models.ConfigURL:       "test_user/test_pass_123@localhost:1521/db_name",
-		models.ConfigTable:     "test_table",
-		models.ConfigKeyColumn: "id",
+		config.URL:       "test_user/test_pass_123@localhost:1521/db_name",
+		config.Table:     "test_table",
+		config.KeyColumn: "id",
 	})
 	is.NoErr(err)
 	is.Equal(d.cfg, config.General{
@@ -57,7 +56,7 @@ func TestDestination_ConfigureFail(t *testing.T) {
 	d := Destination{}
 
 	err := d.Configure(context.Background(), map[string]string{
-		models.ConfigURL: "test_user/test_pass_123@localhost:1521/db_name",
+		config.URL: "test_user/test_pass_123@localhost:1521/db_name",
 	})
 	is.True(err != nil)
 }

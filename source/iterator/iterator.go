@@ -16,10 +16,9 @@ package iterator
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
-	"hash/fnv"
 
-	"github.com/conduitio-labs/conduit-connector-oracle/columntypes"
 	"github.com/conduitio-labs/conduit-connector-oracle/repository"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 	"go.uber.org/multierr"
@@ -42,12 +41,6 @@ type Iterator struct {
 	columns []string
 	// batchSize represents a size of batch
 	batchSize int
-
-	// columnTypes represents a columns' data from table
-	columnTypes   map[string]columntypes.ColumnData
-	hashedTable   uint32
-	trackingTable string
-	snapshotTable string
 }
 
 // Params represents an incoming iterator params for the New function.
@@ -73,50 +66,21 @@ func New(ctx context.Context, params Params) (*Iterator, error) {
 		batchSize:      params.BatchSize,
 	}
 
-	// hash the table name to use it as a postfix in the tracking table and snapshot,
-	// because the maximum length of names (tables, triggers, etc.) is 30 characters
-	h := fnv.New32a()
-	h.Write([]byte(iterator.table))
-	iterator.hashedTable = h.Sum32()
-
-	iterator.snapshotTable = fmt.Sprintf("CONDUIT_SNAPSHOT_%d", iterator.hashedTable)
-	iterator.trackingTable = fmt.Sprintf("CONDUIT_TRACKING_%d", iterator.hashedTable)
-
 	iterator.repo, err = repository.New(params.URL)
 	if err != nil {
 		return nil, fmt.Errorf("new repository: %w", err)
 	}
 
-	// get column types of table for converting
-	iterator.columnTypes, err = columntypes.GetColumnTypes(ctx, iterator.repo, params.Table)
-	if err != nil {
-		return nil, fmt.Errorf("get table column types: %w", err)
-	}
-
 	switch position := params.Position; {
 	case position == nil || position.Mode == ModeSnapshot:
-		// initialize a snapshot
-		err = iterator.initSnapshotTable(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("initialize snapshot: %w", err)
-		}
-
-		// initialize tracking table
-		err = iterator.initTrackingTable(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("initialize tracking table: %w", err)
-		}
-
 		iterator.snapshot, err = NewSnapshot(ctx, SnapshotParams{
 			Repo:           iterator.repo,
 			Position:       params.Position,
 			Table:          params.Table,
-			SnapshotTable:  iterator.snapshotTable,
 			KeyColumn:      params.KeyColumn,
 			OrderingColumn: params.OrderingColumn,
 			Columns:        params.Columns,
 			BatchSize:      params.BatchSize,
-			ColumnTypes:    iterator.columnTypes,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("init snapshot iterator: %w", err)
@@ -126,7 +90,6 @@ func New(ctx context.Context, params Params) (*Iterator, error) {
 			Repo:           iterator.repo,
 			Position:       params.Position,
 			Table:          params.Table,
-			TrackingTable:  iterator.trackingTable,
 			KeyColumn:      params.KeyColumn,
 			OrderingColumn: params.OrderingColumn,
 			Columns:        params.Columns,
@@ -144,10 +107,10 @@ func New(ctx context.Context, params Params) (*Iterator, error) {
 }
 
 // HasNext returns a bool indicating whether the iterator has the next record to return or not.
-func (i *Iterator) HasNext(ctx context.Context) (bool, error) {
+func (iter *Iterator) HasNext(ctx context.Context) (bool, error) {
 	switch {
-	case i.snapshot != nil:
-		hasNext, err := i.snapshot.HasNext(ctx)
+	case iter.snapshot != nil:
+		hasNext, err := iter.snapshot.HasNext(ctx)
 		if err != nil {
 			return false, fmt.Errorf("snapshot has next: %w", err)
 		}
@@ -156,15 +119,15 @@ func (i *Iterator) HasNext(ctx context.Context) (bool, error) {
 			return true, nil
 		}
 
-		if err = i.switchToCDCIterator(ctx); err != nil {
+		if err = iter.switchToCDCIterator(ctx); err != nil {
 			return false, fmt.Errorf("switch to cdc iterator: %w", err)
 		}
 
 		// to check if the next record exists via CDC iterator
 		fallthrough
 
-	case i.cdc != nil:
-		return i.cdc.HasNext(ctx)
+	case iter.cdc != nil:
+		return iter.cdc.HasNext(ctx)
 
 	default:
 		return false, nil
@@ -172,13 +135,13 @@ func (i *Iterator) HasNext(ctx context.Context) (bool, error) {
 }
 
 // Next returns the next record.
-func (i *Iterator) Next(ctx context.Context) (sdk.Record, error) {
+func (iter *Iterator) Next(ctx context.Context) (sdk.Record, error) {
 	switch {
-	case i.snapshot != nil:
-		return i.snapshot.Next(ctx)
+	case iter.snapshot != nil:
+		return iter.snapshot.Next(ctx)
 
-	case i.cdc != nil:
-		return i.cdc.Next(ctx)
+	case iter.cdc != nil:
+		return iter.cdc.Next(ctx)
 
 	default:
 		return sdk.Record{}, errNoInitializedIterator
@@ -186,123 +149,59 @@ func (i *Iterator) Next(ctx context.Context) (sdk.Record, error) {
 }
 
 // PushValueToDelete appends the last processed value to the slice to clear the tracking table in the future.
-func (i *Iterator) PushValueToDelete(position sdk.Position) error {
+func (iter *Iterator) PushValueToDelete(position sdk.Position) error {
 	pos, err := ParseSDKPosition(position)
 	if err != nil {
 		return fmt.Errorf("parse position: %w", err)
 	}
 
 	if pos.Mode == ModeCDC {
-		return i.cdc.pushValueToDelete(pos.LastProcessedVal)
+		return iter.cdc.pushValueToDelete(pos.LastProcessedVal)
 	}
 
 	return nil
 }
 
 // Close stops iterators and closes database connection.
-func (i *Iterator) Close() (err error) {
-	if i.snapshot != nil {
-		err = i.snapshot.Close()
+func (iter *Iterator) Close() (err error) {
+	if iter.snapshot != nil {
+		err = iter.snapshot.Close()
 	}
 
-	if i.cdc != nil {
-		err = i.cdc.Close()
+	if iter.cdc != nil {
+		err = iter.cdc.Close()
 	}
 
-	return multierr.Append(err, i.repo.Close())
+	return multierr.Append(err, iter.repo.Close())
 }
 
-// initSnapshotTable creates a new snapshot table, if id does not exist.
-func (i *Iterator) initSnapshotTable(ctx context.Context) error {
-	exists, err := i.checkIfTableExists(ctx, i.snapshotTable)
+// switchToCDCIterator stops Snapshot and initializes CDC iterator.
+func (iter *Iterator) switchToCDCIterator(ctx context.Context) error {
+	err := iter.snapshot.Close()
 	if err != nil {
-		return fmt.Errorf("check if table exists: %w", err)
+		return fmt.Errorf("stop snaphot iterator: %w", err)
 	}
 
-	if exists {
-		return nil
-	}
+	iter.snapshot = nil
 
-	// create a snapshot table
-	_, err = i.repo.DB.ExecContext(ctx, fmt.Sprintf(querySnapshotTable, i.snapshotTable, i.table))
+	iter.cdc, err = NewCDC(ctx, CDCParams{
+		Repo:           iter.repo,
+		Table:          iter.table,
+		KeyColumn:      iter.keyColumn,
+		OrderingColumn: iter.orderingColumn,
+		Columns:        iter.columns,
+		BatchSize:      iter.batchSize,
+	})
 	if err != nil {
-		return fmt.Errorf("create snapshot: %w", err)
-	}
-
-	return nil
-}
-
-// initTrackingTable creates a new tracking table and trigger, if they do not exist.
-func (i *Iterator) initTrackingTable(ctx context.Context) error {
-	exists, err := i.checkIfTableExists(ctx, i.trackingTable)
-	if err != nil {
-		return fmt.Errorf("check if table exists: %w", err)
-	}
-
-	if exists {
-		return nil
-	}
-
-	tx, err := i.repo.DB.Begin()
-	if err != nil {
-		return fmt.Errorf("begin db transaction: %w", err)
-	}
-	defer tx.Rollback() // nolint:errcheck,nolintlint
-
-	// create a copy of table
-	_, err = tx.ExecContext(ctx, fmt.Sprintf(queryTableCopy, i.trackingTable, i.table, i.table))
-	if err != nil {
-		return fmt.Errorf("create copy of table: %w", err)
-	}
-
-	// add tracking columns to a tracking table
-	_, err = tx.ExecContext(ctx, buildExpandTrackingTableQuery(i.trackingTable))
-	if err != nil {
-		return fmt.Errorf("expand tracking table with conduit columns: %w", err)
-	}
-
-	// add trigger
-	_, err = tx.ExecContext(ctx, buildCreateTriggerQuery(buildCreateTriggerParams{
-		name:          fmt.Sprintf("CONDUIT_%d", i.hashedTable),
-		table:         i.table,
-		trackingTable: i.trackingTable,
-		columnTypes:   i.columnTypes,
-		columns:       i.columns,
-	}))
-	if err != nil {
-		return fmt.Errorf("create trigger: %w", err)
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		return fmt.Errorf("commit db transaction: %w", err)
-	}
-
-	return nil
-}
-
-// dropSnapshotTable drops a snapshot, if it exists.
-func (i *Iterator) dropSnapshotTable(ctx context.Context) error {
-	exists, err := i.checkIfTableExists(ctx, i.snapshotTable)
-	if err != nil {
-		return fmt.Errorf("check if table exists: %w", err)
-	}
-
-	if !exists {
-		return nil
-	}
-
-	_, err = i.repo.DB.ExecContext(ctx, fmt.Sprintf("DROP SNAPSHOT %s", i.snapshotTable))
-	if err != nil {
-		return fmt.Errorf("exec drop snapshot: %w", err)
+		return fmt.Errorf("new cdc iterator: %w", err)
 	}
 
 	return nil
 }
 
 // checkIfTableExists checks if table exist.
-func (i *Iterator) checkIfTableExists(ctx context.Context, table string) (bool, error) {
-	rows, err := i.repo.DB.QueryContext(ctx, fmt.Sprintf(queryIfTableExists, table))
+func checkIfTableExists(ctx context.Context, tx *sql.Tx, table string) (bool, error) {
+	rows, err := tx.QueryContext(ctx, fmt.Sprintf(queryIfTableExists, table))
 	if err != nil {
 		return false, fmt.Errorf("request with check if the table already exists: %w", err)
 	}
@@ -322,35 +221,4 @@ func (i *Iterator) checkIfTableExists(ctx context.Context, table string) (bool, 
 	}
 
 	return false, nil
-}
-
-// switchToCDCIterator stops Snapshot and initializes CDC iterator.
-func (i *Iterator) switchToCDCIterator(ctx context.Context) error {
-	err := i.snapshot.Close()
-	if err != nil {
-		return fmt.Errorf("stop snaphot iterator: %w", err)
-	}
-
-	i.snapshot = nil
-
-	// drop a snapshot
-	err = i.dropSnapshotTable(ctx)
-	if err != nil {
-		return fmt.Errorf("drop snapshot: %w", err)
-	}
-
-	i.cdc, err = NewCDC(ctx, CDCParams{
-		Repo:           i.repo,
-		Table:          i.table,
-		TrackingTable:  i.trackingTable,
-		KeyColumn:      i.keyColumn,
-		OrderingColumn: i.orderingColumn,
-		Columns:        i.columns,
-		BatchSize:      i.batchSize,
-	})
-	if err != nil {
-		return fmt.Errorf("new cdc iterator: %w", err)
-	}
-
-	return nil
 }

@@ -23,7 +23,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/conduitio-labs/conduit-connector-oracle/models"
+	"github.com/conduitio-labs/conduit-connector-oracle/config"
 	"github.com/conduitio-labs/conduit-connector-oracle/repository"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 	"github.com/matryer/is"
@@ -38,15 +38,15 @@ func TestDestination_Write(t *testing.T) {
 		is  = is.New(t)
 	)
 
-	repo, err := repository.New(cfg[models.ConfigURL])
+	repo, err := repository.New(cfg[config.URL])
 	is.NoErr(err)
 	defer repo.Close()
 
-	err = createTable(repo, cfg[models.ConfigTable])
+	err = createTable(repo, cfg[config.Table])
 	is.NoErr(err)
 
 	defer func() {
-		err = dropTable(repo, cfg[models.ConfigTable])
+		err = dropTable(repo, cfg[config.Table])
 		is.NoErr(err)
 	}()
 
@@ -111,19 +111,19 @@ func TestDestination_Write_Update(t *testing.T) {
 		is  = is.New(t)
 	)
 
-	repo, err := repository.New(cfg[models.ConfigURL])
+	repo, err := repository.New(cfg[config.URL])
 	is.NoErr(err)
 	defer repo.Close()
 
-	err = createTable(repo, cfg[models.ConfigTable])
+	err = createTable(repo, cfg[config.Table])
 	is.NoErr(err)
 
 	defer func() {
-		err = dropTable(repo, cfg[models.ConfigTable])
+		err = dropTable(repo, cfg[config.Table])
 		is.NoErr(err)
 	}()
 
-	err = insertData(repo, cfg[models.ConfigTable])
+	err = insertData(repo, cfg[config.Table])
 	is.NoErr(err)
 
 	ctx, cancel := context.WithCancel(ctx)
@@ -149,7 +149,7 @@ func TestDestination_Write_Update(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(n, 1)
 
-	name, err := getNameByID(repo, cfg[models.ConfigTable], 42)
+	name, err := getNameByID(repo, cfg[config.Table], 42)
 	is.NoErr(err)
 	is.Equal(name, "Jane")
 
@@ -168,15 +168,15 @@ func TestDestination_Write_Upsert(t *testing.T) {
 		is  = is.New(t)
 	)
 
-	repo, err := repository.New(cfg[models.ConfigURL])
+	repo, err := repository.New(cfg[config.URL])
 	is.NoErr(err)
 	defer repo.Close()
 
-	err = createTable(repo, cfg[models.ConfigTable])
+	err = createTable(repo, cfg[config.Table])
 	is.NoErr(err)
 
 	defer func() {
-		err = dropTable(repo, cfg[models.ConfigTable])
+		err = dropTable(repo, cfg[config.Table])
 		is.NoErr(err)
 	}()
 
@@ -203,7 +203,7 @@ func TestDestination_Write_Upsert(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(n, 1)
 
-	name, err := getNameByID(repo, cfg[models.ConfigTable], 42)
+	name, err := getNameByID(repo, cfg[config.Table], 42)
 	is.NoErr(err)
 	is.Equal(name, "Jane")
 
@@ -222,23 +222,23 @@ func TestDestination_Write_Delete(t *testing.T) {
 		is  = is.New(t)
 	)
 
-	repo, err := repository.New(cfg[models.ConfigURL])
+	repo, err := repository.New(cfg[config.URL])
 	is.NoErr(err)
 	defer repo.Close()
 
-	err = createTable(repo, cfg[models.ConfigTable])
+	err = createTable(repo, cfg[config.Table])
 	is.NoErr(err)
 
 	defer func() {
-		err = dropTable(repo, cfg[models.ConfigTable])
+		err = dropTable(repo, cfg[config.Table])
 		is.NoErr(err)
 	}()
 
-	err = insertData(repo, cfg[models.ConfigTable])
+	err = insertData(repo, cfg[config.Table])
 	is.NoErr(err)
 
 	// check if row exists
-	_, err = getNameByID(repo, cfg[models.ConfigTable], 42)
+	_, err = getNameByID(repo, cfg[config.Table], 42)
 	is.NoErr(err)
 
 	ctx, cancel := context.WithCancel(ctx)
@@ -261,7 +261,7 @@ func TestDestination_Write_Delete(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(n, 1)
 
-	_, err = getNameByID(repo, cfg[models.ConfigTable], 42)
+	_, err = getNameByID(repo, cfg[config.Table], 42)
 	is.True(err != nil)
 
 	cancel()
@@ -279,15 +279,15 @@ func TestDestination_Write_WrongColumn(t *testing.T) {
 		is  = is.New(t)
 	)
 
-	repo, err := repository.New(cfg[models.ConfigURL])
+	repo, err := repository.New(cfg[config.URL])
 	is.NoErr(err)
 	defer repo.Close()
 
-	err = createTable(repo, cfg[models.ConfigTable])
+	err = createTable(repo, cfg[config.Table])
 	is.NoErr(err)
 
 	defer func() {
-		err = dropTable(repo, cfg[models.ConfigTable])
+		err = dropTable(repo, cfg[config.Table])
 		is.NoErr(err)
 	}()
 
@@ -328,9 +328,9 @@ func prepareConfig(t *testing.T) map[string]string {
 	}
 
 	return map[string]string{
-		models.ConfigURL:       url,
-		models.ConfigTable:     fmt.Sprintf("CONDUIT_DEST_TEST_%s", randString(6)),
-		models.ConfigKeyColumn: "id",
+		config.URL:       url,
+		config.Table:     fmt.Sprintf("CONDUIT_DEST_TEST_%s", randString(6)),
+		config.KeyColumn: "id",
 	}
 }
 

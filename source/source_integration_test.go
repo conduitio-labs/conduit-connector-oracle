@@ -24,7 +24,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/conduitio-labs/conduit-connector-oracle/models"
+	"github.com/conduitio-labs/conduit-connector-oracle/config"
 	"github.com/conduitio-labs/conduit-connector-oracle/repository"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 	"github.com/matryer/is"
@@ -39,7 +39,7 @@ func TestSource_Read_NoTable(t *testing.T) {
 		is  = is.New(t)
 	)
 
-	repo, err := repository.New(cfg[models.ConfigURL])
+	repo, err := repository.New(cfg[config.URL])
 	is.NoErr(err)
 	defer repo.Close()
 
@@ -66,15 +66,15 @@ func TestSource_Read_EmptyTable(t *testing.T) {
 		is  = is.New(t)
 	)
 
-	repo, err := repository.New(cfg[models.ConfigURL])
+	repo, err := repository.New(cfg[config.URL])
 	is.NoErr(err)
 	defer repo.Close()
 
-	err = createTable(repo, cfg[models.ConfigTable])
+	err = createTable(repo, cfg[config.Table])
 	is.NoErr(err)
 
 	defer func() {
-		err = dropTables(repo, cfg[models.ConfigTable])
+		err = dropTables(repo, cfg[config.Table])
 		is.NoErr(err)
 	}()
 
@@ -107,20 +107,20 @@ func TestSource_Snapshot_Read(t *testing.T) {
 		is  = is.New(t)
 	)
 
-	repo, err := repository.New(cfg[models.ConfigURL])
+	repo, err := repository.New(cfg[config.URL])
 	is.NoErr(err)
 	defer repo.Close()
 
-	err = createTable(repo, cfg[models.ConfigTable])
+	err = createTable(repo, cfg[config.Table])
 	is.NoErr(err)
 
 	defer func() {
-		err = dropTables(repo, cfg[models.ConfigTable])
+		err = dropTables(repo, cfg[config.Table])
 		is.NoErr(err)
 	}()
 
 	// insert snapshot data
-	err = insertSnapshotData(repo, cfg[models.ConfigTable])
+	err = insertSnapshotData(repo, cfg[config.Table])
 	is.NoErr(err)
 
 	ctx, cancel := context.WithCancel(ctx)
@@ -137,19 +137,17 @@ func TestSource_Snapshot_Read(t *testing.T) {
 	// read records
 	record, err := src.Read(ctx)
 	is.NoErr(err)
-	is.Equal(string(record.Position), `{"mode":"snapshot","last_processed_val":1}`)
+	is.Equal(record.Position, sdk.Position(`{"mode":"snapshot","last_processed_val":1}`))
 	is.Equal(record.Operation, sdk.OperationSnapshot)
 	is.Equal(record.Key, sdk.StructuredData(map[string]interface{}{"ID": 1}))
-	is.Equal(strings.ReplaceAll(string(record.Payload.After.Bytes()), " ", ""),
-		`{"AGE":42,"ID":1,"IS_ACTIVE":true,"NAME":"John"}`)
+	is.Equal(record.Payload.After, sdk.RawData(`{"AGE":42,"ID":1,"IS_ACTIVE":true,"NAME":"John"}`))
 
 	record, err = src.Read(ctx)
 	is.NoErr(err)
-	is.Equal(string(record.Position), `{"mode":"snapshot","last_processed_val":2}`)
+	is.Equal(record.Position, sdk.Position(`{"mode":"snapshot","last_processed_val":2}`))
 	is.Equal(record.Operation, sdk.OperationSnapshot)
 	is.Equal(record.Key, sdk.StructuredData(map[string]interface{}{"ID": 2}))
-	is.Equal(strings.ReplaceAll(string(record.Payload.After.Bytes()), " ", ""),
-		`{"AGE":12,"ID":2,"IS_ACTIVE":false,"NAME":"Jane"}`)
+	is.Equal(record.Payload.After, sdk.RawData(`{"AGE":12,"ID":2,"IS_ACTIVE":false,"NAME":"Jane"}`))
 
 	cancel()
 
@@ -170,11 +168,10 @@ func TestSource_Snapshot_Read(t *testing.T) {
 
 	record, err = src.Read(ctx)
 	is.NoErr(err)
-	is.Equal(string(record.Position), `{"mode":"snapshot","last_processed_val":3}`)
+	is.Equal(record.Position, sdk.Position(`{"mode":"snapshot","last_processed_val":3}`))
 	is.Equal(record.Operation, sdk.OperationSnapshot)
 	is.Equal(record.Key, sdk.StructuredData(map[string]interface{}{"ID": 3}))
-	is.Equal(strings.ReplaceAll(string(record.Payload.After.Bytes()), " ", ""),
-		`{"AGE":98,"ID":3,"IS_ACTIVE":true,"NAME":"Sam"}`)
+	is.Equal(record.Payload.After, sdk.RawData(`{"AGE":98,"ID":3,"IS_ACTIVE":true,"NAME":"Sam"}`))
 
 	_, err = src.Read(ctx)
 	is.Equal(err, sdk.ErrBackoffRetry)
@@ -194,20 +191,20 @@ func TestSource_CDC_Read(t *testing.T) {
 		is  = is.New(t)
 	)
 
-	repo, err := repository.New(cfg[models.ConfigURL])
+	repo, err := repository.New(cfg[config.URL])
 	is.NoErr(err)
 	defer repo.Close()
 
-	err = createTable(repo, cfg[models.ConfigTable])
+	err = createTable(repo, cfg[config.Table])
 	is.NoErr(err)
 
 	defer func() {
-		err = dropTables(repo, cfg[models.ConfigTable])
+		err = dropTables(repo, cfg[config.Table])
 		is.NoErr(err)
 	}()
 
 	// insert snapshot data (3 records)
-	err = insertSnapshotData(repo, cfg[models.ConfigTable])
+	err = insertSnapshotData(repo, cfg[config.Table])
 	is.NoErr(err)
 
 	ctx, cancel := context.WithCancel(ctx)
@@ -230,7 +227,7 @@ func TestSource_CDC_Read(t *testing.T) {
 	is.NoErr(err)
 
 	// update the second record to check that the CDC iterator will start immediately after the snapshot
-	err = updateCDCData(repo, cfg[models.ConfigTable])
+	err = updateCDCData(repo, cfg[config.Table])
 	is.NoErr(err)
 
 	// read the third snapshot record
@@ -240,16 +237,15 @@ func TestSource_CDC_Read(t *testing.T) {
 	// read the first cdc record without sdk.ErrBackoffRetry error between iterators
 	record, err := src.Read(ctx)
 	is.NoErr(err)
-	is.Equal(string(record.Position), `{"mode":"cdc","last_processed_val":1}`)
+	is.Equal(record.Position, sdk.Position(`{"mode":"cdc","last_processed_val":1}`))
 	is.Equal(record.Operation, sdk.OperationUpdate)
 	is.Equal(record.Key, sdk.StructuredData(map[string]interface{}{"ID": 2}))
-	is.Equal(strings.ReplaceAll(string(record.Payload.After.Bytes()), " ", ""),
-		`{"AGE":33,"ID":2,"IS_ACTIVE":false,"NAME":"Jane"}`)
+	is.Equal(record.Payload.After, sdk.RawData(`{"AGE":33,"ID":2,"IS_ACTIVE":false,"NAME":"Jane"}`))
 
 	cancel()
 
 	// insert two records more
-	err = insertCDCData(repo, cfg[models.ConfigTable])
+	err = insertCDCData(repo, cfg[config.Table])
 	is.NoErr(err)
 
 	err = src.Teardown(context.Background())
@@ -269,30 +265,28 @@ func TestSource_CDC_Read(t *testing.T) {
 
 	record, err = src.Read(ctx)
 	is.NoErr(err)
-	is.Equal(string(record.Position), `{"mode":"cdc","last_processed_val":2}`)
+	is.Equal(record.Position, sdk.Position(`{"mode":"cdc","last_processed_val":2}`))
 	is.Equal(record.Operation, sdk.OperationCreate)
 	is.Equal(record.Key, sdk.StructuredData(map[string]interface{}{"ID": 4}))
-	is.Equal(strings.ReplaceAll(string(record.Payload.After.Bytes()), " ", ""),
-		`{"AGE":81,"ID":4,"IS_ACTIVE":false,"NAME":"Smith"}`)
+	is.Equal(record.Payload.After, sdk.RawData(`{"AGE":81,"ID":4,"IS_ACTIVE":false,"NAME":"Smith"}`))
 
 	record, err = src.Read(ctx)
 	is.NoErr(err)
-	is.Equal(string(record.Position), `{"mode":"cdc","last_processed_val":3}`)
+	is.Equal(record.Position, sdk.Position(`{"mode":"cdc","last_processed_val":3}`))
 	is.Equal(record.Operation, sdk.OperationCreate)
 	is.Equal(record.Key, sdk.StructuredData(map[string]interface{}{"ID": 5}))
-	is.Equal(strings.ReplaceAll(string(record.Payload.After.Bytes()), " ", ""),
-		`{"AGE":26,"ID":5,"IS_ACTIVE":true,"NAME":"Elizabeth"}`)
+	is.Equal(record.Payload.After, sdk.RawData(`{"AGE":26,"ID":5,"IS_ACTIVE":true,"NAME":"Elizabeth"}`))
 
 	_, err = src.Read(ctx)
 	is.Equal(err, sdk.ErrBackoffRetry)
 
 	// delete the row with ID=3
-	err = deleteCDCData(repo, cfg[models.ConfigTable])
+	err = deleteCDCData(repo, cfg[config.Table])
 	is.NoErr(err)
 
 	record, err = src.Read(ctx)
 	is.NoErr(err)
-	is.Equal(string(record.Position), `{"mode":"cdc","last_processed_val":4}`)
+	is.Equal(record.Position, sdk.Position(`{"mode":"cdc","last_processed_val":4}`))
 	is.Equal(record.Operation, sdk.OperationDelete)
 	is.Equal(record.Key, sdk.StructuredData(map[string]interface{}{"ID": 3}))
 	is.Equal(record.Payload, sdk.Change{})
@@ -315,10 +309,10 @@ func prepareConfig(t *testing.T) map[string]string {
 	}
 
 	return map[string]string{
-		models.ConfigURL:            url,
-		models.ConfigTable:          fmt.Sprintf("CONDUIT_SRC_TEST_%s", randString(6)),
-		models.ConfigKeyColumn:      "id",
-		models.ConfigOrderingColumn: "id",
+		config.URL:            url,
+		config.Table:          fmt.Sprintf("CONDUIT_SRC_TEST_%s", randString(6)),
+		config.KeyColumn:      "id",
+		config.OrderingColumn: "id",
 	}
 }
 
@@ -326,7 +320,7 @@ func createTable(repo *repository.Oracle, table string) error {
 	_, err := repo.DB.Exec(fmt.Sprintf(`
 	CREATE TABLE %s (
 		 id NUMBER GENERATED by default on null as IDENTITY,
-		 name CHAR(30) NOT NULL,
+		 name VARCHAR2(30) NOT NULL,
 		 age NUMBER,
 		 is_active NUMBER(1,0),
 		 PRIMARY KEY (id)

@@ -19,7 +19,7 @@ import (
 )
 
 var (
-	errKeyIsNotExist              = errors.New("key is not exist")
+	errNoKey                      = errors.New("no key")
 	errOrderingColumnIsNotExist   = errors.New("ordering column is not exist")
 	errNoInitializedIterator      = errors.New("not initialized iterator")
 	errWrongTrackingOperationType = errors.New("wrong tracking operation type")

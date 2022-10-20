@@ -21,10 +21,9 @@ import (
 	"hash/fnv"
 	"os"
 	"strings"
-	"sync/atomic"
 	"testing"
 
-	"github.com/conduitio-labs/conduit-connector-oracle/models"
+	"github.com/conduitio-labs/conduit-connector-oracle/config"
 	"github.com/conduitio-labs/conduit-connector-oracle/repository"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 	"github.com/google/uuid"
@@ -33,25 +32,23 @@ import (
 
 type driver struct {
 	sdk.ConfigurableAcceptanceTestDriver
-
-	counter int32
 }
 
 // GenerateRecord generates a random sdk.Record.
 func (d *driver) GenerateRecord(t *testing.T, operation sdk.Operation) sdk.Record {
-	atomic.AddInt32(&d.counter, 1)
+	randUUID := uuid.NewString()
 
 	return sdk.Record{
 		Position:  nil,
 		Operation: operation,
 		Metadata: map[string]string{
-			models.ConfigTable: strings.ToUpper(d.Config.SourceConfig[models.ConfigTable]),
+			config.Table: strings.ToUpper(d.Config.SourceConfig[config.Table]),
 		},
 		Key: sdk.RawData(
-			fmt.Sprintf(`{"ID":%d}`, d.counter),
+			fmt.Sprintf(`{"ID":"%s"}`, randUUID),
 		),
 		Payload: sdk.Change{After: sdk.RawData(
-			fmt.Sprintf(`{"ID":%d,"NAME":"%s"}`, d.counter, uuid.NewString()),
+			fmt.Sprintf(`{"ID":"%s","NAME":"%s"}`, randUUID, randUUID),
 		)},
 	}
 }
@@ -68,13 +65,12 @@ func TestAcceptance(t *testing.T) {
 				SourceConfig:      cfg,
 				DestinationConfig: cfg,
 				BeforeTest: func(t *testing.T) {
-					err := createTable(cfg[models.ConfigURL], cfg[models.ConfigTable])
+					err := createTable(cfg[config.URL], cfg[config.Table])
 					is.NoErr(err)
-
-					t.Cleanup(func() {
-						err = dropTables(cfg[models.ConfigURL], cfg[models.ConfigTable])
-						is.NoErr(err)
-					})
+				},
+				AfterTest: func(t *testing.T) {
+					err := dropTables(cfg[config.URL], cfg[config.Table])
+					is.NoErr(err)
 				},
 			},
 		},
@@ -92,10 +88,10 @@ func prepareConfig(t *testing.T) map[string]string {
 	}
 
 	return map[string]string{
-		models.ConfigURL:            url,
-		models.ConfigTable:          fmt.Sprintf("CONDUIT_TEST_%s", randString(6)),
-		models.ConfigKeyColumn:      "ID",
-		models.ConfigOrderingColumn: "ID",
+		config.URL:            url,
+		config.Table:          fmt.Sprintf("CONDUIT_TEST_%s", randString(6)),
+		config.KeyColumn:      "ID",
+		config.OrderingColumn: "ID",
 	}
 }
 
@@ -109,7 +105,7 @@ func createTable(url, table string) error {
 
 	_, err = repo.DB.Exec(fmt.Sprintf(`
 	CREATE TABLE %s (
-		id NUMBER NOT NULL, 
+		id VARCHAR2(36) NOT NULL, 
 		name VARCHAR2(100)
 	)`, table))
 	if err != nil {

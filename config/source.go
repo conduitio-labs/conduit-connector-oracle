@@ -18,12 +18,16 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-
-	"github.com/conduitio-labs/conduit-connector-oracle/config/validator"
-	"github.com/conduitio-labs/conduit-connector-oracle/models"
 )
 
 const (
+	// OrderingColumn is a config name for an ordering column.
+	OrderingColumn = "orderingColumn"
+	// Columns is a config name for columns.
+	Columns = "columns"
+	// BatchSize is a config name for a batch size.
+	BatchSize = "batchSize"
+
 	defaultBatchSize = 1000
 )
 
@@ -48,33 +52,33 @@ func ParseSource(cfg map[string]string) (Source, error) {
 
 	sourceConfig := Source{
 		General:        config,
-		OrderingColumn: strings.ToUpper(cfg[models.ConfigOrderingColumn]),
+		OrderingColumn: strings.ToUpper(cfg[OrderingColumn]),
 		BatchSize:      defaultBatchSize,
 	}
 
-	if columns := cfg[models.ConfigColumns]; columns != "" {
-		columnsSl := strings.Split(columns, ",")
+	if cfg[Columns] != "" {
+		columnsSl := strings.Split(cfg[Columns], ",")
 
 		// converts columns to uppercase
 		for i := range columnsSl {
 			columnsSl[i] = strings.TrimSpace(strings.ToUpper(columnsSl[i]))
 		}
 
-		if er := validator.ValidateColumns(sourceConfig.OrderingColumn, sourceConfig.KeyColumn, columnsSl); er != nil {
-			return Source{}, er
+		if err = validateColumns(sourceConfig.OrderingColumn, sourceConfig.KeyColumn, columnsSl); err != nil {
+			return Source{}, err
 		}
 
 		sourceConfig.Columns = columnsSl
 	}
 
-	if batchSize := cfg[models.ConfigBatchSize]; batchSize != "" {
-		sourceConfig.BatchSize, err = strconv.Atoi(batchSize)
+	if cfg[BatchSize] != "" {
+		sourceConfig.BatchSize, err = strconv.Atoi(cfg[BatchSize])
 		if err != nil {
-			return Source{}, fmt.Errorf("parse batchSize: %w", err)
+			return Source{}, fmt.Errorf("parse BatchSize: %w", err)
 		}
 	}
 
-	err = validator.Validate(sourceConfig)
+	err = validate(sourceConfig)
 	if err != nil {
 		return Source{}, err
 	}

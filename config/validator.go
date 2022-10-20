@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package validator
+package config
 
 import (
 	"errors"
@@ -22,8 +22,6 @@ import (
 
 	v "github.com/go-playground/validator/v10"
 	"go.uber.org/multierr"
-
-	"github.com/conduitio-labs/conduit-connector-oracle/models"
 )
 
 var (
@@ -48,8 +46,8 @@ func Get() *v.Validate {
 	return validatorInstance
 }
 
-// Validate validates structs.
-func Validate(s interface{}) error {
+// validate validates structs.
+func validate(s interface{}) error {
 	var err error
 
 	validationErr := Get().Struct(s)
@@ -61,11 +59,11 @@ func Validate(s interface{}) error {
 		for _, e := range validationErr.(v.ValidationErrors) {
 			switch e.ActualTag() {
 			case "required":
-				err = multierr.Append(err, RequiredErr(models.ConfigKeyName(e.Field())))
+				err = multierr.Append(err, errRequired(configKeyName(e.Field())))
 			case "oracle":
-				err = multierr.Append(err, InvalidOracleObjectErr(models.ConfigKeyName(e.Field())))
+				err = multierr.Append(err, errInvalidOracleObject(configKeyName(e.Field())))
 			case "gte", "lte":
-				err = multierr.Append(err, OutOfRangeErr(models.ConfigKeyName(e.Field())))
+				err = multierr.Append(err, errOutOfRange(configKeyName(e.Field())))
 			}
 		}
 	}
@@ -73,8 +71,8 @@ func Validate(s interface{}) error {
 	return err
 }
 
-// ValidateColumns validates database columns.
-func ValidateColumns(orderingColumn, keyColumn string, columnsSl []string) error {
+// validateColumns validates database columns.
+func validateColumns(orderingColumn, keyColumn string, columnsSl []string) error {
 	var (
 		orderingColumnIsExist bool
 		keyColumnIsExist      bool
@@ -95,12 +93,40 @@ func ValidateColumns(orderingColumn, keyColumn string, columnsSl []string) error
 	}
 
 	if !orderingColumnIsExist || !keyColumnIsExist {
-		return errors.New(ColumnsIncludeErrMsg)
+		return errColumnInclude()
 	}
 
 	return nil
 }
 
+func errRequired(name string) error {
+	return fmt.Errorf("%q value must be set", name)
+}
+
+func errInvalidOracleObject(name string) error {
+	return fmt.Errorf("%q can contain only alphanumeric characters from your database character set and "+
+		"the underscore (_), dollar sign ($), and pound sign (#)", name)
+}
+
+func errOutOfRange(name string) error {
+	return fmt.Errorf("%q is out of range", name)
+}
+
+func errColumnInclude() error {
+	return errors.New("columns must include orderingColumn and keyColumn")
+}
+
 func validateOracleObject(fl v.FieldLevel) bool {
 	return isOracleObjectValid(fl.Field().String())
+}
+
+func configKeyName(fieldName string) string {
+	return map[string]string{
+		"URL":            URL,
+		"Table":          Table,
+		"KeyColumn":      KeyColumn,
+		"OrderingColumn": OrderingColumn,
+		"Columns":        Columns,
+		"BatchSize":      BatchSize,
+	}[fieldName]
 }
