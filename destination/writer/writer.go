@@ -42,7 +42,7 @@ type Writer struct {
 	repo        *repository.Oracle
 	table       string
 	keyColumn   string
-	columnTypes map[string]columntypes.ColumnData
+	columnTypes map[string]columntypes.ColumnDescription
 }
 
 // Params is an incoming params for the New function.

@@ -29,7 +29,7 @@ func TestFormatData(t *testing.T) {
 
 	const expectedTime = "1989-10-04 13:14:15"
 
-	columnTypes := make(map[string]ColumnData)
+	columnTypes := make(map[string]ColumnDescription)
 	payload := make(sdk.StructuredData)
 	expectedPlaceholder := make(map[string]interface{})
 	expectedArg := map[string]any{}
@@ -50,7 +50,7 @@ func TestFormatData(t *testing.T) {
 
 	key = "IS_ACTIVE_TRUE"
 	precision, scale := 1, 0
-	columnTypes[key] = ColumnData{
+	columnTypes[key] = ColumnDescription{
 		Type:      "NUMBER",
 		Precision: &precision,
 		Scale:     &scale,
@@ -61,7 +61,7 @@ func TestFormatData(t *testing.T) {
 
 	key = "IS_ACTIVE_FALSE"
 	precision, scale = 1, 0
-	columnTypes[key] = ColumnData{
+	columnTypes[key] = ColumnDescription{
 		Type:      "NUMBER",
 		Precision: &precision,
 		Scale:     &scale,
@@ -71,7 +71,7 @@ func TestFormatData(t *testing.T) {
 	expectedArg[key] = 0
 
 	key = "CREATED_AT"
-	columnTypes[key] = ColumnData{
+	columnTypes[key] = ColumnDescription{
 		Type: "DATE",
 	}
 	payload[key] = time.Date(1989, 10, 04, 13, 14, 15, 0, time.UTC)
@@ -79,7 +79,7 @@ func TestFormatData(t *testing.T) {
 	expectedArg[key] = expectedTime
 
 	key = "CREATED_AT_STRING"
-	columnTypes[key] = ColumnData{
+	columnTypes[key] = ColumnDescription{
 		Type: "DATE",
 	}
 	payload[key] = "Wed, 04 Oct 1989 13:14:15 UTC"

@@ -47,8 +47,8 @@ var (
 		time.RFC3339Nano, time.Kitchen, time.Stamp, time.StampMilli, time.StampMicro, time.StampNano}
 )
 
-// queryColumnData is a query that selects columns' data by the table name.
-var queryColumnData = `
+// queryColumnDescription is a query that selects columns' description by the table name.
+var queryColumnDescription = `
 SELECT 
     COLUMN_NAME as NAME,
     DATA_TYPE as TYPE,
@@ -58,15 +58,15 @@ FROM ALL_TAB_COLUMNS
 WHERE TABLE_NAME ='%s'
 `
 
-// ColumnData represents a columns' data.
-type ColumnData struct {
+// ColumnDescription describes columns.
+type ColumnDescription struct {
 	Type      string
 	Precision *int
 	Scale     *int
 }
 
 // TransformRow converts row map values to appropriate Go types, based on the columnTypes.
-func TransformRow(row map[string]any, columnTypes map[string]ColumnData) (map[string]any, error) {
+func TransformRow(row map[string]any, columnTypes map[string]ColumnDescription) (map[string]any, error) {
 	result := make(map[string]any, len(row))
 
 	for key, value := range row {
@@ -108,23 +108,28 @@ func TransformRow(row map[string]any, columnTypes map[string]ColumnData) (map[st
 }
 
 // GetColumnTypes returns a map containing all table's columns and their database data.
-func GetColumnTypes(ctx context.Context, repo *repository.Oracle, tableName string) (map[string]ColumnData, error) {
+func GetColumnTypes(
+	ctx context.Context,
+	repo *repository.Oracle,
+	tableName string,
+) (map[string]ColumnDescription, error) {
 	var columnName string
 
-	rows, err := repo.DB.QueryxContext(ctx, fmt.Sprintf(queryColumnData, tableName))
+	rows, err := repo.DB.QueryxContext(ctx, fmt.Sprintf(queryColumnDescription, tableName))
 	if err != nil {
 		return nil, fmt.Errorf("query column types: %w", err)
 	}
 
-	columnTypes := make(map[string]ColumnData)
+	columnTypes := make(map[string]ColumnDescription)
 	for rows.Next() {
-		columnData := ColumnData{}
+		columnDescription := ColumnDescription{}
 
-		if er := rows.Scan(&columnName, &columnData.Type, &columnData.Precision, &columnData.Scale); er != nil {
-			return nil, fmt.Errorf("scan rows: %w", er)
+		if err = rows.Scan(&columnName,
+			&columnDescription.Type, &columnDescription.Precision, &columnDescription.Scale); err != nil {
+			return nil, fmt.Errorf("scan rows: %w", err)
 		}
 
-		columnTypes[columnName] = columnData
+		columnTypes[columnName] = columnDescription
 	}
 
 	return columnTypes, nil
@@ -133,19 +138,19 @@ func GetColumnTypes(ctx context.Context, repo *repository.Oracle, tableName stri
 // FormatData formats the data into Oracle types
 // and wraps the placeholder in a special function, if necessary.
 func FormatData(
-	columnTypes map[string]ColumnData,
+	columnTypes map[string]ColumnDescription,
 	key string, value any,
 ) (string, any, error) {
 	if value == nil {
 		return QueryPlaceholder, nil, nil
 	}
 
-	switch oracleColumnData := columnTypes[strings.ToUpper(key)]; {
+	switch oracleColumnDescription := columnTypes[strings.ToUpper(key)]; {
 	// if the column type is a NUMBER, precision is 1, scale is 0, and value is a boolean,
 	// convert it to the integer, when the "true" value is 1, and "false" is 0
-	case oracleColumnData.Type == oracleTypeNumber &&
-		oracleColumnData.Precision != nil && *oracleColumnData.Precision == 1 &&
-		oracleColumnData.Scale != nil && *oracleColumnData.Scale == 0:
+	case oracleColumnDescription.Type == oracleTypeNumber &&
+		oracleColumnDescription.Precision != nil && *oracleColumnDescription.Precision == 1 &&
+		oracleColumnDescription.Scale != nil && *oracleColumnDescription.Scale == 0:
 		valueBool, ok := value.(bool)
 		if !ok {
 			return QueryPlaceholder, value, nil
@@ -157,7 +162,8 @@ func FormatData(
 
 		return QueryPlaceholder, 0, nil
 
-	case oracleColumnData.Type == oracleTypeDate, strings.Contains(oracleColumnData.Type, oracleTypeTimestamp):
+	case oracleColumnDescription.Type == oracleTypeDate,
+		strings.Contains(oracleColumnDescription.Type, oracleTypeTimestamp):
 		v, err := formatDate(value)
 		if err != nil {
 			return "", nil, err
@@ -165,7 +171,7 @@ func FormatData(
 
 		return fmt.Sprintf("TO_DATE(%s, 'YYYY-MM-DD HH24:MI:SS')", QueryPlaceholder), v, nil
 
-	case strings.Contains(oracleColumnData.Type, oracleTypeBlob):
+	case strings.Contains(oracleColumnDescription.Type, oracleTypeBlob):
 		v, err := formatBlob(value)
 		if err != nil {
 			return "", nil, err

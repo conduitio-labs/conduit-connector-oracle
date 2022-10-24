@@ -29,7 +29,7 @@ func TestWriter_buildUpsertQuery(t *testing.T) {
 	is := is.New(t)
 
 	w := &Writer{
-		columnTypes: map[string]columntypes.ColumnData{
+		columnTypes: map[string]columntypes.ColumnDescription{
 			"TS": {
 				Type: "TIMESTAMP",
 			},
