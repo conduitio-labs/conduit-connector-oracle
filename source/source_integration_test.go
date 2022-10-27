@@ -31,8 +31,6 @@ import (
 )
 
 func TestSource_Read_NoTable(t *testing.T) {
-	t.Parallel()
-
 	var (
 		ctx = context.Background()
 		cfg = prepareConfig(t)
@@ -58,8 +56,6 @@ func TestSource_Read_NoTable(t *testing.T) {
 }
 
 func TestSource_Read_EmptyTable(t *testing.T) {
-	t.Parallel()
-
 	var (
 		ctx = context.Background()
 		cfg = prepareConfig(t)
@@ -99,8 +95,6 @@ func TestSource_Read_EmptyTable(t *testing.T) {
 }
 
 func TestSource_Snapshot_Read(t *testing.T) {
-	t.Parallel()
-
 	var (
 		ctx = context.Background()
 		cfg = prepareConfig(t)
@@ -183,8 +177,6 @@ func TestSource_Snapshot_Read(t *testing.T) {
 }
 
 func TestSource_CDC_Read(t *testing.T) {
-	t.Parallel()
-
 	var (
 		ctx = context.Background()
 		cfg = prepareConfig(t)
