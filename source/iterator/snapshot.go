@@ -23,7 +23,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/conduitio-labs/conduit-connector-oracle/coltypes"
+	"github.com/conduitio-labs/conduit-connector-oracle/columntypes"
 	"github.com/conduitio-labs/conduit-connector-oracle/repository"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 	"github.com/jmoiron/sqlx"
@@ -54,7 +54,7 @@ type Snapshot struct {
 
 	rows *sqlx.Rows
 	// columnTypes represents a columns' description from table
-	columnTypes map[string]coltypes.ColumnDescription
+	columnTypes map[string]columntypes.ColumnDescription
 }
 
 // SnapshotParams represents an incoming params for the NewSnapshot function.
@@ -92,7 +92,7 @@ func NewSnapshot(ctx context.Context, params SnapshotParams) (*Snapshot, error) 
 	}
 
 	// get column types of table for converting
-	iterator.columnTypes, err = coltypes.GetColumnTypes(ctx, iterator.repo, iterator.table)
+	iterator.columnTypes, err = columntypes.GetColumnTypes(ctx, iterator.repo, iterator.table)
 	if err != nil {
 		return nil, fmt.Errorf("get table column types: %w", err)
 	}
@@ -157,7 +157,7 @@ func (iter *Snapshot) Next(_ context.Context) (sdk.Record, error) {
 		return sdk.Record{}, fmt.Errorf("scan rows: %w", err)
 	}
 
-	transformedRow, err := coltypes.TransformRow(row, iter.columnTypes)
+	transformedRow, err := columntypes.TransformRow(row, iter.columnTypes)
 	if err != nil {
 		return sdk.Record{}, fmt.Errorf("transform row column types: %w", err)
 	}

@@ -2,8 +2,8 @@
 
 ## General
 
-Oracle connector is one of [Conduit](https://github.com/ConduitIO/conduit) plugins. It provides a source Oracle
-connector.
+Oracle connector is one of [Conduit](https://github.com/ConduitIO/conduit) plugins. It provides both, a source and
+a destination Oracle connector.
 
 Connector uses [godror - Go DRiver for ORacle](https://godror.github.io/godror/). This driver is required to be
 installed. See [Godror Installation](https://godror.github.io/godror/doc/installation.html) for more information.
@@ -21,7 +21,7 @@ Run `make build`.
 ## Testing
 
 Run `make test` to run all unit and integration tests, as well as an acceptance test from the Conduit Connector SDK. To
-pass the integration and acceptance tests, set the Oracle database URL to the environment variables as an `ORACLE_URL`.
+run the integration and acceptance tests, set the Oracle database URL to the environment variables as an `ORACLE_URL`.
 
 ## Source
 
@@ -100,6 +100,39 @@ The `last_processed_val` field represents the last processed element value, and 
 | `orderingColumn` | column name that the connector will use for ordering rows. Column must contain unique values and suitable for sorting, otherwise the snapshot won't work correctly | **true** | `created_at`                                |
 | `columns`        | list of column names that should be included in each Record's payload, by default includes all columns                                                             | false    | `id,name,age`                               |
 | `batchSize`      | size of rows batch. Min is 1 and max is 100000. The default is 1000                                                                                                | false    | `100`                                       |
+
+## Destination
+
+The Oracle Destination takes a `sdk.Record` and parses it into a valid SQL query. The Destination is designed to
+handle different payloads and keys. Because of this, each record is individually parsed and upserted.
+
+### Table name
+
+If a record contains a `table` property in its metadata, it will be inserted in that table, otherwise, it will fall back
+to use the table configured in the connector. Thus, a Destination can support multiple tables in a single connector, as
+long as the user has proper access to those tables.
+
+### Upsert Behavior
+
+If the target table already contains a record with the same key, the Destination will still upsert the new record value.
+Since keys must be unique, this can lead to overwriting and potential data loss, so the keys must be correctly assigned
+from the Source.
+
+### Configuration Options
+
+| name        | description                                                                        | required | example                                     |
+|-------------|------------------------------------------------------------------------------------|----------|---------------------------------------------|
+| `url`       | string line for connection to Oracle                                               | **true** | `username/password@path:1521/my.domain.com` |
+| `table`     | the name of a table in the database that the connector should write to, by default | **true** | `users`                                     |
+| `keyColumn` | column name used to detect if the target table already contains the record         | **true** | `id`                                        |
+
+## Type convention
+
+Type convention describes the conversion between Oracle to Go types.
+
+| oracle        | go     | explanation                                                                                  |
+|---------------|--------|----------------------------------------------------------------------------------------------|
+| `NUMBER(1,0)` | `bool` | oracle does not support a boolean type, so the best practice is to keep the values as 0 or 1 |
 
 ## Known limitations
 

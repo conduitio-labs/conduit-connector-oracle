@@ -12,18 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package oracle
+package writer
 
-import (
-	"github.com/conduitio-labs/conduit-connector-oracle/destination"
-	"github.com/conduitio-labs/conduit-connector-oracle/source"
+import "errors"
 
-	sdk "github.com/conduitio/conduit-connector-sdk"
+var (
+	// ErrEmptyPayload occurs when there's no payload to insert.
+	ErrEmptyPayload = errors.New("payload is empty")
+
+	// errEmptyKey occurs when there is no value for key.
+	errEmptyKey = errors.New("key value must be provided")
+	// errCompositeKeysNotSupported occurs when there are more than one key in a Key map.
+	errCompositeKeysNotSupported = errors.New("composite keys not yet supported")
 )
-
-// Connector represents a sdk.Connector of Oracle.
-var Connector = sdk.Connector{
-	NewSpecification: Specification,
-	NewSource:        source.NewSource,
-	NewDestination:   destination.NewDestination,
-}
