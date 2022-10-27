@@ -12,13 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package writer
 
-import (
-	oracle "github.com/conduitio-labs/conduit-connector-oracle"
-	sdk "github.com/conduitio/conduit-connector-sdk"
+import "errors"
+
+var (
+	// ErrEmptyPayload occurs when there's no payload to insert.
+	ErrEmptyPayload = errors.New("payload is empty")
+
+	// errEmptyKey occurs when there is no value for key.
+	errEmptyKey = errors.New("key value must be provided")
+	// errCompositeKeysNotSupported occurs when there are more than one key in a Key map.
+	errCompositeKeysNotSupported = errors.New("composite keys not yet supported")
 )
-
-func main() {
-	sdk.Serve(oracle.Connector)
-}

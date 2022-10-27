@@ -12,13 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package columntypes
 
-import (
-	oracle "github.com/conduitio-labs/conduit-connector-oracle"
-	sdk "github.com/conduitio/conduit-connector-sdk"
+import "errors"
+
+var (
+	// errInvalidTimeLayout occurs when the time layout is invalid.
+	errInvalidTimeLayout = errors.New("invalid time layout")
 )
-
-func main() {
-	sdk.Serve(oracle.Connector)
-}

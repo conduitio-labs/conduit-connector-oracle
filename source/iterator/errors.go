@@ -12,13 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package iterator
 
 import (
-	oracle "github.com/conduitio-labs/conduit-connector-oracle"
-	sdk "github.com/conduitio/conduit-connector-sdk"
+	"errors"
 )
 
-func main() {
-	sdk.Serve(oracle.Connector)
-}
+var (
+	errNoKey                      = errors.New("no key")
+	errOrderingColumnIsNotExist   = errors.New("ordering column is not exist")
+	errNoInitializedIterator      = errors.New("not initialized iterator")
+	errWrongTrackingOperationType = errors.New("wrong tracking operation type")
+)

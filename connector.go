@@ -15,12 +15,15 @@
 package oracle
 
 import (
+	"github.com/conduitio-labs/conduit-connector-oracle/destination"
+	"github.com/conduitio-labs/conduit-connector-oracle/source"
+
 	sdk "github.com/conduitio/conduit-connector-sdk"
 )
 
 // Connector represents a sdk.Connector of Oracle.
 var Connector = sdk.Connector{
 	NewSpecification: Specification,
-	NewSource:        nil,
-	NewDestination:   nil,
+	NewSource:        source.NewSource,
+	NewDestination:   destination.NewDestination,
 }

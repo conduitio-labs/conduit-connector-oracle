@@ -27,12 +27,10 @@ var version = "v0.0.0-dev"
 func Specification() sdk.Specification {
 	return sdk.Specification{
 		Name:    "oracle",
-		Summary: "An Oracle source and destination plugin for Conduit, written in Go.",
-		Description: "The Oracle connector is one of Conduit plugins. " +
+		Summary: "Oracle source and destination plugin for Conduit, written in Go.",
+		Description: "Oracle connector is one of Conduit plugins. " +
 			"It provides a source and a destination Oracle connector.",
-		Version:           version,
-		Author:            "Meroxa, Inc.",
-		SourceParams:      map[string]sdk.Parameter{},
-		DestinationParams: map[string]sdk.Parameter{},
+		Version: version,
+		Author:  "Meroxa, Inc.",
 	}
 }

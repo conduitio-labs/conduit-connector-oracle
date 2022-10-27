@@ -12,13 +12,42 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package repository
 
 import (
-	oracle "github.com/conduitio-labs/conduit-connector-oracle"
-	sdk "github.com/conduitio/conduit-connector-sdk"
+	"fmt"
+
+	"github.com/jmoiron/sqlx"
+
+	// Go driver for Oracle.
+	_ "github.com/godror/godror"
 )
 
-func main() {
-	sdk.Serve(oracle.Connector)
+// Oracle represents a Oracle repository.
+type Oracle struct {
+	DB *sqlx.DB
+}
+
+// New opens a database and pings it.
+func New(url string) (*Oracle, error) {
+	db, err := sqlx.Open("godror", url)
+	if err != nil {
+		return nil, fmt.Errorf("open connection: %w", err)
+	}
+
+	err = db.Ping()
+	if err != nil {
+		return nil, fmt.Errorf("ping: %w", err)
+	}
+
+	return &Oracle{DB: db}, nil
+}
+
+// Close closes database.
+func (o *Oracle) Close() error {
+	if o != nil {
+		return o.DB.Close()
+	}
+
+	return nil
 }
