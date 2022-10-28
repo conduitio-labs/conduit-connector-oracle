@@ -31,6 +31,6 @@ func Specification() sdk.Specification {
 		Description: "Oracle connector is one of Conduit plugins. " +
 			"It provides a source and a destination Oracle connector.",
 		Version: version,
-		Author:  "Meroxa, Inc.",
+		Author:  "Meroxa, Inc. & Yalantis",
 	}
 }
