@@ -1,4 +1,4 @@
-// Copyright © 2022 Meroxa, Inc.
+// Copyright © 2022 Meroxa, Inc. & Yalantis
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -31,6 +31,6 @@ func Specification() sdk.Specification {
 		Description: "Oracle connector is one of Conduit plugins. " +
 			"It provides a source and a destination Oracle connector.",
 		Version: version,
-		Author:  "Meroxa, Inc.",
+		Author:  "Meroxa, Inc. & Yalantis",
 	}
 }
