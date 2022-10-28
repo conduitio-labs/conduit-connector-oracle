@@ -57,7 +57,6 @@ func (d *driver) GenerateRecord(t *testing.T, operation sdk.Operation) sdk.Recor
 }
 
 func TestAcceptance(t *testing.T) {
-	_ = os.Setenv("ORACLE_URL", "voscob/vosc2139@localhost:1521/OraDoc.my.domain.com")
 	cfg := prepareConfig(t)
 
 	is := is.New(t)
