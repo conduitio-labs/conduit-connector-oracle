@@ -371,8 +371,7 @@ func getNameByID(repo *repository.Oracle, table string, id int) (string, error) 
 	return name, nil
 }
 
-// randString generates a random string of length n.
-// (source: https://stackoverflow.com/a/47676287)
+// generates a random string of length n.
 func randString(n int) string {
 	b := make([]byte, n)
 	rand.Read(b) //nolint:errcheck // does not actually fail
