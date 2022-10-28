@@ -21,6 +21,7 @@ import (
 	"hash/fnv"
 	"os"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/conduitio-labs/conduit-connector-oracle/config"
@@ -32,28 +33,31 @@ import (
 
 type driver struct {
 	sdk.ConfigurableAcceptanceTestDriver
+
+	counter int32
 }
 
 // GenerateRecord generates a random sdk.Record.
 func (d *driver) GenerateRecord(t *testing.T, operation sdk.Operation) sdk.Record {
-	randUUID := uuid.NewString()
+	atomic.AddInt32(&d.counter, 1)
 
 	return sdk.Record{
 		Position:  nil,
 		Operation: operation,
 		Metadata: map[string]string{
-			config.Table: strings.ToUpper(d.Config.SourceConfig[config.Table]),
+			"oracle.table": strings.ToUpper(d.Config.SourceConfig[config.Table]),
 		},
 		Key: sdk.RawData(
-			fmt.Sprintf(`{"ID":"%s"}`, randUUID),
+			fmt.Sprintf(`{"ID":%d}`, d.counter),
 		),
 		Payload: sdk.Change{After: sdk.RawData(
-			fmt.Sprintf(`{"ID":"%s","NAME":"%s"}`, randUUID, randUUID),
+			fmt.Sprintf(`{"ID":%d,"NAME":"%s"}`, d.counter, uuid.NewString()),
 		)},
 	}
 }
 
 func TestAcceptance(t *testing.T) {
+	_ = os.Setenv("ORACLE_URL", "voscob/vosc2139@localhost:1521/OraDoc.my.domain.com")
 	cfg := prepareConfig(t)
 
 	is := is.New(t)
@@ -77,7 +81,7 @@ func TestAcceptance(t *testing.T) {
 	})
 }
 
-// prepareConfig receives the connection URL from the environment variable
+// receives the connection URL from the environment variable
 // and prepares configuration map.
 func prepareConfig(t *testing.T) map[string]string {
 	url := os.Getenv("ORACLE_URL")
@@ -95,7 +99,7 @@ func prepareConfig(t *testing.T) map[string]string {
 	}
 }
 
-// createTable creates test table.
+// creates test table.
 func createTable(url, table string) error {
 	repo, err := repository.New(url)
 	if err != nil {
@@ -105,7 +109,7 @@ func createTable(url, table string) error {
 
 	_, err = repo.DB.Exec(fmt.Sprintf(`
 	CREATE TABLE %s (
-		id VARCHAR2(36) NOT NULL, 
+		id NUMBER(38,0), 
 		name VARCHAR2(100)
 	)`, table))
 	if err != nil {
@@ -115,7 +119,7 @@ func createTable(url, table string) error {
 	return nil
 }
 
-// dropTables drops test table and tracking test table if exists.
+// drops test table and tracking test table if exists.
 func dropTables(url, table string) error {
 	repo, err := repository.New(url)
 	if err != nil {
@@ -175,8 +179,7 @@ func dropTables(url, table string) error {
 	return nil
 }
 
-// randString generates a random string of length n.
-// (source: https://stackoverflow.com/a/47676287)
+// generates a random string of length n.
 func randString(n int) string {
 	b := make([]byte, n)
 	rand.Read(b) //nolint:errcheck // does not actually fail
