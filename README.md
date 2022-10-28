@@ -12,7 +12,6 @@ installed. See [Godror Installation](https://godror.github.io/godror/doc/install
 
 - [Go](https://go.dev/) 1.18
 - (optional) [golangci-lint](https://github.com/golangci/golangci-lint) 1.49.0
-- (optional) [mock](https://github.com/golang/mock) 1.6.0
 
 ## How to build it
 
@@ -92,14 +91,14 @@ The `last_processed_val` field represents the last processed element value, and 
 
 ### Configuration Options
 
-| name             | description                                                                                                                                                        | required | example                                     |
-|------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------|---------------------------------------------|
-| `url`            | string line for connection to Oracle                                                                                                                               | **true** | `username/password@path:1521/my.domain.com` |
-| `table`          | the name of a table in the database that the connector should write to                                                                                             | **true** | `users`                                     |
-| `keyColumn`      | column name records should use for their `Key` fields                                                                                                              | **true** | `id`                                        |
-| `orderingColumn` | column name that the connector will use for ordering rows. Column must contain unique values and suitable for sorting, otherwise the snapshot won't work correctly | **true** | `created_at`                                |
-| `columns`        | list of column names that should be included in each Record's payload, by default includes all columns                                                             | false    | `id,name,age`                               |
-| `batchSize`      | size of rows batch. Min is 1 and max is 100000. The default is 1000                                                                                                | false    | `100`                                       |
+| Name             | Description                                                                                                                                                         | Required | Example                                     |
+|------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------|---------------------------------------------|
+| `url`            | String line for connection to Oracle.                                                                                                                               | **true** | `username/password@path:1521/my.domain.com` |
+| `table`          | The name of a table in the database that the connector should write to.                                                                                             | **true** | `users`                                     |
+| `keyColumn`      | Column name records should use for their `Key` fields.                                                                                                              | **true** | `id`                                        |
+| `orderingColumn` | Column name that the connector will use for ordering rows. Column must contain unique values and suitable for sorting, otherwise the snapshot won't work correctly. | **true** | `created_at`                                |
+| `columns`        | List of column names that should be included in each Record's payload, by default includes all columns.                                                             | false    | `id,name,age`                               |
+| `batchSize`      | Size of rows batch. Min is 1 and max is 100000. The default is 1000.                                                                                                | false    | `100`                                       |
 
 ## Destination
 
@@ -108,9 +107,9 @@ handle different payloads and keys. Because of this, each record is individually
 
 ### Table name
 
-If a record contains a `table` property in its metadata, it will be inserted in that table, otherwise, it will fall back
-to use the table configured in the connector. Thus, a Destination can support multiple tables in a single connector, as
-long as the user has proper access to those tables.
+If a record contains an `oracle.table` property in its metadata, it will be inserted in that table, otherwise, it will
+fall back to use the table configured in the connector. Thus, a Destination can support multiple tables in a single
+connector, as long as the user has proper access to those tables.
 
 ### Upsert Behavior
 
@@ -120,19 +119,19 @@ from the Source.
 
 ### Configuration Options
 
-| name        | description                                                                        | required | example                                     |
-|-------------|------------------------------------------------------------------------------------|----------|---------------------------------------------|
-| `url`       | string line for connection to Oracle                                               | **true** | `username/password@path:1521/my.domain.com` |
-| `table`     | the name of a table in the database that the connector should write to, by default | **true** | `users`                                     |
-| `keyColumn` | column name used to detect if the target table already contains the record         | **true** | `id`                                        |
+| Name        | Description                                                                         | Required | Example                                     |
+|-------------|-------------------------------------------------------------------------------------|----------|---------------------------------------------|
+| `url`       | String line for connection to Oracle.                                               | **true** | `username/password@path:1521/my.domain.com` |
+| `table`     | The name of a table in the database that the connector should write to, by default. | **true** | `users`                                     |
+| `keyColumn` | Column name used to detect if the target table already contains the record.         | **true** | `id`                                        |
 
 ## Type convention
 
 Type convention describes the conversion between Oracle to Go types.
 
-| oracle        | go     | explanation                                                                                  |
-|---------------|--------|----------------------------------------------------------------------------------------------|
-| `NUMBER(1,0)` | `bool` | oracle does not support a boolean type, so the best practice is to keep the values as 0 or 1 |
+| Oracle        | Go     | Explanation                                                                                   |
+|---------------|--------|-----------------------------------------------------------------------------------------------|
+| `NUMBER(1,0)` | `bool` | Oracle does not support a boolean type, so the best practice is to keep the values as 0 or 1. |
 
 ## Known limitations
 
