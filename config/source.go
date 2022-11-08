@@ -33,10 +33,12 @@ const (
 
 // A Source represents a source configuration.
 type Source struct {
-	General
+	Configuration
 
 	// OrderingColumn is a name of a column that the connector will use for ordering rows.
 	OrderingColumn string `validate:"required,lte=128,oracle"`
+	// KeyColumn is a column name that records should use for their `Key` fields.
+	KeyColumn string `validate:"required,lte=128,oracle"`
 	// Columns list of column names that should be included in each Record's payload.
 	Columns []string `validate:"dive,lte=128,oracle"`
 	// BatchSize is a size of rows batch.
@@ -45,14 +47,15 @@ type Source struct {
 
 // ParseSource parses source configuration.
 func ParseSource(cfg map[string]string) (Source, error) {
-	config, err := Parse(cfg)
+	config, err := parseConfiguration(cfg)
 	if err != nil {
 		return Source{}, err
 	}
 
 	sourceConfig := Source{
-		General:        config,
+		Configuration:  config,
 		OrderingColumn: strings.ToUpper(cfg[OrderingColumn]),
+		KeyColumn:      strings.ToUpper(cfg[KeyColumn]),
 		BatchSize:      defaultBatchSize,
 	}
 

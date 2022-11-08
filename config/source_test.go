@@ -17,6 +17,7 @@ package config
 import (
 	"errors"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -28,125 +29,125 @@ func TestParseSource(t *testing.T) {
 		err  error
 	}{
 		{
-			name: "valid config",
+			name: "success_required_values",
 			in: map[string]string{
-				URL:            "test_user/test_pass_123@localhost:1521/db_name",
-				Table:          "test_table",
+				URL:            testURL,
+				Table:          testTable,
 				OrderingColumn: "id",
 				KeyColumn:      "id",
 			},
 			want: Source{
-				General: General{
-					URL:       "test_user/test_pass_123@localhost:1521/db_name",
-					Table:     "TEST_TABLE",
-					KeyColumn: "ID",
+				Configuration: Configuration{
+					URL:   testURL,
+					Table: strings.ToUpper(testTable),
 				},
 				OrderingColumn: "ID",
+				KeyColumn:      "ID",
 				BatchSize:      defaultBatchSize,
 			},
 		},
 		{
-			name: "valid config, custom batch size",
+			name: "success_custom_batchSize",
 			in: map[string]string{
-				URL:            "test_user/test_pass_123@localhost:1521/db_name",
-				Table:          "test_table",
+				URL:            testURL,
+				Table:          testTable,
 				OrderingColumn: "id",
 				KeyColumn:      "id",
 				BatchSize:      "100",
 			},
 			want: Source{
-				General: General{
-					URL:       "test_user/test_pass_123@localhost:1521/db_name",
-					Table:     "TEST_TABLE",
-					KeyColumn: "ID",
+				Configuration: Configuration{
+					URL:   testURL,
+					Table: strings.ToUpper(testTable),
 				},
 				OrderingColumn: "ID",
+				KeyColumn:      "ID",
 				BatchSize:      100,
 			},
 		},
 		{
-			name: "valid config, batch size is maximum",
+			name: "success_batchSize_max",
 			in: map[string]string{
-				URL:            "test_user/test_pass_123@localhost:1521/db_name",
-				Table:          "test_table",
+				URL:            testURL,
+				Table:          testTable,
 				OrderingColumn: "id",
 				KeyColumn:      "id",
 				BatchSize:      "100000",
 			},
 			want: Source{
-				General: General{
-					URL:       "test_user/test_pass_123@localhost:1521/db_name",
-					Table:     "TEST_TABLE",
-					KeyColumn: "ID",
+				Configuration: Configuration{
+					URL:   testURL,
+					Table: strings.ToUpper(testTable),
 				},
 				OrderingColumn: "ID",
+				KeyColumn:      "ID",
 				BatchSize:      100000,
 			},
 		},
 		{
-			name: "valid config, batch size is minimum",
+			name: "success_batchSize_min",
 			in: map[string]string{
-				URL:            "test_user/test_pass_123@localhost:1521/db_name",
-				Table:          "test_table",
+				URL:            testURL,
+				Table:          testTable,
 				OrderingColumn: "id",
 				KeyColumn:      "id",
 				BatchSize:      "1",
 			},
 			want: Source{
-				General: General{
-					URL:       "test_user/test_pass_123@localhost:1521/db_name",
-					Table:     "TEST_TABLE",
-					KeyColumn: "ID",
+				Configuration: Configuration{
+					URL:   testURL,
+					Table: strings.ToUpper(testTable),
 				},
 				OrderingColumn: "ID",
+				KeyColumn:      "ID",
 				BatchSize:      1,
 			},
 		},
 		{
-			name: "valid config, custom columns",
+			name: "success_custom_columns",
 			in: map[string]string{
-				URL:            "test_user/test_pass_123@localhost:1521/db_name",
-				Table:          "test_table",
+				URL:            testURL,
+				Table:          testTable,
 				OrderingColumn: "id",
 				KeyColumn:      "id",
 				Columns:        "id, name,age",
 			},
 			want: Source{
-				General: General{
-					URL:       "test_user/test_pass_123@localhost:1521/db_name",
-					Table:     "TEST_TABLE",
-					KeyColumn: "ID",
+				Configuration: Configuration{
+					URL:   testURL,
+					Table: strings.ToUpper(testTable),
 				},
 				OrderingColumn: "ID",
+				KeyColumn:      "ID",
 				BatchSize:      defaultBatchSize,
 				Columns:        []string{"ID", "NAME", "AGE"},
 			},
 		},
 		{
-			name: "invalid config, missed ordering column",
+			name: "failure_required_orderingColumn",
 			in: map[string]string{
-				URL:       "test_user/test_pass_123@localhost:1521/db_name",
-				Table:     "test_table",
+				URL:       testURL,
+				Table:     testTable,
 				KeyColumn: "id",
 				Columns:   "id,name,age",
 			},
 			err: errors.New(`"orderingColumn" value must be set`),
 		},
 		{
-			name: "invalid config, missed key",
+			name: "failure_required_keyColumn",
 			in: map[string]string{
-				URL:            "test_user/test_pass_123@localhost:1521/db_name",
-				Table:          "test_table",
+				URL:            testURL,
+				Table:          testTable,
 				Columns:        "id,name,age",
 				OrderingColumn: "id",
 			},
 			err: errors.New(`"keyColumn" value must be set`),
 		},
 		{
-			name: "invalid config, invalid batch size",
+			name: "failure_invalid_batchSize",
 			in: map[string]string{
-				URL:            "test_user/test_pass_123@localhost:1521/db_name",
-				Table:          "test_table",
+				URL:            testURL,
+				Table:          testTable,
 				OrderingColumn: "id",
 				KeyColumn:      "id",
 				BatchSize:      "a",
@@ -154,10 +155,10 @@ func TestParseSource(t *testing.T) {
 			err: errors.New(`parse BatchSize: strconv.Atoi: parsing "a": invalid syntax`),
 		},
 		{
-			name: "invalid config, missed orderingColumn in columns",
+			name: "failure_missed_orderingColumn_in_columns",
 			in: map[string]string{
-				URL:            "test_user/test_pass_123@localhost:1521/db_name",
-				Table:          "test_table",
+				URL:            testURL,
+				Table:          testTable,
 				OrderingColumn: "id",
 				KeyColumn:      "name",
 				Columns:        "name,age",
@@ -165,10 +166,10 @@ func TestParseSource(t *testing.T) {
 			err: errColumnInclude(),
 		},
 		{
-			name: "invalid config, missed keyColumn in columns",
+			name: "failure_missed_keyColumn_in_columns",
 			in: map[string]string{
-				URL:            "test_user/test_pass_123@localhost:1521/db_name",
-				Table:          "test_table",
+				URL:            testURL,
+				Table:          testTable,
 				OrderingColumn: "id",
 				KeyColumn:      "name",
 				Columns:        "id,age",
@@ -176,10 +177,10 @@ func TestParseSource(t *testing.T) {
 			err: errColumnInclude(),
 		},
 		{
-			name: "invalid config, BatchSize is too big",
+			name: "failure_batchSize_is_too_big",
 			in: map[string]string{
-				URL:            "test_user/test_pass_123@localhost:1521/db_name",
-				Table:          "test_table",
+				URL:            testURL,
+				Table:          testTable,
 				OrderingColumn: "id",
 				KeyColumn:      "id",
 				BatchSize:      "100001",
@@ -187,10 +188,10 @@ func TestParseSource(t *testing.T) {
 			err: errOutOfRange(BatchSize),
 		},
 		{
-			name: "invalid config, BatchSize is zero",
+			name: "failure_batchSize_is_zero",
 			in: map[string]string{
-				URL:            "test_user/test_pass_123@localhost:1521/db_name",
-				Table:          "test_table",
+				URL:            testURL,
+				Table:          testTable,
 				OrderingColumn: "id",
 				KeyColumn:      "id",
 				BatchSize:      "0",
@@ -198,10 +199,10 @@ func TestParseSource(t *testing.T) {
 			err: errOutOfRange(BatchSize),
 		},
 		{
-			name: "invalid config, BatchSize is negative",
+			name: "failure_batchSize_is_negative",
 			in: map[string]string{
-				URL:            "test_user/test_pass_123@localhost:1521/db_name",
-				Table:          "test_table",
+				URL:            testURL,
+				Table:          testTable,
 				OrderingColumn: "id",
 				KeyColumn:      "id",
 				BatchSize:      "-1",
