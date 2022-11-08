@@ -42,10 +42,10 @@ type Snapshot struct {
 	trackingTable string
 	// trigger represents a trigger name for a trackingTable
 	trigger string
-	// keyColumn represents a name of column what iterator use for setting key in record
-	keyColumn string
 	// orderingColumn represents a name of column what iterator use for sorting data
 	orderingColumn string
+	// keyColumn represents a name of column what iterator use for setting key in record
+	keyColumn string
 	// columns represents a list of table's columns for record payload.
 	// if empty - will get all columns
 	columns []string
@@ -62,8 +62,8 @@ type SnapshotParams struct {
 	Repo           *repository.Oracle
 	Position       *Position
 	Table          string
-	KeyColumn      string
 	OrderingColumn string
+	KeyColumn      string
 	Columns        []string
 	BatchSize      int
 }
@@ -85,8 +85,8 @@ func NewSnapshot(ctx context.Context, params SnapshotParams) (*Snapshot, error) 
 		snapshotTable:  fmt.Sprintf("CONDUIT_SNAPSHOT_%d", hashedTable),
 		trackingTable:  fmt.Sprintf("CONDUIT_TRACKING_%d", hashedTable),
 		trigger:        fmt.Sprintf("CONDUIT_%d", hashedTable),
-		keyColumn:      params.KeyColumn,
 		orderingColumn: params.OrderingColumn,
+		keyColumn:      params.KeyColumn,
 		columns:        params.Columns,
 		batchSize:      params.BatchSize,
 	}
@@ -216,9 +216,33 @@ func (iter *Snapshot) Close() error {
 	return nil
 }
 
+// checkIfTableExists checks if table exist.
+func (iter *Snapshot) checkIfTableExists(ctx context.Context, tx *sql.Tx, table string) (bool, error) {
+	rows, err := tx.QueryContext(ctx, fmt.Sprintf(queryIfTableExists, table))
+	if err != nil {
+		return false, fmt.Errorf("request with check if the table already exists: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var name string
+		err = rows.Scan(&name)
+		if err != nil {
+			return false, fmt.Errorf("scan tables to check if the table already exists: %w", err)
+		}
+
+		if name == table {
+			// table exists
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
 // initSnapshotTable creates a new snapshot table, if id does not exist.
 func (iter *Snapshot) initSnapshotTable(ctx context.Context, tx *sql.Tx) error {
-	exists, err := checkIfTableExists(ctx, tx, iter.snapshotTable)
+	exists, err := iter.checkIfTableExists(ctx, tx, iter.snapshotTable)
 	if err != nil {
 		return fmt.Errorf("check if table exists: %w", err)
 	}
@@ -238,7 +262,7 @@ func (iter *Snapshot) initSnapshotTable(ctx context.Context, tx *sql.Tx) error {
 
 // initTrackingTable creates a new tracking table and trigger, if they do not exist.
 func (iter *Snapshot) initTrackingTable(ctx context.Context, tx *sql.Tx) error {
-	exists, err := checkIfTableExists(ctx, tx, iter.trackingTable)
+	exists, err := iter.checkIfTableExists(ctx, tx, iter.trackingTable)
 	if err != nil {
 		return fmt.Errorf("check if table exists: %w", err)
 	}
@@ -305,7 +329,7 @@ func (iter *Snapshot) dropSnapshotTable(ctx context.Context) error {
 	}
 	defer tx.Rollback() // nolint:errcheck,nolintlint
 
-	exists, err := checkIfTableExists(ctx, tx, iter.snapshotTable)
+	exists, err := iter.checkIfTableExists(ctx, tx, iter.snapshotTable)
 	if err != nil {
 		return fmt.Errorf("check if table exists: %w", err)
 	}

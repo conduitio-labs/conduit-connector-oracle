@@ -48,8 +48,8 @@ type Params struct {
 	Position       *Position
 	URL            string
 	Table          string
-	KeyColumn      string
 	OrderingColumn string
+	KeyColumn      string
 	Columns        []string
 	BatchSize      int
 }
@@ -60,8 +60,8 @@ func New(ctx context.Context, params Params) (*Iterator, error) {
 
 	iterator := &Iterator{
 		table:          params.Table,
-		keyColumn:      params.KeyColumn,
 		orderingColumn: params.OrderingColumn,
+		keyColumn:      params.KeyColumn,
 		columns:        params.Columns,
 		batchSize:      params.BatchSize,
 	}
@@ -71,14 +71,21 @@ func New(ctx context.Context, params Params) (*Iterator, error) {
 		return nil, fmt.Errorf("new repository: %w", err)
 	}
 
+	if iterator.keyColumn == "" {
+		iterator.keyColumn, err = iterator.getKeyColumn()
+		if err != nil {
+			return nil, fmt.Errorf("get key column: %w", err)
+		}
+	}
+
 	switch position := params.Position; {
 	case position == nil || position.Mode == ModeSnapshot:
 		iterator.snapshot, err = NewSnapshot(ctx, SnapshotParams{
 			Repo:           iterator.repo,
 			Position:       params.Position,
 			Table:          params.Table,
-			KeyColumn:      params.KeyColumn,
 			OrderingColumn: params.OrderingColumn,
+			KeyColumn:      params.KeyColumn,
 			Columns:        params.Columns,
 			BatchSize:      params.BatchSize,
 		})
@@ -90,8 +97,8 @@ func New(ctx context.Context, params Params) (*Iterator, error) {
 			Repo:           iterator.repo,
 			Position:       params.Position,
 			Table:          params.Table,
-			KeyColumn:      params.KeyColumn,
 			OrderingColumn: params.OrderingColumn,
+			KeyColumn:      params.KeyColumn,
 			Columns:        params.Columns,
 			BatchSize:      params.BatchSize,
 		})
@@ -187,8 +194,8 @@ func (iter *Iterator) switchToCDCIterator(ctx context.Context) error {
 	iter.cdc, err = NewCDC(ctx, CDCParams{
 		Repo:           iter.repo,
 		Table:          iter.table,
-		KeyColumn:      iter.keyColumn,
 		OrderingColumn: iter.orderingColumn,
+		KeyColumn:      iter.keyColumn,
 		Columns:        iter.columns,
 		BatchSize:      iter.batchSize,
 	})
@@ -199,26 +206,15 @@ func (iter *Iterator) switchToCDCIterator(ctx context.Context) error {
 	return nil
 }
 
-// checkIfTableExists checks if table exist.
-func checkIfTableExists(ctx context.Context, tx *sql.Tx, table string) (bool, error) {
-	rows, err := tx.QueryContext(ctx, fmt.Sprintf(queryIfTableExists, table))
-	if err != nil {
-		return false, fmt.Errorf("request with check if the table already exists: %w", err)
-	}
-	defer rows.Close()
+func (iter *Iterator) getKeyColumn() (string, error) {
+	keyColumn := iter.orderingColumn
 
-	for rows.Next() {
-		var name string
-		err = rows.Scan(&name)
-		if err != nil {
-			return false, fmt.Errorf("scan tables to check if the table already exists: %w", err)
-		}
+	row := iter.repo.DB.QueryRow(querySelectPrimaryKey, iter.table)
 
-		if name == table {
-			// table exists
-			return true, nil
-		}
+	err := row.Scan(&keyColumn)
+	if err != nil && err != sql.ErrNoRows {
+		return "", fmt.Errorf("scan key column value: %w", err)
 	}
 
-	return false, nil
+	return keyColumn, nil
 }
