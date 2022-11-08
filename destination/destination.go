@@ -35,7 +35,7 @@ type Destination struct {
 
 	repo   *repository.Oracle
 	writer Writer
-	cfg    config.General
+	cfg    config.Destination
 }
 
 // NewDestination initialises a new Destination.
@@ -66,7 +66,7 @@ func (d *Destination) Parameters() map[string]sdk.Parameter {
 
 // Configure parses and stores configurations, returns an error in case of invalid configuration.
 func (d *Destination) Configure(_ context.Context, cfg map[string]string) error {
-	configuration, err := config.Parse(cfg)
+	configuration, err := config.ParseDestination(cfg)
 	if err != nil {
 		return err
 	}
