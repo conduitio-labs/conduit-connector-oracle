@@ -25,9 +25,6 @@ const (
 	Table = "table"
 	// KeyColumn is the configuration name of the key column.
 	KeyColumn = "keyColumn"
-
-	testURL   = "test_user/test_pass_123@localhost:1521/db_name"
-	testTable = "test_table"
 )
 
 // A Configuration represents a general configuration needed to connect to Oracle database.

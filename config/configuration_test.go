@@ -22,6 +22,11 @@ import (
 	"go.uber.org/multierr"
 )
 
+const (
+	testURL   = "test_user/test_pass_123@localhost:1521/db_name"
+	testTable = "test_table"
+)
+
 func TestParseGeneral(t *testing.T) {
 	t.Parallel()
 
