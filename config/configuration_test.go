@@ -16,6 +16,7 @@ package config
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 
 	"go.uber.org/multierr"
@@ -27,57 +28,45 @@ func TestParseGeneral(t *testing.T) {
 	tests := []struct {
 		name string
 		in   map[string]string
-		want General
+		want Configuration
 		err  error
 	}{
 		{
-			name: "valid config",
+			name: "success_required_values",
 			in: map[string]string{
-				URL:       "test_user/test_pass_123@localhost:1521/db_name",
-				Table:     "test_table",
-				KeyColumn: "id",
+				URL:   testURL,
+				Table: testTable,
 			},
-			want: General{
-				URL:       "test_user/test_pass_123@localhost:1521/db_name",
-				Table:     "TEST_TABLE",
-				KeyColumn: "ID",
+			want: Configuration{
+				URL:   testURL,
+				Table: strings.ToUpper(testTable),
 			},
 		},
 		{
-			name: "URL is required",
+			name: "failure_required_url",
 			in: map[string]string{
-				Table:     "test_table",
+				Table:     testTable,
 				KeyColumn: "id",
 			},
 			err: errRequired(URL),
 		},
 		{
-			name: "table is required",
+			name: "failure_required_table",
 			in: map[string]string{
-				URL:       "test_user/test_pass_123@localhost:1521/db_name",
+				URL:       testURL,
 				KeyColumn: "id",
 			},
 			err: errRequired(Table),
 		},
 		{
-			name: "keyColumn is required",
-			in: map[string]string{
-				URL:   "test_user/test_pass_123@localhost:1521/db_name",
-				Table: "test_table",
-			},
-			err: errRequired(KeyColumn),
+			name: "failure_required_url_and_table",
+			in:   map[string]string{},
+			err:  multierr.Combine(errRequired(URL), errRequired(Table)),
 		},
 		{
-			name: "a couple required fields are empty (a password and an URL)",
+			name: "failure_invalid_table",
 			in: map[string]string{
-				KeyColumn: "id",
-			},
-			err: multierr.Combine(errRequired(URL), errRequired(Table)),
-		},
-		{
-			name: "table begins with a number",
-			in: map[string]string{
-				URL:       "test_user/test_pass_123@localhost:1521/db_name",
+				URL:       testURL,
 				Table:     "1_test_table",
 				KeyColumn: "id",
 			},
@@ -91,7 +80,7 @@ func TestParseGeneral(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := Parse(tt.in)
+			got, err := parseConfiguration(tt.in)
 			if err != nil {
 				if tt.err == nil {
 					t.Errorf("unexpected error: %s", err.Error())

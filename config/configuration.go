@@ -25,30 +25,29 @@ const (
 	Table = "table"
 	// KeyColumn is the configuration name of the key column.
 	KeyColumn = "keyColumn"
+
+	testURL   = "test_user/test_pass_123@localhost:1521/db_name"
+	testTable = "test_table"
 )
 
-// A General represents a general configuration needed to connect to Oracle database.
-type General struct {
+// A Configuration represents a general configuration needed to connect to Oracle database.
+type Configuration struct {
 	// URL is the configuration of the connection string to connect to Oracle database.
 	URL string `json:"url" validate:"required"`
 	// Table is the configuration of the table name.
 	Table string `json:"table" validate:"required,lte=128,oracle"`
-	// KeyColumn is a column name that records should use for their `Key` fields (source) or
-	// is a column name uses to detect if the target table already contains the record (destination).
-	KeyColumn string `validate:"required,lte=128,oracle"`
 }
 
-// Parse parses general configuration.
-func Parse(cfg map[string]string) (General, error) {
-	config := General{
-		URL:       cfg[URL],
-		Table:     strings.ToUpper(cfg[Table]),
-		KeyColumn: strings.ToUpper(cfg[KeyColumn]),
+// parses general configuration.
+func parseConfiguration(cfg map[string]string) (Configuration, error) {
+	config := Configuration{
+		URL:   cfg[URL],
+		Table: strings.ToUpper(cfg[Table]),
 	}
 
 	err := validate(config)
 	if err != nil {
-		return General{}, err
+		return Configuration{}, err
 	}
 
 	return config, nil

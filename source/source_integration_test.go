@@ -30,7 +30,7 @@ import (
 	"github.com/matryer/is"
 )
 
-func TestSource_Read_NoTable(t *testing.T) {
+func TestSource_noTable(t *testing.T) {
 	var (
 		ctx = context.Background()
 		cfg = prepareConfig(t)
@@ -55,7 +55,7 @@ func TestSource_Read_NoTable(t *testing.T) {
 	cancel()
 }
 
-func TestSource_Read_EmptyTable(t *testing.T) {
+func TestSource_emptyTable(t *testing.T) {
 	var (
 		ctx = context.Background()
 		cfg = prepareConfig(t)
@@ -94,7 +94,7 @@ func TestSource_Read_EmptyTable(t *testing.T) {
 	is.NoErr(err)
 }
 
-func TestSource_Snapshot_Read(t *testing.T) {
+func TestSource_snapshotRead(t *testing.T) {
 	var (
 		ctx = context.Background()
 		cfg = prepareConfig(t)
@@ -176,7 +176,7 @@ func TestSource_Snapshot_Read(t *testing.T) {
 	is.NoErr(err)
 }
 
-func TestSource_CDC_Read(t *testing.T) {
+func TestSource_cdcRead(t *testing.T) {
 	var (
 		ctx = context.Background()
 		cfg = prepareConfig(t)

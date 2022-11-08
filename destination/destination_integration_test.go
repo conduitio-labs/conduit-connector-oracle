@@ -29,7 +29,7 @@ import (
 	"github.com/matryer/is"
 )
 
-func TestDestination_Write(t *testing.T) {
+func TestDestination_insert(t *testing.T) {
 	var (
 		ctx = context.Background()
 		cfg = prepareConfig(t)
@@ -100,7 +100,7 @@ func TestDestination_Write(t *testing.T) {
 	is.NoErr(err)
 }
 
-func TestDestination_Write_Update(t *testing.T) {
+func TestDestination_update(t *testing.T) {
 	var (
 		ctx = context.Background()
 		cfg = prepareConfig(t)
@@ -155,7 +155,7 @@ func TestDestination_Write_Update(t *testing.T) {
 	is.NoErr(err)
 }
 
-func TestDestination_Write_Upsert(t *testing.T) {
+func TestDestination_upsert(t *testing.T) {
 	var (
 		ctx = context.Background()
 		cfg = prepareConfig(t)
@@ -207,7 +207,7 @@ func TestDestination_Write_Upsert(t *testing.T) {
 	is.NoErr(err)
 }
 
-func TestDestination_Write_Delete(t *testing.T) {
+func TestDestination_delete(t *testing.T) {
 	var (
 		ctx = context.Background()
 		cfg = prepareConfig(t)
@@ -262,7 +262,7 @@ func TestDestination_Write_Delete(t *testing.T) {
 	is.NoErr(err)
 }
 
-func TestDestination_Write_WrongColumn(t *testing.T) {
+func TestDestination_wrongColumn(t *testing.T) {
 	var (
 		ctx = context.Background()
 		cfg = prepareConfig(t)
