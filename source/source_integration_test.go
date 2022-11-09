@@ -105,104 +105,6 @@ func TestSource_emptyTable(t *testing.T) {
 	is.NoErr(err)
 }
 
-func TestSource_keyColumns(t *testing.T) {
-	var (
-		is  = is.New(t)
-		cfg = map[string]string{
-			config.URL:            getURL(t),
-			config.Table:          fmt.Sprintf("CONDUIT_SRC_TEST_%s", randString(6)),
-			config.OrderingColumn: "int_type_1",
-		}
-	)
-
-	repo, err := repository.New(cfg[config.URL])
-	is.NoErr(err)
-	defer repo.Close()
-
-	// create table with two primary keys
-	_, err = repo.DB.Exec(fmt.Sprintf(`
-CREATE TABLE %s (
-  int_type_0 NUMBER(38, 0), 
-  int_type_1 NUMBER(38, 0), 
-  PRIMARY KEY (int_type_0, int_type_1)
-)
-`, cfg[config.Table]))
-	is.NoErr(err)
-
-	defer func(table string) {
-		err = dropTables(repo, table)
-		is.NoErr(err)
-	}(cfg[config.Table])
-
-	// insert row
-	_, err = repo.DB.Exec(fmt.Sprintf("INSERT INTO %s (int_type_0, int_type_1) VALUES (10, 20)",
-		cfg[config.Table]))
-	is.NoErr(err)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	src := NewSource()
-
-	err = src.Configure(ctx, cfg)
-	is.NoErr(err)
-
-	err = src.Open(ctx, nil)
-	is.NoErr(err)
-
-	// read records
-	record, err := src.Read(ctx)
-	is.NoErr(err)
-	is.Equal(record.Key, sdk.StructuredData(map[string]interface{}{"INT_TYPE_0": 10, "INT_TYPE_1": 20}))
-
-	cancel()
-
-	err = src.Teardown(context.Background())
-	is.NoErr(err)
-
-	cfg[config.Table] = fmt.Sprintf("CONDUIT_SRC_TEST_%s", randString(6))
-
-	// create table without primary keys
-	_, err = repo.DB.Exec(fmt.Sprintf(`
-CREATE TABLE %s (
-  int_type_0 NUMBER(38, 0), 
-  int_type_1 NUMBER(38, 0)
-)
-`, cfg[config.Table]))
-	is.NoErr(err)
-
-	defer func(table string) {
-		err = dropTables(repo, table)
-		is.NoErr(err)
-	}(cfg[config.Table])
-
-	// insert row
-	_, err = repo.DB.Exec(fmt.Sprintf("INSERT INTO %s (int_type_0, int_type_1) VALUES (10, 20)",
-		cfg[config.Table]))
-	is.NoErr(err)
-
-	ctx, cancel = context.WithCancel(context.Background())
-	defer cancel()
-
-	src = NewSource()
-
-	err = src.Configure(ctx, cfg)
-	is.NoErr(err)
-
-	err = src.Open(ctx, nil)
-	is.NoErr(err)
-
-	// read records
-	record, err = src.Read(ctx)
-	is.NoErr(err)
-	is.Equal(record.Key, sdk.StructuredData(map[string]interface{}{"INT_TYPE_1": 20}))
-
-	cancel()
-
-	err = src.Teardown(context.Background())
-	is.NoErr(err)
-}
-
 func TestSource_snapshotRead(t *testing.T) {
 	var (
 		ctx = context.Background()
@@ -419,6 +321,173 @@ SELECT * FROM p
 
 	_, err = src.Read(ctx)
 	is.Equal(err, sdk.ErrBackoffRetry)
+
+	cancel()
+
+	err = src.Teardown(context.Background())
+	is.NoErr(err)
+}
+
+func TestSource_keyColumns(t *testing.T) {
+	var (
+		is  = is.New(t)
+		cfg = map[string]string{
+			config.URL:            getURL(t),
+			config.Table:          fmt.Sprintf("CONDUIT_SRC_TEST_%s", randString(6)),
+			config.OrderingColumn: "int_type_2",
+			config.KeyColumns:     "int_type_0",
+		}
+	)
+
+	repo, err := repository.New(cfg[config.URL])
+	is.NoErr(err)
+	defer repo.Close()
+
+	// create table with two primary keys
+	_, err = repo.DB.Exec(fmt.Sprintf(`
+CREATE TABLE %s (
+  int_type_0 NUMBER(38, 0), 
+  int_type_1 NUMBER(38, 0), 
+  int_type_2 NUMBER(38, 0), 
+  PRIMARY KEY (int_type_0, int_type_1)
+)
+`, cfg[config.Table]))
+	is.NoErr(err)
+
+	defer func() {
+		err = dropTables(repo, cfg[config.Table])
+		is.NoErr(err)
+	}()
+
+	// insert row
+	_, err = repo.DB.Exec(fmt.Sprintf("INSERT INTO %s VALUES (10, 20, 30)", cfg[config.Table]))
+	is.NoErr(err)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	src := NewSource()
+
+	err = src.Configure(ctx, cfg)
+	is.NoErr(err)
+
+	err = src.Open(ctx, nil)
+	is.NoErr(err)
+
+	// read records
+	record, err := src.Read(ctx)
+	is.NoErr(err)
+	is.Equal(record.Key, sdk.StructuredData(map[string]interface{}{"INT_TYPE_0": 10}))
+
+	cancel()
+
+	err = src.Teardown(context.Background())
+	is.NoErr(err)
+}
+
+func TestSource_keyColumnsPrimaryKeys(t *testing.T) {
+	var (
+		is  = is.New(t)
+		cfg = map[string]string{
+			config.URL:            getURL(t),
+			config.Table:          fmt.Sprintf("CONDUIT_SRC_TEST_%s", randString(6)),
+			config.OrderingColumn: "int_type_2",
+		}
+	)
+
+	repo, err := repository.New(cfg[config.URL])
+	is.NoErr(err)
+	defer repo.Close()
+
+	// create table with two primary keys
+	_, err = repo.DB.Exec(fmt.Sprintf(`
+CREATE TABLE %s (
+  int_type_0 NUMBER(38, 0), 
+  int_type_1 NUMBER(38, 0), 
+  int_type_2 NUMBER(38, 0), 
+  PRIMARY KEY (int_type_0, int_type_1)
+)
+`, cfg[config.Table]))
+	is.NoErr(err)
+
+	defer func() {
+		err = dropTables(repo, cfg[config.Table])
+		is.NoErr(err)
+	}()
+
+	// insert row
+	_, err = repo.DB.Exec(fmt.Sprintf("INSERT INTO %s VALUES (10, 20, 30)", cfg[config.Table]))
+	is.NoErr(err)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	src := NewSource()
+
+	err = src.Configure(ctx, cfg)
+	is.NoErr(err)
+
+	err = src.Open(ctx, nil)
+	is.NoErr(err)
+
+	// read records
+	record, err := src.Read(ctx)
+	is.NoErr(err)
+	is.Equal(record.Key, sdk.StructuredData(map[string]interface{}{"INT_TYPE_0": 10, "INT_TYPE_1": 20}))
+
+	cancel()
+
+	err = src.Teardown(context.Background())
+	is.NoErr(err)
+}
+
+func TestSource_keyColumnsOrderingColumn(t *testing.T) {
+	var (
+		is  = is.New(t)
+		cfg = map[string]string{
+			config.URL:            getURL(t),
+			config.Table:          fmt.Sprintf("CONDUIT_SRC_TEST_%s", randString(6)),
+			config.OrderingColumn: "int_type_1",
+		}
+	)
+
+	repo, err := repository.New(cfg[config.URL])
+	is.NoErr(err)
+	defer repo.Close()
+
+	// create table without primary keys
+	_, err = repo.DB.Exec(fmt.Sprintf(`
+CREATE TABLE %s (
+  int_type_0 NUMBER(38, 0), 
+  int_type_1 NUMBER(38, 0)
+)
+`, cfg[config.Table]))
+	is.NoErr(err)
+
+	defer func() {
+		err = dropTables(repo, cfg[config.Table])
+		is.NoErr(err)
+	}()
+
+	// insert row
+	_, err = repo.DB.Exec(fmt.Sprintf("INSERT INTO %s VALUES (10, 20)", cfg[config.Table]))
+	is.NoErr(err)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	src := NewSource()
+
+	err = src.Configure(ctx, cfg)
+	is.NoErr(err)
+
+	err = src.Open(ctx, nil)
+	is.NoErr(err)
+
+	// read records
+	record, err := src.Read(ctx)
+	is.NoErr(err)
+	is.Equal(record.Key, sdk.StructuredData(map[string]interface{}{"INT_TYPE_1": 20}))
 
 	cancel()
 

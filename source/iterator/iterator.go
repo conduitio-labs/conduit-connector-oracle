@@ -208,8 +208,6 @@ func (iter *Iterator) populateKeyColumns(ctx context.Context) error {
 		return nil
 	}
 
-	iter.keyColumns = []string{iter.orderingColumn}
-
 	rows, err := iter.repo.DB.QueryxContext(ctx, querySelectPrimaryKeys, iter.table)
 	if err != nil {
 		return fmt.Errorf("select primary keys: %w", err)
@@ -224,6 +222,12 @@ func (iter *Iterator) populateKeyColumns(ctx context.Context) error {
 
 		iter.keyColumns = append(iter.keyColumns, keyColumn)
 	}
+
+	if len(iter.keyColumns) != 0 {
+		return nil
+	}
+
+	iter.keyColumns = []string{iter.orderingColumn}
 
 	return nil
 }
