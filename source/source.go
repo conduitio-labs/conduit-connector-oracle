@@ -64,10 +64,11 @@ func (s *Source) Parameters() map[string]sdk.Parameter {
 			Description: "Column name that the connector will use for ordering rows. Column must contain unique " +
 				"values and suitable for sorting, otherwise the snapshot won't work correctly.",
 		},
-		config.KeyColumn: {
-			Default:     "",
-			Required:    false,
-			Description: "Column name records should use for their Key fields.",
+		config.KeyColumns: {
+			Default:  "",
+			Required: false,
+			Description: "Comma-separated list of column names to build the sdk.Record.Key. " +
+				"Column names are the keys of the sdk.Record.Key map, and the values are taken from the row.",
 		},
 		config.Columns: {
 			Default:  "",
@@ -107,7 +108,7 @@ func (s *Source) Open(ctx context.Context, position sdk.Position) error {
 		URL:            s.config.URL,
 		Table:          s.config.Table,
 		OrderingColumn: s.config.OrderingColumn,
-		KeyColumn:      s.config.KeyColumn,
+		KeyColumns:     s.config.KeyColumns,
 		Columns:        s.config.Columns,
 		BatchSize:      s.config.BatchSize,
 	})

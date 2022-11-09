@@ -73,13 +73,12 @@ BEGIN
    END IF;
 END;`
 
-	querySelectPrimaryKey = `
+	querySelectPrimaryKeys = `
 	SELECT cols.column_name
 	FROM all_constraints cons, all_cons_columns cols
 	WHERE cols.table_name = :1
 	AND cons.constraint_type = 'P'
 	AND cons.constraint_name = cols.constraint_name
 	AND cons.owner = cols.owner
-	ORDER BY cols.table_name, cols.POSITION
-	FETCH NEXT 1 ROWS ONLY`
+	ORDER BY cols.table_name, cols.POSITION`
 )

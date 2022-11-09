@@ -16,7 +16,6 @@ package iterator
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 
 	"github.com/conduitio-labs/conduit-connector-oracle/repository"
@@ -32,8 +31,8 @@ type Iterator struct {
 
 	// table represents a table name
 	table string
-	// keyColumn represents a name of column what iterator use for setting key in record
-	keyColumn string
+	// keyColumns represents a name of the columns that iterator will use for setting key in record
+	keyColumns []string
 	// orderingColumn represents a name of column what iterator use for sorting data
 	orderingColumn string
 	// columns represents a list of table's columns for record payload.
@@ -49,7 +48,7 @@ type Params struct {
 	URL            string
 	Table          string
 	OrderingColumn string
-	KeyColumn      string
+	KeyColumns     []string
 	Columns        []string
 	BatchSize      int
 }
@@ -61,7 +60,7 @@ func New(ctx context.Context, params Params) (*Iterator, error) {
 	iterator := &Iterator{
 		table:          params.Table,
 		orderingColumn: params.OrderingColumn,
-		keyColumn:      params.KeyColumn,
+		keyColumns:     params.KeyColumns,
 		columns:        params.Columns,
 		batchSize:      params.BatchSize,
 	}
@@ -71,11 +70,9 @@ func New(ctx context.Context, params Params) (*Iterator, error) {
 		return nil, fmt.Errorf("new repository: %w", err)
 	}
 
-	if iterator.keyColumn == "" {
-		iterator.keyColumn, err = iterator.getKeyColumn()
-		if err != nil {
-			return nil, fmt.Errorf("get key column: %w", err)
-		}
+	err = iterator.populateKeyColumns(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("populate key columns: %w", err)
 	}
 
 	switch position := params.Position; {
@@ -85,7 +82,7 @@ func New(ctx context.Context, params Params) (*Iterator, error) {
 			Position:       params.Position,
 			Table:          params.Table,
 			OrderingColumn: params.OrderingColumn,
-			KeyColumn:      params.KeyColumn,
+			KeyColumns:     iterator.keyColumns,
 			Columns:        params.Columns,
 			BatchSize:      params.BatchSize,
 		})
@@ -98,7 +95,7 @@ func New(ctx context.Context, params Params) (*Iterator, error) {
 			Position:       params.Position,
 			Table:          params.Table,
 			OrderingColumn: params.OrderingColumn,
-			KeyColumn:      params.KeyColumn,
+			KeyColumns:     iterator.keyColumns,
 			Columns:        params.Columns,
 			BatchSize:      params.BatchSize,
 		})
@@ -195,7 +192,7 @@ func (iter *Iterator) switchToCDCIterator(ctx context.Context) error {
 		Repo:           iter.repo,
 		Table:          iter.table,
 		OrderingColumn: iter.orderingColumn,
-		KeyColumn:      iter.keyColumn,
+		KeyColumns:     iter.keyColumns,
 		Columns:        iter.columns,
 		BatchSize:      iter.batchSize,
 	})
@@ -206,15 +203,26 @@ func (iter *Iterator) switchToCDCIterator(ctx context.Context) error {
 	return nil
 }
 
-func (iter *Iterator) getKeyColumn() (string, error) {
-	keyColumn := iter.orderingColumn
-
-	row := iter.repo.DB.QueryRow(querySelectPrimaryKey, iter.table)
-
-	err := row.Scan(&keyColumn)
-	if err != nil && err != sql.ErrNoRows {
-		return "", fmt.Errorf("scan key column value: %w", err)
+func (iter *Iterator) populateKeyColumns(ctx context.Context) error {
+	if len(iter.keyColumns) != 0 {
+		return nil
 	}
 
-	return keyColumn, nil
+	iter.keyColumns = []string{iter.orderingColumn}
+
+	rows, err := iter.repo.DB.QueryxContext(ctx, querySelectPrimaryKeys, iter.table)
+	if err != nil {
+		return fmt.Errorf("select primary keys: %w", err)
+	}
+
+	keyColumn := ""
+	for rows.Next() {
+		if err = rows.Scan(&keyColumn); err != nil {
+			return fmt.Errorf("scan key column value: %w", err)
+		}
+
+		iter.keyColumns = append(iter.keyColumns, keyColumn)
+	}
+
+	return nil
 }

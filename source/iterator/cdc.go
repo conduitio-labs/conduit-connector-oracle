@@ -44,8 +44,8 @@ type CDC struct {
 	trackingTable string
 	// orderingColumn represents a name of column what iterator use for sorting data
 	orderingColumn string
-	// keyColumn represents a name of column what iterator use for setting key in record
-	keyColumn string
+	// keyColumns represents a name of the columns that iterator will use for setting key in record
+	keyColumns []string
 	// columns represents a list of table's columns for record payload.
 	// if empty - will get all columns
 	columns []string
@@ -63,7 +63,7 @@ type CDCParams struct {
 	Position       *Position
 	Table          string
 	OrderingColumn string
-	KeyColumn      string
+	KeyColumns     []string
 	Columns        []string
 	BatchSize      int
 }
@@ -98,7 +98,7 @@ func NewCDC(ctx context.Context, params CDCParams) (*CDC, error) {
 		table:          params.Table,
 		trackingTable:  fmt.Sprintf("CONDUIT_TRACKING_%d", hashedTable),
 		orderingColumn: params.OrderingColumn,
-		keyColumn:      params.KeyColumn,
+		keyColumns:     params.KeyColumns,
 		columns:        params.Columns,
 		batchSize:      params.BatchSize,
 	}
@@ -163,8 +163,14 @@ func (iter *CDC) Next(ctx context.Context) (sdk.Record, error) {
 		return sdk.Record{}, fmt.Errorf("convert position %w", err)
 	}
 
-	if _, ok = transformedRow[iter.keyColumn]; !ok {
-		return sdk.Record{}, errNoKey
+	key := make(sdk.StructuredData)
+	for i := range iter.keyColumns {
+		val, ok := transformedRow[iter.keyColumns[i]]
+		if !ok {
+			return sdk.Record{}, fmt.Errorf("key column %q not found", iter.keyColumns[i])
+		}
+
+		key[iter.keyColumns[i]] = val
 	}
 
 	// delete tracking columns
@@ -189,18 +195,14 @@ func (iter *CDC) Next(ctx context.Context) (sdk.Record, error) {
 		return sdk.Util.Source.NewRecordCreate(
 			convertedPosition,
 			metadata,
-			sdk.StructuredData{
-				iter.keyColumn: transformedRow[iter.keyColumn],
-			},
+			key,
 			sdk.RawData(transformedRowBytes),
 		), nil
 	case actionUpdate:
 		return sdk.Util.Source.NewRecordUpdate(
 			convertedPosition,
 			metadata,
-			sdk.StructuredData{
-				iter.keyColumn: transformedRow[iter.keyColumn],
-			},
+			key,
 			nil,
 			sdk.RawData(transformedRowBytes),
 		), nil
@@ -208,9 +210,7 @@ func (iter *CDC) Next(ctx context.Context) (sdk.Record, error) {
 		return sdk.Util.Source.NewRecordDelete(
 			convertedPosition,
 			metadata,
-			sdk.StructuredData{
-				iter.keyColumn: transformedRow[iter.keyColumn],
-			},
+			key,
 		), nil
 	default:
 		return sdk.Record{}, errWrongTrackingOperationType
