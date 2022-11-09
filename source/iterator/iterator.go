@@ -214,6 +214,7 @@ func (iter *Iterator) populateKeyColumns(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("select primary keys: %w", err)
 	}
+	defer rows.Close()
 
 	keyColumn := ""
 	for rows.Next() {
