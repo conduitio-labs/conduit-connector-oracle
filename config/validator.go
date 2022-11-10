@@ -15,7 +15,6 @@
 package config
 
 import (
-	"errors"
 	"fmt"
 	"regexp"
 	"sync"
@@ -59,44 +58,16 @@ func validate(s interface{}) error {
 		for _, e := range validationErr.(v.ValidationErrors) {
 			switch e.ActualTag() {
 			case "required":
-				err = multierr.Append(err, errRequired(configKeyName(e.Field())))
+				err = multierr.Append(err, errRequired(getKeyName(e.Field())))
 			case "oracle":
-				err = multierr.Append(err, errInvalidOracleObject(configKeyName(e.Field())))
+				err = multierr.Append(err, errInvalidOracleObject(getKeyName(e.Field())))
 			case "gte", "lte":
-				err = multierr.Append(err, errOutOfRange(configKeyName(e.Field())))
+				err = multierr.Append(err, errOutOfRange(getKeyName(e.Field())))
 			}
 		}
 	}
 
 	return err
-}
-
-// validateColumns validates database columns.
-func validateColumns(orderingColumn, keyColumn string, columnsSl []string) error {
-	var (
-		orderingColumnIsExist bool
-		keyColumnIsExist      bool
-	)
-
-	if orderingColumn == "" || keyColumn == "" || len(columnsSl) == 0 {
-		return nil
-	}
-
-	for i := range columnsSl {
-		if orderingColumn == columnsSl[i] {
-			orderingColumnIsExist = true
-		}
-
-		if keyColumn == columnsSl[i] {
-			keyColumnIsExist = true
-		}
-	}
-
-	if !orderingColumnIsExist || !keyColumnIsExist {
-		return errColumnInclude()
-	}
-
-	return nil
 }
 
 func errRequired(name string) error {
@@ -112,19 +83,16 @@ func errOutOfRange(name string) error {
 	return fmt.Errorf("%q is out of range", name)
 }
 
-func errColumnInclude() error {
-	return errors.New("columns must include orderingColumn and keyColumn")
-}
-
 func validateOracleObject(fl v.FieldLevel) bool {
 	return isOracleObjectValid(fl.Field().String())
 }
 
-func configKeyName(fieldName string) string {
+func getKeyName(fieldName string) string {
 	return map[string]string{
 		"URL":            URL,
 		"Table":          Table,
 		"KeyColumn":      KeyColumn,
+		"KeyColumns":     KeyColumns,
 		"OrderingColumn": OrderingColumn,
 		"Columns":        Columns,
 		"BatchSize":      BatchSize,

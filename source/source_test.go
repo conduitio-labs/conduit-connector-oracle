@@ -42,7 +42,7 @@ func TestSource_Configure_success(t *testing.T) {
 	err := s.Configure(context.Background(), map[string]string{
 		config.URL:            testURL,
 		config.Table:          testTable,
-		config.KeyColumn:      "id",
+		config.KeyColumns:     "id",
 		config.OrderingColumn: "created_at",
 	})
 	is.NoErr(err)
@@ -52,7 +52,7 @@ func TestSource_Configure_success(t *testing.T) {
 			Table: strings.ToUpper(testTable),
 		},
 		OrderingColumn: strings.ToUpper("created_at"),
-		KeyColumn:      strings.ToUpper("id"),
+		KeyColumns:     []string{strings.ToUpper("id")},
 		BatchSize:      1000,
 	})
 }
@@ -65,11 +65,11 @@ func TestSource_Configure_failure(t *testing.T) {
 	s := Source{}
 
 	err := s.Configure(context.Background(), map[string]string{
-		config.URL:       testURL,
-		config.Table:     testTable,
-		config.KeyColumn: "id",
+		config.URL:        testURL,
+		config.Table:      testTable,
+		config.KeyColumns: "id",
 	})
-	is.True(err != nil)
+	is.Equal(err.Error(), `"orderingColumn" value must be set`)
 }
 
 func TestSource_Read_success(t *testing.T) {
@@ -120,7 +120,7 @@ func TestSource_Read_failureHasNext(t *testing.T) {
 	}
 
 	_, err := s.Read(ctx)
-	is.True(err != nil)
+	is.Equal(err.Error(), "has next: get data: fail")
 }
 
 func TestSource_Read_failureNext(t *testing.T) {
@@ -140,7 +140,7 @@ func TestSource_Read_failureNext(t *testing.T) {
 	}
 
 	_, err := s.Read(ctx)
-	is.True(err != nil)
+	is.Equal(err.Error(), "next: key is not exist")
 }
 
 func TestSource_Teardown_success(t *testing.T) {
@@ -176,5 +176,5 @@ func TestSource_Teardown_failure(t *testing.T) {
 	}
 
 	err := s.Teardown(context.Background())
-	is.True(err != nil)
+	is.Equal(err.Error(), "stops iterators and closes database connection: some error")
 }

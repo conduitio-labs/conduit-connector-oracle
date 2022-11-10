@@ -19,6 +19,9 @@ import (
 	"strings"
 )
 
+// KeyColumn is the configuration name of the key column.
+const KeyColumn = "keyColumn"
+
 // Destination is a destination configuration needed to connect to Oracle database.
 type Destination struct {
 	Configuration

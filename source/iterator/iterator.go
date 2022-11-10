@@ -16,7 +16,6 @@ package iterator
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 
 	"github.com/conduitio-labs/conduit-connector-oracle/repository"
@@ -32,8 +31,8 @@ type Iterator struct {
 
 	// table represents a table name
 	table string
-	// keyColumn represents a name of column what iterator use for setting key in record
-	keyColumn string
+	// keyColumns represents a name of the columns that iterator will use for setting key in record
+	keyColumns []string
 	// orderingColumn represents a name of column what iterator use for sorting data
 	orderingColumn string
 	// columns represents a list of table's columns for record payload.
@@ -48,8 +47,8 @@ type Params struct {
 	Position       *Position
 	URL            string
 	Table          string
-	KeyColumn      string
 	OrderingColumn string
+	KeyColumns     []string
 	Columns        []string
 	BatchSize      int
 }
@@ -60,8 +59,8 @@ func New(ctx context.Context, params Params) (*Iterator, error) {
 
 	iterator := &Iterator{
 		table:          params.Table,
-		keyColumn:      params.KeyColumn,
 		orderingColumn: params.OrderingColumn,
+		keyColumns:     params.KeyColumns,
 		columns:        params.Columns,
 		batchSize:      params.BatchSize,
 	}
@@ -71,14 +70,19 @@ func New(ctx context.Context, params Params) (*Iterator, error) {
 		return nil, fmt.Errorf("new repository: %w", err)
 	}
 
+	err = iterator.populateKeyColumns(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("populate key columns: %w", err)
+	}
+
 	switch position := params.Position; {
 	case position == nil || position.Mode == ModeSnapshot:
 		iterator.snapshot, err = NewSnapshot(ctx, SnapshotParams{
 			Repo:           iterator.repo,
 			Position:       params.Position,
 			Table:          params.Table,
-			KeyColumn:      params.KeyColumn,
 			OrderingColumn: params.OrderingColumn,
+			KeyColumns:     iterator.keyColumns,
 			Columns:        params.Columns,
 			BatchSize:      params.BatchSize,
 		})
@@ -90,8 +94,8 @@ func New(ctx context.Context, params Params) (*Iterator, error) {
 			Repo:           iterator.repo,
 			Position:       params.Position,
 			Table:          params.Table,
-			KeyColumn:      params.KeyColumn,
 			OrderingColumn: params.OrderingColumn,
+			KeyColumns:     iterator.keyColumns,
 			Columns:        params.Columns,
 			BatchSize:      params.BatchSize,
 		})
@@ -187,8 +191,8 @@ func (iter *Iterator) switchToCDCIterator(ctx context.Context) error {
 	iter.cdc, err = NewCDC(ctx, CDCParams{
 		Repo:           iter.repo,
 		Table:          iter.table,
-		KeyColumn:      iter.keyColumn,
 		OrderingColumn: iter.orderingColumn,
+		KeyColumns:     iter.keyColumns,
 		Columns:        iter.columns,
 		BatchSize:      iter.batchSize,
 	})
@@ -199,26 +203,31 @@ func (iter *Iterator) switchToCDCIterator(ctx context.Context) error {
 	return nil
 }
 
-// checkIfTableExists checks if table exist.
-func checkIfTableExists(ctx context.Context, tx *sql.Tx, table string) (bool, error) {
-	rows, err := tx.QueryContext(ctx, fmt.Sprintf(queryIfTableExists, table))
+func (iter *Iterator) populateKeyColumns(ctx context.Context) error {
+	if len(iter.keyColumns) != 0 {
+		return nil
+	}
+
+	rows, err := iter.repo.DB.QueryxContext(ctx, querySelectPrimaryKeys, iter.table)
 	if err != nil {
-		return false, fmt.Errorf("request with check if the table already exists: %w", err)
+		return fmt.Errorf("select primary keys: %w", err)
 	}
 	defer rows.Close()
 
+	keyColumn := ""
 	for rows.Next() {
-		var name string
-		err = rows.Scan(&name)
-		if err != nil {
-			return false, fmt.Errorf("scan tables to check if the table already exists: %w", err)
+		if err = rows.Scan(&keyColumn); err != nil {
+			return fmt.Errorf("scan key column value: %w", err)
 		}
 
-		if name == table {
-			// table exists
-			return true, nil
-		}
+		iter.keyColumns = append(iter.keyColumns, keyColumn)
 	}
 
-	return false, nil
+	if len(iter.keyColumns) != 0 {
+		return nil
+	}
+
+	iter.keyColumns = []string{iter.orderingColumn}
+
+	return nil
 }

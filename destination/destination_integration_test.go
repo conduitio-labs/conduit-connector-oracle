@@ -254,7 +254,7 @@ func TestDestination_delete(t *testing.T) {
 	is.Equal(n, 1)
 
 	_, err = getNameByID(repo, cfg[config.Table], 42)
-	is.True(err != nil)
+	is.Equal(err.Error(), "scan row: sql: no rows in result set")
 
 	cancel()
 
@@ -301,7 +301,7 @@ func TestDestination_wrongColumn(t *testing.T) {
 			}},
 		},
 	})
-	is.True(err != nil)
+	is.True(strings.Contains(err.Error(), "invalid identifier"))
 
 	cancel()
 

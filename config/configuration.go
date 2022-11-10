@@ -23,8 +23,6 @@ const (
 	URL = "url"
 	// Table is the configuration name of the table.
 	Table = "table"
-	// KeyColumn is the configuration name of the key column.
-	KeyColumn = "keyColumn"
 )
 
 // A Configuration represents a general configuration needed to connect to Oracle database.

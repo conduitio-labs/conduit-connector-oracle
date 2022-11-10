@@ -95,10 +95,18 @@ The `last_processed_val` field represents the last processed element value, and 
 |------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------|---------------------------------------------|
 | `url`            | String line for connection to Oracle.                                                                                                                               | **true** | `username/password@path:1521/my.domain.com` |
 | `table`          | The name of a table in the database that the connector should write to.                                                                                             | **true** | `users`                                     |
-| `keyColumn`      | Column name records should use for their `Key` fields.                                                                                                              | **true** | `id`                                        |
 | `orderingColumn` | Column name that the connector will use for ordering rows. Column must contain unique values and suitable for sorting, otherwise the snapshot won't work correctly. | **true** | `created_at`                                |
+| `keyColumns`     | Comma-separated list of column names to build the `sdk.Record.Key`. See more: [key handling](#key-handling).                                                        | false    | `id,name`                                   |
 | `columns`        | List of column names that should be included in each Record's payload, by default includes all columns.                                                             | false    | `id,name,age`                               |
 | `batchSize`      | Size of rows batch. Min is 1 and max is 100000. The default is 1000.                                                                                                | false    | `100`                                       |
+
+#### Key handling
+
+List items are the keys of the `sdk.Record.Key` map, and the values are taken from the row's data.
+
+The `keyColumns` is an optional field. If the field is empty, the system makes a request to the database and uses the
+received list of primary keys of the specified table. If the table does not contain primary keys, the system uses the
+value of the `orderingColumn` field as the `keyColumns` value.
 
 ## Destination
 

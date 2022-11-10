@@ -65,7 +65,7 @@ func TestDestination_Configure_failure(t *testing.T) {
 	err := d.Configure(context.Background(), map[string]string{
 		config.URL: testURL,
 	})
-	is.True(err != nil)
+	is.Equal(err.Error(), `parse general config: "table" value must be set`)
 }
 
 func TestDestination_Write_success(t *testing.T) {

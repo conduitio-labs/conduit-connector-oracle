@@ -23,6 +23,8 @@ import (
 const (
 	// OrderingColumn is a config name for an ordering column.
 	OrderingColumn = "orderingColumn"
+	// KeyColumns is the configuration name of the names of the columns to build the record.Key, separated by commas.
+	KeyColumns = "keyColumns"
 	// Columns is a config name for columns.
 	Columns = "columns"
 	// BatchSize is a config name for a batch size.
@@ -37,8 +39,8 @@ type Source struct {
 
 	// OrderingColumn is a name of a column that the connector will use for ordering rows.
 	OrderingColumn string `validate:"required,lte=128,oracle"`
-	// KeyColumn is a column name that records should use for their `Key` fields.
-	KeyColumn string `validate:"required,lte=128,oracle"`
+	// KeyColumns is the configuration of key column names, separated by commas.
+	KeyColumns []string `validate:"omitempty,dive,oracle"`
 	// Columns list of column names that should be included in each Record's payload.
 	Columns []string `validate:"dive,lte=128,oracle"`
 	// BatchSize is a size of rows batch.
@@ -55,23 +57,29 @@ func ParseSource(cfg map[string]string) (Source, error) {
 	sourceConfig := Source{
 		Configuration:  config,
 		OrderingColumn: strings.ToUpper(cfg[OrderingColumn]),
-		KeyColumn:      strings.ToUpper(cfg[KeyColumn]),
 		BatchSize:      defaultBatchSize,
 	}
 
+	if cfg[KeyColumns] != "" {
+		keyColumns := strings.Split(strings.ReplaceAll(cfg[KeyColumns], " ", ""), ",")
+		for i := range keyColumns {
+			if keyColumns[i] == "" {
+				return Source{}, fmt.Errorf("invalid %q", KeyColumns)
+			}
+
+			sourceConfig.KeyColumns = append(sourceConfig.KeyColumns, strings.ToUpper(keyColumns[i]))
+		}
+	}
+
 	if cfg[Columns] != "" {
-		columnsSl := strings.Split(cfg[Columns], ",")
-
-		// converts columns to uppercase
+		columnsSl := strings.Split(strings.ReplaceAll(cfg[Columns], " ", ""), ",")
 		for i := range columnsSl {
-			columnsSl[i] = strings.TrimSpace(strings.ToUpper(columnsSl[i]))
-		}
+			if columnsSl[i] == "" {
+				return Source{}, fmt.Errorf("invalid %q", Columns)
+			}
 
-		if err = validateColumns(sourceConfig.OrderingColumn, sourceConfig.KeyColumn, columnsSl); err != nil {
-			return Source{}, err
+			sourceConfig.Columns = append(sourceConfig.Columns, strings.ToUpper(columnsSl[i]))
 		}
-
-		sourceConfig.Columns = columnsSl
 	}
 
 	if cfg[BatchSize] != "" {
@@ -84,6 +92,25 @@ func ParseSource(cfg map[string]string) (Source, error) {
 	err = validate(sourceConfig)
 	if err != nil {
 		return Source{}, err
+	}
+
+	if len(sourceConfig.Columns) == 0 {
+		return sourceConfig, nil
+	}
+
+	columnsMap := make(map[string]struct{}, len(sourceConfig.Columns))
+	for i := 0; i < len(sourceConfig.Columns); i++ {
+		columnsMap[sourceConfig.Columns[i]] = struct{}{}
+	}
+
+	if _, ok := columnsMap[sourceConfig.OrderingColumn]; !ok {
+		return Source{}, fmt.Errorf("columns must include %q", OrderingColumn)
+	}
+
+	for i := range sourceConfig.KeyColumns {
+		if _, ok := columnsMap[sourceConfig.KeyColumns[i]]; !ok {
+			return Source{}, fmt.Errorf("columns must include all %q", KeyColumns)
+		}
 	}
 
 	return sourceConfig, nil
