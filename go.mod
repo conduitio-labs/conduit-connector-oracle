@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/conduitio/conduit-connector-sdk v0.2.1-0.20220908065345-c14f70ebbd64
 	github.com/go-playground/validator/v10 v10.11.1
-	github.com/godror/godror v0.34.0
+	github.com/godror/godror v0.35.0
 	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.3.0
 	github.com/jmoiron/sqlx v1.3.5
@@ -42,6 +42,6 @@ require (
 	golang.org/x/time v0.0.0-20220722155302-e5dcc9cfc0b9 // indirect
 	google.golang.org/genproto v0.0.0-20211104193956-4c6863e31247 // indirect
 	google.golang.org/grpc v1.43.0 // indirect
-	google.golang.org/protobuf v1.28.0 // indirect
+	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/tomb.v2 v2.0.0-20161208151619-d5d1b5820637 // indirect
 )
