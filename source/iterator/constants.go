@@ -35,7 +35,7 @@ const (
 	timeoutToClearTrackingTableSec = 5
 
 	// queries patterns.
-	queryIfTableExists     = "SELECT table_name FROM user_tables WHERE table_name='%s'"
+	queryIfTableExists     = "SELECT * FROM user_tables WHERE table_name='%s'"
 	querySnapshotTable     = "CREATE SNAPSHOT %s AS SELECT * FROM %s"
 	queryTableCopy         = "CREATE TABLE %s AS SELECT * FROM %s WHERE 1=2 UNION ALL SELECT * FROM %s WHERE 1=2"
 	queryTriggerInsertPart = "INSERT INTO %s (%s, %s) VALUES (%s, transaction_type);"
