@@ -23,6 +23,31 @@ import (
 	"go.uber.org/multierr"
 )
 
+const (
+	metadataTable = "clickhouse.table"
+
+	columnTrackingID    = "CONDUIT_TRACKING_ID"
+	columnOperationType = "CONDUIT_OPERATION_TYPE"
+	columnTimeCreatedAt = "CONDUIT_TRACKING_CREATED_AT"
+
+	querySelectRowsFmt = "SELECT %s FROM %s%s ORDER BY %s ASC FETCH NEXT %d ROWS ONLY"
+
+	querySelectPrimaryKeys = `
+	SELECT 
+		cols.column_name 
+	FROM 
+		all_constraints cons, 
+		all_cons_columns cols 
+	WHERE 
+		cols.table_name = :1 
+		AND cons.constraint_type = 'P' 
+		AND cons.constraint_name = cols.constraint_name 
+		AND cons.owner = cols.owner 
+	ORDER BY 
+		cols.table_name, 
+		cols.POSITION`
+)
+
 // Iterator represents an implementation of an iterator for Oracle.
 type Iterator struct {
 	repo     *repository.Oracle

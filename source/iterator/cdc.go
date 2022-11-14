@@ -30,6 +30,17 @@ import (
 	"go.uber.org/multierr"
 )
 
+const (
+	actionInsert = "insert"
+	actionUpdate = "update"
+	actionDelete = "delete"
+
+	timeoutBeforeCloseDBSec        = 20
+	timeoutToClearTrackingTableSec = 5
+
+	queryDeleteByIDs = "DELETE FROM %s WHERE %s IN (%s)"
+)
+
 // CDC represents an implementation of a CDC iterator for Oracle.
 type CDC struct {
 	repo     *repository.Oracle
