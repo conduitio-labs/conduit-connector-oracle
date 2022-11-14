@@ -154,13 +154,12 @@ func TestDestination_Teardown_success(t *testing.T) {
 	is := is.New(t)
 
 	ctrl := gomock.NewController(t)
-	ctx := context.Background()
 
 	d := Destination{
 		writer: mock.NewMockWriter(ctrl),
 	}
 
-	err := d.Teardown(ctx)
+	err := d.Teardown(context.Background())
 	is.NoErr(err)
 }
 

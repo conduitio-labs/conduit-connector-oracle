@@ -31,7 +31,6 @@ import (
 
 func TestDestination_insert(t *testing.T) {
 	var (
-		ctx = context.Background()
 		cfg = prepareConfig(t)
 		is  = is.New(t)
 	)
@@ -48,7 +47,7 @@ func TestDestination_insert(t *testing.T) {
 		is.NoErr(err)
 	}()
 
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	dest := NewDestination()
@@ -102,7 +101,6 @@ func TestDestination_insert(t *testing.T) {
 
 func TestDestination_update(t *testing.T) {
 	var (
-		ctx = context.Background()
 		cfg = prepareConfig(t)
 		is  = is.New(t)
 	)
@@ -122,7 +120,7 @@ func TestDestination_update(t *testing.T) {
 	err = insertData(repo, cfg[config.Table])
 	is.NoErr(err)
 
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	dest := NewDestination()
@@ -157,7 +155,6 @@ func TestDestination_update(t *testing.T) {
 
 func TestDestination_upsert(t *testing.T) {
 	var (
-		ctx = context.Background()
 		cfg = prepareConfig(t)
 		is  = is.New(t)
 	)
@@ -174,7 +171,7 @@ func TestDestination_upsert(t *testing.T) {
 		is.NoErr(err)
 	}()
 
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	dest := NewDestination()
@@ -209,7 +206,6 @@ func TestDestination_upsert(t *testing.T) {
 
 func TestDestination_delete(t *testing.T) {
 	var (
-		ctx = context.Background()
 		cfg = prepareConfig(t)
 		is  = is.New(t)
 	)
@@ -233,7 +229,7 @@ func TestDestination_delete(t *testing.T) {
 	_, err = getNameByID(repo, cfg[config.Table], 42)
 	is.NoErr(err)
 
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	dest := NewDestination()
@@ -264,7 +260,6 @@ func TestDestination_delete(t *testing.T) {
 
 func TestDestination_wrongColumn(t *testing.T) {
 	var (
-		ctx = context.Background()
 		cfg = prepareConfig(t)
 		is  = is.New(t)
 	)
@@ -281,7 +276,7 @@ func TestDestination_wrongColumn(t *testing.T) {
 		is.NoErr(err)
 	}()
 
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	dest := NewDestination()

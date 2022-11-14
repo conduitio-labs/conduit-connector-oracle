@@ -42,7 +42,6 @@ CREATE TABLE %s (
 
 func TestSource_noTable(t *testing.T) {
 	var (
-		ctx = context.Background()
 		cfg = prepareConfig(t)
 		is  = is.New(t)
 	)
@@ -51,7 +50,7 @@ func TestSource_noTable(t *testing.T) {
 	is.NoErr(err)
 	defer repo.Close()
 
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	src := NewSource()
@@ -67,7 +66,6 @@ func TestSource_noTable(t *testing.T) {
 
 func TestSource_emptyTable(t *testing.T) {
 	var (
-		ctx = context.Background()
 		cfg = prepareConfig(t)
 		is  = is.New(t)
 	)
@@ -85,7 +83,7 @@ func TestSource_emptyTable(t *testing.T) {
 		is.NoErr(err)
 	}()
 
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	src := NewSource()
@@ -107,7 +105,6 @@ func TestSource_emptyTable(t *testing.T) {
 
 func TestSource_snapshotRead(t *testing.T) {
 	var (
-		ctx = context.Background()
 		cfg = prepareConfig(t)
 		is  = is.New(t)
 	)
@@ -137,7 +134,7 @@ SELECT * FROM p
 `, cfg[config.Table]))
 	is.NoErr(err)
 
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	src := NewSource()
@@ -198,7 +195,6 @@ SELECT * FROM p
 
 func TestSource_cdcRead(t *testing.T) {
 	var (
-		ctx = context.Background()
 		cfg = prepareConfig(t)
 		is  = is.New(t)
 	)
@@ -228,7 +224,7 @@ SELECT * FROM p
 `, cfg[config.Table]))
 	is.NoErr(err)
 
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	src := NewSource()
