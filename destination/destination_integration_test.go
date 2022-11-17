@@ -29,9 +29,8 @@ import (
 	"github.com/matryer/is"
 )
 
-func TestDestination_Write(t *testing.T) {
+func TestDestination_upsert(t *testing.T) {
 	var (
-		ctx = context.Background()
 		cfg = prepareConfig(t)
 		is  = is.New(t)
 	)
@@ -48,81 +47,7 @@ func TestDestination_Write(t *testing.T) {
 		is.NoErr(err)
 	}()
 
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	dest := NewDestination()
-
-	err = dest.Configure(ctx, cfg)
-	is.NoErr(err)
-
-	err = dest.Open(ctx)
-	is.NoErr(err)
-
-	records := []sdk.Record{
-		{
-			Operation: sdk.OperationSnapshot,
-			Payload: sdk.Change{After: sdk.StructuredData{
-				"id":        42,
-				"name":      "John",
-				"is_active": true,
-				"attributes": map[string]any{
-					"attr_0": "string",
-					"attr_1": 1,
-					"attr_2": false,
-				},
-				"achievements": []string{"achievement_0", "achievement_1"},
-			}},
-		},
-		{
-			Operation: sdk.OperationSnapshot,
-			Payload: sdk.Change{After: sdk.StructuredData{
-				"id":        43,
-				"name":      "Nick",
-				"is_active": false,
-				"attributes": map[string]any{
-					"attr_0": "string",
-					"attr_1": 1,
-					"attr_2": false,
-				},
-				"achievements": []string{"achievement_0", "achievement_1"},
-			}},
-		},
-	}
-
-	n, err := dest.Write(ctx, records)
-	is.NoErr(err)
-	is.Equal(n, len(records))
-
-	cancel()
-
-	err = dest.Teardown(context.Background())
-	is.NoErr(err)
-}
-
-func TestDestination_Write_Update(t *testing.T) {
-	var (
-		ctx = context.Background()
-		cfg = prepareConfig(t)
-		is  = is.New(t)
-	)
-
-	repo, err := repository.New(cfg[config.URL])
-	is.NoErr(err)
-	defer repo.Close()
-
-	err = createTable(repo, cfg[config.Table])
-	is.NoErr(err)
-
-	defer func() {
-		err = dropTable(repo, cfg[config.Table])
-		is.NoErr(err)
-	}()
-
-	err = insertData(repo, cfg[config.Table])
-	is.NoErr(err)
-
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	dest := NewDestination()
@@ -155,61 +80,8 @@ func TestDestination_Write_Update(t *testing.T) {
 	is.NoErr(err)
 }
 
-func TestDestination_Write_Upsert(t *testing.T) {
+func TestDestination_delete(t *testing.T) {
 	var (
-		ctx = context.Background()
-		cfg = prepareConfig(t)
-		is  = is.New(t)
-	)
-
-	repo, err := repository.New(cfg[config.URL])
-	is.NoErr(err)
-	defer repo.Close()
-
-	err = createTable(repo, cfg[config.Table])
-	is.NoErr(err)
-
-	defer func() {
-		err = dropTable(repo, cfg[config.Table])
-		is.NoErr(err)
-	}()
-
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	dest := NewDestination()
-
-	err = dest.Configure(ctx, cfg)
-	is.NoErr(err)
-
-	err = dest.Open(ctx)
-	is.NoErr(err)
-
-	n, err := dest.Write(ctx, []sdk.Record{
-		{
-			Operation: sdk.OperationUpdate,
-			Payload: sdk.Change{After: sdk.StructuredData{
-				"id":   42,
-				"name": "Jane",
-			}},
-		},
-	})
-	is.NoErr(err)
-	is.Equal(n, 1)
-
-	name, err := getNameByID(repo, cfg[config.Table], 42)
-	is.NoErr(err)
-	is.Equal(name, "Jane")
-
-	cancel()
-
-	err = dest.Teardown(context.Background())
-	is.NoErr(err)
-}
-
-func TestDestination_Write_Delete(t *testing.T) {
-	var (
-		ctx = context.Background()
 		cfg = prepareConfig(t)
 		is  = is.New(t)
 	)
@@ -233,7 +105,7 @@ func TestDestination_Write_Delete(t *testing.T) {
 	_, err = getNameByID(repo, cfg[config.Table], 42)
 	is.NoErr(err)
 
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	dest := NewDestination()
@@ -254,7 +126,7 @@ func TestDestination_Write_Delete(t *testing.T) {
 	is.Equal(n, 1)
 
 	_, err = getNameByID(repo, cfg[config.Table], 42)
-	is.True(err != nil)
+	is.Equal(err.Error(), "scan row: sql: no rows in result set")
 
 	cancel()
 
@@ -262,9 +134,8 @@ func TestDestination_Write_Delete(t *testing.T) {
 	is.NoErr(err)
 }
 
-func TestDestination_Write_WrongColumn(t *testing.T) {
+func TestDestination_wrongColumn(t *testing.T) {
 	var (
-		ctx = context.Background()
 		cfg = prepareConfig(t)
 		is  = is.New(t)
 	)
@@ -281,7 +152,7 @@ func TestDestination_Write_WrongColumn(t *testing.T) {
 		is.NoErr(err)
 	}()
 
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	dest := NewDestination()
@@ -301,7 +172,7 @@ func TestDestination_Write_WrongColumn(t *testing.T) {
 			}},
 		},
 	})
-	is.True(err != nil)
+	is.True(strings.Contains(err.Error(), "invalid identifier"))
 
 	cancel()
 

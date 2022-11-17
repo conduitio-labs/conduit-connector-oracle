@@ -28,7 +28,12 @@ import (
 	"github.com/matryer/is"
 )
 
-func TestDestination_ConfigureSuccess(t *testing.T) {
+var (
+	testURL   = "test_user/test_pass_123@localhost:1521/db_name"
+	testTable = "test_table"
+)
+
+func TestDestination_Configure_success(t *testing.T) {
 	t.Parallel()
 
 	is := is.New(t)
@@ -36,19 +41,21 @@ func TestDestination_ConfigureSuccess(t *testing.T) {
 	d := Destination{}
 
 	err := d.Configure(context.Background(), map[string]string{
-		config.URL:       "test_user/test_pass_123@localhost:1521/db_name",
-		config.Table:     "test_table",
+		config.URL:       testURL,
+		config.Table:     testTable,
 		config.KeyColumn: "id",
 	})
 	is.NoErr(err)
-	is.Equal(d.cfg, config.General{
-		URL:       "test_user/test_pass_123@localhost:1521/db_name",
-		Table:     strings.ToUpper("test_table"),
+	is.Equal(d.cfg, config.Destination{
+		Configuration: config.Configuration{
+			URL:   testURL,
+			Table: strings.ToUpper(testTable),
+		},
 		KeyColumn: strings.ToUpper("id"),
 	})
 }
 
-func TestDestination_ConfigureFail(t *testing.T) {
+func TestDestination_Configure_failure(t *testing.T) {
 	t.Parallel()
 
 	is := is.New(t)
@@ -56,12 +63,12 @@ func TestDestination_ConfigureFail(t *testing.T) {
 	d := Destination{}
 
 	err := d.Configure(context.Background(), map[string]string{
-		config.URL: "test_user/test_pass_123@localhost:1521/db_name",
+		config.URL: testURL,
 	})
-	is.True(err != nil)
+	is.Equal(err.Error(), `parse general config: "table" value must be set`)
 }
 
-func TestDestination_WriteSuccess(t *testing.T) {
+func TestDestination_Write_success(t *testing.T) {
 	t.Parallel()
 
 	is := is.New(t)
@@ -115,7 +122,7 @@ func TestDestination_WriteSuccess(t *testing.T) {
 	is.Equal(n, len(records))
 }
 
-func TestDestination_WriteFail(t *testing.T) {
+func TestDestination_Write_failure(t *testing.T) {
 	t.Parallel()
 
 	is := is.New(t)
@@ -141,23 +148,22 @@ func TestDestination_WriteFail(t *testing.T) {
 	is.Equal(n, 0)
 }
 
-func TestDestination_TeardownSuccess(t *testing.T) {
+func TestDestination_Teardown_success(t *testing.T) {
 	t.Parallel()
 
 	is := is.New(t)
 
 	ctrl := gomock.NewController(t)
-	ctx := context.Background()
 
 	d := Destination{
 		writer: mock.NewMockWriter(ctrl),
 	}
 
-	err := d.Teardown(ctx)
+	err := d.Teardown(context.Background())
 	is.NoErr(err)
 }
 
-func TestDestination_TeardownSuccessNilWriter(t *testing.T) {
+func TestDestination_Teardown_successNilWriter(t *testing.T) {
 	t.Parallel()
 
 	is := is.New(t)

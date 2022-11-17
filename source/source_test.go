@@ -27,7 +27,12 @@ import (
 	"github.com/matryer/is"
 )
 
-func TestSource_ConfigureSuccess(t *testing.T) {
+var (
+	testURL   = "test_user/test_pass_123@localhost:1521/db_name"
+	testTable = "test_table"
+)
+
+func TestSource_Configure_success(t *testing.T) {
 	t.Parallel()
 
 	is := is.New(t)
@@ -35,24 +40,24 @@ func TestSource_ConfigureSuccess(t *testing.T) {
 	s := Source{}
 
 	err := s.Configure(context.Background(), map[string]string{
-		config.URL:            "test_user/test_pass_123@localhost:1521/db_name",
-		config.Table:          "test_table",
-		config.KeyColumn:      "id",
+		config.URL:            testURL,
+		config.Table:          testTable,
+		config.KeyColumns:     "id",
 		config.OrderingColumn: "created_at",
 	})
 	is.NoErr(err)
 	is.Equal(s.config, config.Source{
-		General: config.General{
-			URL:       "test_user/test_pass_123@localhost:1521/db_name",
-			Table:     strings.ToUpper("test_table"),
-			KeyColumn: strings.ToUpper("id"),
+		Configuration: config.Configuration{
+			URL:   testURL,
+			Table: strings.ToUpper(testTable),
 		},
 		OrderingColumn: strings.ToUpper("created_at"),
+		KeyColumns:     []string{strings.ToUpper("id")},
 		BatchSize:      1000,
 	})
 }
 
-func TestSource_ConfigureFail(t *testing.T) {
+func TestSource_Configure_failure(t *testing.T) {
 	t.Parallel()
 
 	is := is.New(t)
@@ -60,14 +65,14 @@ func TestSource_ConfigureFail(t *testing.T) {
 	s := Source{}
 
 	err := s.Configure(context.Background(), map[string]string{
-		config.URL:       "test_user/test_pass_123@localhost:1521/db_name",
-		config.Table:     "test_table",
-		config.KeyColumn: "id",
+		config.URL:        testURL,
+		config.Table:      testTable,
+		config.KeyColumns: "id",
 	})
-	is.True(err != nil)
+	is.Equal(err.Error(), `"orderingColumn" value must be set`)
 }
 
-func TestSource_ReadSuccess(t *testing.T) {
+func TestSource_Read_success(t *testing.T) {
 	t.Parallel()
 
 	is := is.New(t)
@@ -99,7 +104,7 @@ func TestSource_ReadSuccess(t *testing.T) {
 	is.Equal(r, record)
 }
 
-func TestSource_ReadHasNextFail(t *testing.T) {
+func TestSource_Read_failureHasNext(t *testing.T) {
 	t.Parallel()
 
 	is := is.New(t)
@@ -115,10 +120,10 @@ func TestSource_ReadHasNextFail(t *testing.T) {
 	}
 
 	_, err := s.Read(ctx)
-	is.True(err != nil)
+	is.Equal(err.Error(), "has next: get data: fail")
 }
 
-func TestSource_ReadNextFail(t *testing.T) {
+func TestSource_Read_failureNext(t *testing.T) {
 	t.Parallel()
 
 	is := is.New(t)
@@ -135,10 +140,10 @@ func TestSource_ReadNextFail(t *testing.T) {
 	}
 
 	_, err := s.Read(ctx)
-	is.True(err != nil)
+	is.Equal(err.Error(), "next: key is not exist")
 }
 
-func TestSource_TeardownSuccess(t *testing.T) {
+func TestSource_Teardown_success(t *testing.T) {
 	t.Parallel()
 
 	is := is.New(t)
@@ -156,7 +161,7 @@ func TestSource_TeardownSuccess(t *testing.T) {
 	is.NoErr(err)
 }
 
-func TestSource_TeardownFail(t *testing.T) {
+func TestSource_Teardown_failure(t *testing.T) {
 	t.Parallel()
 
 	is := is.New(t)
@@ -171,5 +176,5 @@ func TestSource_TeardownFail(t *testing.T) {
 	}
 
 	err := s.Teardown(context.Background())
-	is.True(err != nil)
+	is.Equal(err.Error(), "stops iterators and closes database connection: some error")
 }

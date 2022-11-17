@@ -51,32 +51,35 @@ func (s *Source) Parameters() map[string]sdk.Parameter {
 		config.URL: {
 			Default:     "",
 			Required:    true,
-			Description: "The connection string to connect to Oracle database.",
+			Description: "String line for connection to Oracle",
 		},
 		config.Table: {
 			Default:     "",
 			Required:    true,
-			Description: "The table name of the table in Oracle that the connector should write to, by default.",
-		},
-		config.KeyColumn: {
-			Default:     "",
-			Required:    true,
-			Description: "A column name that used to detect if the target table already contains the record.",
+			Description: "The name of a table in the database that the connector should write to.",
 		},
 		config.OrderingColumn: {
-			Default:     "",
-			Required:    true,
-			Description: "A name of a column that the connector will use for ordering rows.",
+			Default:  "",
+			Required: true,
+			Description: "Column name that the connector will use for ordering rows. Column must contain unique " +
+				"values and suitable for sorting, otherwise the snapshot won't work correctly.",
+		},
+		config.KeyColumns: {
+			Default:  "",
+			Required: false,
+			Description: "Comma-separated list of column names to build the sdk.Record.Key. " +
+				"Column names are the keys of the sdk.Record.Key map, and the values are taken from the row.",
 		},
 		config.Columns: {
-			Default:     "",
-			Required:    false,
-			Description: "The list of column names that should be included in each Record's payload",
+			Default:  "",
+			Required: false,
+			Description: "List of column names that should be included in each Record's payload, " +
+				"by default includes all columns.",
 		},
 		config.BatchSize: {
 			Default:     "1000",
 			Required:    false,
-			Description: "The size of rows batch",
+			Description: "Size of rows batch. Min is 1 and max is 100000.",
 		},
 	}
 }
@@ -104,8 +107,8 @@ func (s *Source) Open(ctx context.Context, position sdk.Position) error {
 		Position:       pos,
 		URL:            s.config.URL,
 		Table:          s.config.Table,
-		KeyColumn:      s.config.KeyColumn,
 		OrderingColumn: s.config.OrderingColumn,
+		KeyColumns:     s.config.KeyColumns,
 		Columns:        s.config.Columns,
 		BatchSize:      s.config.BatchSize,
 	})
