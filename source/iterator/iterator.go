@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	metadataTable = "clickhouse.table"
+	metadataTable = "oracle.table"
 
 	columnTrackingID    = "CONDUIT_TRACKING_ID"
 	columnOperationType = "CONDUIT_OPERATION_TYPE"
