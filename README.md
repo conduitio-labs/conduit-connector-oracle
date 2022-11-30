@@ -46,6 +46,8 @@ WHERE {{keyColumn}} > {{position.last_processed_val}}
 FETCH NEXT {{batchSize}} ROWS ONLY;
 ```
 
+This behavior is enabled by default, but can be turned off by adding `"snapshot": "false"` to the Source configuration.
+
 When all records have been returned, the snapshot is deleted and the connector switches to the CDC mode.
 
 ### Change Data Capture
