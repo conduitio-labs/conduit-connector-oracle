@@ -97,6 +97,7 @@ The `last_processed_val` field represents the last processed element value, and 
 | `table`          | The name of a table in the database that the connector should write to.                                                                                             | **true** | `users`                                     |
 | `orderingColumn` | Column name that the connector will use for ordering rows. Column must contain unique values and suitable for sorting, otherwise the snapshot won't work correctly. | **true** | `created_at`                                |
 | `keyColumns`     | Comma-separated list of column names to build the `sdk.Record.Key`. See more: [key handling](#key-handling).                                                        | false    | `id,name`                                   |
+| `snapshot`       | Whether the connector will take a snapshot of the entire table before starting cdc mode. The default is `true`.                                                     | false    | `false`                                     |
 | `columns`        | List of column names that should be included in each Record's payload, by default includes all columns.                                                             | false    | `id,name,age`                               |
 | `batchSize`      | Size of rows batch. Min is 1 and max is 100000. The default is 1000.                                                                                                | false    | `100`                                       |
 

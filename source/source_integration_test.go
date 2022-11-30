@@ -270,6 +270,69 @@ CREATE TABLE %s (
 	is.NoErr(err)
 }
 
+func TestSource_snapshotIsFalse(t *testing.T) {
+	var (
+		is  = is.New(t)
+		cfg = map[string]string{
+			config.URL:            getURL(t),
+			config.Table:          fmt.Sprintf("CONDUIT_SRC_TEST_%s", randString(6)),
+			config.OrderingColumn: "int_type_0",
+			config.Snapshot:       "false",
+		}
+	)
+
+	repo, err := repository.New(cfg[config.URL])
+	is.NoErr(err)
+	defer repo.Close()
+
+	// create table without primary keys
+	_, err = repo.DB.Exec(fmt.Sprintf(`
+CREATE TABLE %s (
+  int_type_0 NUMBER(38, 0), 
+  int_type_1 NUMBER(38, 0)
+)
+`, cfg[config.Table]))
+	is.NoErr(err)
+
+	defer func() {
+		err = dropTables(repo, cfg[config.Table])
+		is.NoErr(err)
+	}()
+
+	// insert row
+	_, err = repo.DB.Exec(fmt.Sprintf("INSERT INTO %s VALUES (10, 20)", cfg[config.Table]))
+	is.NoErr(err)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	src := NewSource()
+
+	err = src.Configure(ctx, cfg)
+	is.NoErr(err)
+
+	err = src.Open(ctx, nil)
+	is.NoErr(err)
+
+	// read record
+	_, err = src.Read(ctx)
+	is.Equal(err, sdk.ErrBackoffRetry)
+
+	// insert one more row
+	_, err = repo.DB.Exec(fmt.Sprintf("INSERT INTO %s VALUES (20, 30)", cfg[config.Table]))
+	is.NoErr(err)
+
+	// read records
+	record, err := src.Read(ctx)
+	is.NoErr(err)
+	is.Equal(record.Key, sdk.StructuredData(map[string]interface{}{"INT_TYPE_0": 20}))
+
+	cancel()
+
+	err = src.Teardown(context.Background())
+	is.NoErr(err)
+}
+
 func getURL(t *testing.T) string {
 	url := os.Getenv("ORACLE_URL")
 	if url == "" {

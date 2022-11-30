@@ -53,6 +53,7 @@ func TestSource_Configure_success(t *testing.T) {
 		},
 		OrderingColumn: strings.ToUpper("created_at"),
 		KeyColumns:     []string{strings.ToUpper("id")},
+		Snapshot:       true,
 		BatchSize:      1000,
 	})
 }
