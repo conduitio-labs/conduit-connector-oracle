@@ -45,7 +45,7 @@ type Source struct {
 	// OrderingColumn is a name of a column that the connector will use for ordering rows.
 	OrderingColumn string `validate:"required,lte=128,oracle"`
 	// KeyColumns is the configuration of key column names, separated by commas.
-	KeyColumns []string `validate:"omitempty,dive,oracle"`
+	KeyColumns []string `validate:"omitempty,dive,lte=128,oracle"`
 	// Snapshot is the configuration that determines whether the connector
 	// will take a snapshot of the entire table before starting cdc mode.
 	Snapshot bool

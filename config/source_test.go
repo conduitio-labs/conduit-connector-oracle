@@ -332,6 +332,17 @@ func TestParseSource(t *testing.T) {
 			err: fmt.Errorf("columns must include all %q", KeyColumns),
 		},
 		{
+			name: "failure_keyColumn_is_too_big",
+			in: map[string]string{
+				URL:            testURL,
+				Table:          testTable,
+				OrderingColumn: "id",
+				KeyColumns: "CREZSK8VR1LM5F0RZ5NA7FGJ0CNNVTTFNZDJKCWD8KKCU7UKZAW0NRNCZRQNM4EIAMEG0K7BGV2GX8UTDL" +
+					"RLM8HGNFEYSSEXAL7V8GVFKWU8PQABQ1FH6LHEVFVGZ9XUF",
+			},
+			err: fmt.Errorf("%q is out of range", KeyColumns),
+		},
+		{
 			name: "failure_batchSize_is_too_big",
 			in: map[string]string{
 				URL:            testURL,
