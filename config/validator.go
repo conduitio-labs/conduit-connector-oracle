@@ -63,7 +63,6 @@ func validate(s interface{}) error {
 			case "oracle":
 				err = multierr.Append(err, errInvalidOracleObject(getKeyName(e.Field())))
 			case "gte", "lte":
-				fmt.Println(e.Field())
 				err = multierr.Append(err, errOutOfRange(getKeyName(e.Field())))
 			}
 		}
