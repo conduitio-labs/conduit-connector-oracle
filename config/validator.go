@@ -17,6 +17,7 @@ package config
 import (
 	"fmt"
 	"regexp"
+	"strings"
 	"sync"
 
 	v "github.com/go-playground/validator/v10"
@@ -87,13 +88,25 @@ func validateOracleObject(fl v.FieldLevel) bool {
 	return isOracleObjectValid(fl.Field().String())
 }
 
+// openSquareBracket is a substring, by which
+// the element number of the slice is separated from the field name.
+const openSquareBracket = "["
+
 func getKeyName(fieldName string) string {
+	// if the field name contains a slice element,
+	// separate the information about the array element,
+	// and leave the field name unchanged
+	if strings.Contains(fieldName, openSquareBracket) {
+		fieldName = strings.Split(fieldName, openSquareBracket)[0]
+	}
+
 	return map[string]string{
 		"URL":            URL,
 		"Table":          Table,
 		"KeyColumn":      KeyColumn,
 		"KeyColumns":     KeyColumns,
 		"OrderingColumn": OrderingColumn,
+		"Snapshot":       Snapshot,
 		"Columns":        Columns,
 		"BatchSize":      BatchSize,
 	}[fieldName]

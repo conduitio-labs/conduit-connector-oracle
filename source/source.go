@@ -70,6 +70,11 @@ func (s *Source) Parameters() map[string]sdk.Parameter {
 			Description: "Comma-separated list of column names to build the sdk.Record.Key. " +
 				"Column names are the keys of the sdk.Record.Key map, and the values are taken from the row.",
 		},
+		config.Snapshot: {
+			Default:     "true",
+			Required:    false,
+			Description: "Whether the connector will take a snapshot of the entire table before starting cdc mode.",
+		},
 		config.Columns: {
 			Default:  "",
 			Required: false,
@@ -109,6 +114,7 @@ func (s *Source) Open(ctx context.Context, position sdk.Position) error {
 		Table:          s.config.Table,
 		OrderingColumn: s.config.OrderingColumn,
 		KeyColumns:     s.config.KeyColumns,
+		Snapshot:       s.config.Snapshot,
 		Columns:        s.config.Columns,
 		BatchSize:      s.config.BatchSize,
 	})
