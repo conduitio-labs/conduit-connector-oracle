@@ -25,12 +25,17 @@ const (
 	OrderingColumn = "orderingColumn"
 	// KeyColumns is the configuration name of the names of the columns to build the record.Key, separated by commas.
 	KeyColumns = "keyColumns"
+	// Snapshot is the configuration name for the Snapshot field.
+	Snapshot = "snapshot"
 	// Columns is a config name for columns.
 	Columns = "columns"
 	// BatchSize is a config name for a batch size.
 	BatchSize = "batchSize"
 
+	// defaultBatchSize is the default value of the BatchSize field.
 	defaultBatchSize = 1000
+	// defaultSnapshot is a default value for the Snapshot field.
+	defaultSnapshot = true
 )
 
 // A Source represents a source configuration.
@@ -40,7 +45,10 @@ type Source struct {
 	// OrderingColumn is a name of a column that the connector will use for ordering rows.
 	OrderingColumn string `validate:"required,lte=128,oracle"`
 	// KeyColumns is the configuration of key column names, separated by commas.
-	KeyColumns []string `validate:"omitempty,dive,oracle"`
+	KeyColumns []string `validate:"omitempty,dive,lte=128,oracle"`
+	// Snapshot is the configuration that determines whether the connector
+	// will take a snapshot of the entire table before starting cdc mode.
+	Snapshot bool
 	// Columns list of column names that should be included in each Record's payload.
 	Columns []string `validate:"dive,lte=128,oracle"`
 	// BatchSize is a size of rows batch.
@@ -57,6 +65,7 @@ func ParseSource(cfg map[string]string) (Source, error) {
 	sourceConfig := Source{
 		Configuration:  config,
 		OrderingColumn: strings.ToUpper(cfg[OrderingColumn]),
+		Snapshot:       defaultSnapshot,
 		BatchSize:      defaultBatchSize,
 	}
 
@@ -69,6 +78,15 @@ func ParseSource(cfg map[string]string) (Source, error) {
 
 			sourceConfig.KeyColumns = append(sourceConfig.KeyColumns, strings.ToUpper(keyColumns[i]))
 		}
+	}
+
+	if cfg[Snapshot] != "" {
+		snapshot, err := strconv.ParseBool(cfg[Snapshot])
+		if err != nil {
+			return Source{}, fmt.Errorf("parse %q: %w", Snapshot, err)
+		}
+
+		sourceConfig.Snapshot = snapshot
 	}
 
 	if cfg[Columns] != "" {

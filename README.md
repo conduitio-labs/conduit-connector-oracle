@@ -33,8 +33,9 @@ Source switches to CDC mode. More information [inside the Change Data Capture se
 
 ### Snapshot
 
-The connector in the Snapshot mode makes a snapshot of a source table, and reads all rows from the table in batches via
-SELECT, FETCH NEXT and ORDER BY statements.
+The connector in the Snapshot mode makes a
+snapshot ([is a replica of a target table from a single point in time](https://docs.oracle.com/cd/A87860_01/doc/server.817/a76959/mview.htm#25271))
+of a source table, and reads all rows from the table in batches via SELECT, FETCH NEXT and ORDER BY statements.
 
 Example of a query:
 
@@ -46,7 +47,10 @@ WHERE {{keyColumn}} > {{position.last_processed_val}}
 FETCH NEXT {{batchSize}} ROWS ONLY;
 ```
 
-When all records have been returned, the snapshot is deleted and the connector switches to the CDC mode.
+This behavior is enabled by default, but can be turned off by adding `"snapshot": "false"` to the Source configuration.
+
+When all records have been returned, the snapshot (a replica of a target table) is deleted and the connector switches to
+the CDC mode.
 
 ### Change Data Capture
 
@@ -54,11 +58,11 @@ This connector implements CDC features for Oracle by adding a tracking table and
 table and trigger name have the same names as a source table with the prefix `CONDUIT`. The tracking table has all the
 same columns as the source table plus three additional columns:
 
-| name                          | description                                          |
-|-------------------------------|------------------------------------------------------|
-| `CONDUIT_TRACKING_ID`         | Autoincrement index for the position.                |
-| `CONDUIT_OPERATION_TYPE`      | Operation type: `insert`, `update`, or `delete`.     |
-| `CONDUIT_TRACKING_CREATED_AT` | Date when the event was added to the tacking table.  |
+| name                          | description                                         |
+|-------------------------------|-----------------------------------------------------|
+| `CONDUIT_TRACKING_ID`         | Autoincrement index for the position.               |
+| `CONDUIT_OPERATION_TYPE`      | Operation type: `insert`, `update`, or `delete`.    |
+| `CONDUIT_TRACKING_CREATED_AT` | Date when the event was added to the tacking table. |
 
 Every time data is added, changed, or deleted from the source table, this event will be written to the tracking table.
 
@@ -97,6 +101,7 @@ The `last_processed_val` field represents the last processed element value, and 
 | `table`          | The name of a table in the database that the connector should write to.                                                                                             | **true** | `users`                                     |
 | `orderingColumn` | Column name that the connector will use for ordering rows. Column must contain unique values and suitable for sorting, otherwise the snapshot won't work correctly. | **true** | `created_at`                                |
 | `keyColumns`     | Comma-separated list of column names to build the `sdk.Record.Key`. See more: [key handling](#key-handling).                                                        | false    | `id,name`                                   |
+| `snapshot`       | Whether the connector will take a snapshot of the entire table before starting cdc mode. The default is `true`.                                                     | false    | `false`                                     |
 | `columns`        | List of column names that should be included in each Record's payload, by default includes all columns.                                                             | false    | `id,name,age`                               |
 | `batchSize`      | Size of rows batch. Min is 1 and max is 100000. The default is 1000.                                                                                                | false    | `100`                                       |
 

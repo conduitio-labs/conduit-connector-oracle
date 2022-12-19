@@ -18,7 +18,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"hash/fnv"
 	"strings"
 	"sync"
 	"time"
@@ -73,6 +72,7 @@ type CDCParams struct {
 	Repo           *repository.Oracle
 	Position       *Position
 	Table          string
+	TrackingTable  string
 	OrderingColumn string
 	KeyColumns     []string
 	Columns        []string
@@ -96,18 +96,12 @@ type trackingTableService struct {
 func NewCDC(ctx context.Context, params CDCParams) (*CDC, error) {
 	var err error
 
-	// hash the table name to use it as a postfix in the tracking table and snapshot,
-	// because the maximum length of names (tables, triggers, etc.) is 30 characters
-	h := fnv.New32a()
-	h.Write([]byte(params.Table))
-	hashedTable := h.Sum32()
-
 	iterator := &CDC{
 		repo:           params.Repo,
 		position:       params.Position,
 		tableSrv:       newTrackingTableService(),
 		table:          params.Table,
-		trackingTable:  fmt.Sprintf("CONDUIT_TRACKING_%d", hashedTable),
+		trackingTable:  params.TrackingTable,
 		orderingColumn: params.OrderingColumn,
 		keyColumns:     params.KeyColumns,
 		columns:        params.Columns,
