@@ -1,3 +1,9 @@
+**Test Run 9/13/2022 - Functional testing the Oracle Source/Destination connector**
+
+**branch:** https://github.com/conduitio-labs/conduit-connector-oracle/tree/develop
+
+**commit** 25a4442aeca40a37b200fd7d724396f978f4999b
+
 | ID       | Title                                                                                                                                                                                                                                                        | Status | Comment |
 | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------ | ------- |
 | T2908140 | \----------------Required config------------------                                                                                                                                                                                                           | Passed |         |
