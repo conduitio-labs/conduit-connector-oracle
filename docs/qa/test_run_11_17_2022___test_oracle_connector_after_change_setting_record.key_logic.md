@@ -1,3 +1,9 @@
+**Test Run 11/17/2022 - Test Oracle connector after change setting record.Key logic**
+
+**branch:** https://github.com/conduitio-labs/conduit-connector-oracle/tree/main
+
+**commit** 04ca2cc3a04211d95da1c3306c5008f3f26a4d74
+
 | ID       | Title                                                                                                                                                                                                                                                      | Status | Comment |
 | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ | ------- |
 | T3160028 | The user can't create the Oracle source connector with empty the "orderingColumn" key -> the system returns an error \`"orderingColumn" config value must be set\`                                                                                         | Passed |         |
