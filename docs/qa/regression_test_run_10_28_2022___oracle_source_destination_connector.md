@@ -1,3 +1,9 @@
+**Regression Test Run 10/28/2022 - Oracle Source/Destination connector**
+
+**branch:** https://github.com/conduitio-labs/conduit-connector-oracle/tree/main
+
+**commit:** 5d797e1c032c7629cf7a3980f49c394306cd01e4
+
 | ID       | Title                                                                                                                                                                                                                                                      | Status | Comment |
 | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ | ------- |
 | T3126659 | Data from two different Oracle source connectors are transferred to the File Destination connector                                                                                                                                                         | Passed |         |
