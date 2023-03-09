@@ -119,6 +119,7 @@ func GetColumnTypes(
 	if err != nil {
 		return nil, fmt.Errorf("query column types: %w", err)
 	}
+	defer rows.Close()
 
 	columnTypes := make(map[string]ColumnDescription)
 	for rows.Next() {
@@ -130,6 +131,9 @@ func GetColumnTypes(
 		}
 
 		columnTypes[columnName] = columnDescription
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate over rows: %w", err)
 	}
 
 	return columnTypes, nil
