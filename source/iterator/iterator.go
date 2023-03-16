@@ -294,6 +294,7 @@ func (iter *Iterator) switchToCDCIterator(ctx context.Context) error {
 		Repo:           iter.repo,
 		Table:          iter.table,
 		TrackingTable:  iter.trackingTable,
+		Trigger:        iter.trigger,
 		OrderingColumn: iter.orderingColumn,
 		KeyColumns:     iter.keyColumns,
 		Columns:        iter.columns,
