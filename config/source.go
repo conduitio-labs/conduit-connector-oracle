@@ -113,7 +113,7 @@ func ParseSource(cfgMap map[string]string) (Source, error) {
 	}
 
 	if cfgMap[TrackingPrefix] != "" {
-		cfg.TrackingPrefix = cfgMap[TrackingPrefix]
+		cfg.TrackingPrefix = strings.ToUpper(cfgMap[TrackingPrefix])
 	}
 
 	err = validate(cfg)

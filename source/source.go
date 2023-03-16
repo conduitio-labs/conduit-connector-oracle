@@ -59,9 +59,10 @@ func (s *Source) Parameters() map[string]sdk.Parameter {
 			Description: "The name of a table in the database that the connector should write to.",
 		},
 		config.TrackingPrefix: {
-			Default:     config.DefaultTrackingPrefix,
-			Required:    false,
-			Description: "A prefix added to the snapshot table, the tracking table and trigger name",
+			Default:  config.DefaultTrackingPrefix,
+			Required: false,
+			Description: "A prefix added to the snapshot table, the tracking table and trigger name. " +
+				"The prefix will be upper-cased before being used.",
 		},
 		config.OrderingColumn: {
 			Default:  "",
