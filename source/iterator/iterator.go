@@ -138,6 +138,11 @@ func New(ctx context.Context, params Params) (*Iterator, error) {
 	var err error
 
 	snapshotTable, trackingTable, trigger := params.HelperTables()
+	sdk.Logger(ctx).Debug().
+		Str("snapshot_table", snapshotTable).
+		Str("tracking_table", trackingTable).
+		Str("trigger_name", trigger).
+		Msg("creating new iterator")
 
 	iterator := &Iterator{
 		table:          params.Table,
