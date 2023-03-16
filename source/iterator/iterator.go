@@ -117,8 +117,6 @@ type Params struct {
 // HelperObjects returns the helper tables and triggers we use:
 // the snapshot table, the tracking table and the trigger name.
 func (p Params) HelperObjects() (string, string, string) {
-	// hash the table name to use it as a postfix in the tracking table and snapshot,
-	// because the maximum length of names (tables, triggers, etc.) is 30 bytes
 	if p.Position != nil {
 		return p.Position.SnapshotTable, p.Position.TrackingTable, p.Position.Trigger
 	}
