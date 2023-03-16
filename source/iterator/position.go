@@ -35,7 +35,10 @@ type Position struct {
 	Mode Mode `json:"mode"`
 
 	// LastProcessedVal represents the last processed value from ordering column.
-	LastProcessedVal any `json:"last_processed_val"`
+	LastProcessedVal any    `json:"last_processed_val"`
+	TrackingTable    string `json:"tracking_table"`
+	Trigger          string `json:"trigger"`
+	SnapshotTable    string `json:"snapshot_table"`
 }
 
 // ParseSDKPosition parses sdk.Position and returns Position.

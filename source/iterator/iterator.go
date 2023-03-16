@@ -18,7 +18,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"hash/fnv"
+	"math/rand"
 	"strings"
 
 	"github.com/conduitio-labs/conduit-connector-oracle/columntypes"
@@ -114,20 +114,35 @@ type Params struct {
 	BatchSize      int
 }
 
+// HelperTables returns the helper tables and triggers we use:
+// the snapshot table, the tracking table and the trigger name.
+func (p Params) HelperTables() (string, string, string) {
+	// hash the table name to use it as a postfix in the tracking table and snapshot,
+	// because the maximum length of names (tables, triggers, etc.) is 30 characters
+	if p.Position != nil {
+		return p.Position.SnapshotTable, p.Position.TrackingTable, p.Position.Trigger
+	}
+	id := rand.Int63()
+	if id < 0 {
+		id = -id
+	}
+
+	snapshot := fmt.Sprintf("CONDUIT_SNAPSHOT_%d", id)
+	tracking := fmt.Sprintf("CONDUIT_TRACKING_%d", id)
+	trigger := fmt.Sprintf("CONDUIT_%d", id)
+	return snapshot, tracking, trigger
+}
+
 // New creates a new instance of the iterator.
 func New(ctx context.Context, params Params) (*Iterator, error) {
 	var err error
 
-	// hash the table name to use it as a postfix in the tracking table and snapshot,
-	// because the maximum length of names (tables, triggers, etc.) is 30 characters
-	h := fnv.New32a()
-	h.Write([]byte(params.Table))
-	hashedTable := h.Sum32()
+	snapshotTable, trackingTable, trigger := params.HelperTables()
 
 	iterator := &Iterator{
 		table:          params.Table,
-		trackingTable:  fmt.Sprintf("CONDUIT_TRACKING_%d", hashedTable),
-		trigger:        fmt.Sprintf("CONDUIT_%d", hashedTable),
+		trackingTable:  trackingTable,
+		trigger:        trigger,
 		orderingColumn: params.OrderingColumn,
 		keyColumns:     params.KeyColumns,
 		columns:        params.Columns,
@@ -166,7 +181,7 @@ func New(ctx context.Context, params Params) (*Iterator, error) {
 			KeyColumns:     iterator.keyColumns,
 			Columns:        params.Columns,
 			BatchSize:      params.BatchSize,
-			HashedTable:    hashedTable,
+			SnapshotTable:  snapshotTable,
 			ColumnTypes:    iterator.columnTypes,
 		})
 		if err != nil {
