@@ -120,6 +120,9 @@ func (p Params) HelperObjects() (string, string, string) {
 	if p.Position != nil {
 		return p.Position.SnapshotTable, p.Position.TrackingTable, p.Position.Trigger
 	}
+	// There's a limit on the length of names in Oracle.
+	// Depending on the version, it might be between 30 and 128 bytes.
+	// We're going with the safer (lower) limit here.
 	id := rand.Int31() //nolint:gosec // no need for a strong random generator here
 	if id < 0 {
 		id = -id
