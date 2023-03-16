@@ -180,13 +180,13 @@ func New(ctx context.Context, params Params) (*Iterator, error) {
 			Repo:           iterator.repo,
 			Position:       params.Position,
 			Table:          params.Table,
+			SnapshotTable:  snapshotTable,
 			TrackingTable:  iterator.trackingTable,
 			Trigger:        iterator.trigger,
 			OrderingColumn: params.OrderingColumn,
 			KeyColumns:     iterator.keyColumns,
 			Columns:        params.Columns,
 			BatchSize:      params.BatchSize,
-			SnapshotTable:  snapshotTable,
 			ColumnTypes:    iterator.columnTypes,
 		})
 		if err != nil {
@@ -198,6 +198,7 @@ func New(ctx context.Context, params Params) (*Iterator, error) {
 			Position:       params.Position,
 			Table:          params.Table,
 			TrackingTable:  iterator.trackingTable,
+			Trigger:        iterator.trigger,
 			OrderingColumn: params.OrderingColumn,
 			KeyColumns:     iterator.keyColumns,
 			Columns:        params.Columns,

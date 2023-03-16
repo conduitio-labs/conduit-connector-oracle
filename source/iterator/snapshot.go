@@ -175,9 +175,9 @@ func (iter *Snapshot) Next(_ context.Context) (sdk.Record, error) {
 		Mode: ModeSnapshot,
 		// set the value from iter.orderingColumn column you chose
 		LastProcessedVal: transformedRow[iter.orderingColumn],
+		SnapshotTable:    iter.snapshotTable,
 		TrackingTable:    iter.trackingTable,
 		Trigger:          iter.trigger,
-		SnapshotTable:    iter.snapshotTable,
 	}
 
 	convertedPosition, err := position.marshal()
