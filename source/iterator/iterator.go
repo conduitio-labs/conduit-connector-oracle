@@ -114,15 +114,15 @@ type Params struct {
 	BatchSize      int
 }
 
-// HelperTables returns the helper tables and triggers we use:
+// HelperObjects returns the helper tables and triggers we use:
 // the snapshot table, the tracking table and the trigger name.
-func (p Params) HelperTables() (string, string, string) {
+func (p Params) HelperObjects() (string, string, string) {
 	// hash the table name to use it as a postfix in the tracking table and snapshot,
-	// because the maximum length of names (tables, triggers, etc.) is 30 characters
+	// because the maximum length of names (tables, triggers, etc.) is 30 bytes
 	if p.Position != nil {
 		return p.Position.SnapshotTable, p.Position.TrackingTable, p.Position.Trigger
 	}
-	id := rand.Int63() //nolint:gosec // no need for a strong random generator here
+	id := rand.Int31() //nolint:gosec // no need for a strong random generator here
 	if id < 0 {
 		id = -id
 	}
@@ -138,7 +138,7 @@ func (p Params) HelperTables() (string, string, string) {
 func New(ctx context.Context, params Params) (*Iterator, error) {
 	var err error
 
-	snapshotTable, trackingTable, trigger := params.HelperTables()
+	snapshotTable, trackingTable, trigger := params.HelperObjects()
 	sdk.Logger(ctx).Debug().
 		Str("snapshot_table", snapshotTable).
 		Str("tracking_table", trackingTable).
