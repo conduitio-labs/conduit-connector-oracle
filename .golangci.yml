@@ -19,6 +19,7 @@ linters-settings:
     values:
       regexp:
         copyright-year: 20[2-9]\d
+        authors: Meroxa\, Inc\.( \& Yalantis)?
   lll:
     line-length: 120
 
