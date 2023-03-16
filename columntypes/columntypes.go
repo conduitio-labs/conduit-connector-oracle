@@ -116,6 +116,8 @@ func GetColumnTypes(
 	var columnName string
 
 	rows, err := repo.DB.QueryxContext(ctx, fmt.Sprintf(queryColumnDescription, tableName))
+	defer rows.Close() //nolint:staticcheck // error doesn't affect outcome
+
 	if err != nil {
 		return nil, fmt.Errorf("query column types: %w", err)
 	}

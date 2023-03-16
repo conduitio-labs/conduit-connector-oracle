@@ -122,7 +122,7 @@ func (p Params) HelperTables() (string, string, string) {
 	if p.Position != nil {
 		return p.Position.SnapshotTable, p.Position.TrackingTable, p.Position.Trigger
 	}
-	id := rand.Int63()
+	id := rand.Int63() //nolint:gosec // no need for a strong random generator here
 	if id < 0 {
 		id = -id
 	}
@@ -130,6 +130,7 @@ func (p Params) HelperTables() (string, string, string) {
 	snapshot := fmt.Sprintf("CONDUIT_SNAPSHOT_%d", id)
 	tracking := fmt.Sprintf("CONDUIT_TRACKING_%d", id)
 	trigger := fmt.Sprintf("CONDUIT_%d", id)
+
 	return snapshot, tracking, trigger
 }
 
