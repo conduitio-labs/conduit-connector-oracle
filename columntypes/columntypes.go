@@ -119,7 +119,7 @@ func GetColumnTypes(
 	if err != nil {
 		return nil, fmt.Errorf("query column types: %w", err)
 	}
-	defer rows.Close() //nolint:staticcheck // error doesn't affect outcome
+	defer rows.Close()
 
 	columnTypes := make(map[string]ColumnDescription)
 	for rows.Next() {
