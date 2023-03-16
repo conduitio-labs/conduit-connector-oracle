@@ -21,6 +21,7 @@ import (
 )
 
 const (
+	TrackingPrefix = "trackingPrefix"
 	// OrderingColumn is a config name for an ordering column.
 	OrderingColumn = "orderingColumn"
 	// KeyColumns is the configuration name of the names of the columns to build the record.Key, separated by commas.
@@ -32,6 +33,7 @@ const (
 	// BatchSize is a config name for a batch size.
 	BatchSize = "batchSize"
 
+	defaultTrackingPrefix = "CONDUIT"
 	// defaultBatchSize is the default value of the BatchSize field.
 	defaultBatchSize = 1000
 	// defaultSnapshot is a default value for the Snapshot field.
@@ -41,7 +43,9 @@ const (
 // A Source represents a source configuration.
 type Source struct {
 	Configuration
-
+	// TrackingPrefix is the prefix added to the snapshot table, the tracking table
+	// and the trigger. Default value is "CONDUIT_"
+	TrackingPrefix string
 	// OrderingColumn is a name of a column that the connector will use for ordering rows.
 	OrderingColumn string `validate:"required,lte=128,oracle"`
 	// KeyColumns is the configuration of key column names, separated by commas.
@@ -56,80 +60,85 @@ type Source struct {
 }
 
 // ParseSource parses source configuration.
-func ParseSource(cfg map[string]string) (Source, error) {
-	config, err := parseConfiguration(cfg)
+func ParseSource(cfgMap map[string]string) (Source, error) {
+	config, err := parseConfiguration(cfgMap)
 	if err != nil {
 		return Source{}, err
 	}
 
-	sourceConfig := Source{
+	cfg := Source{
 		Configuration:  config,
-		OrderingColumn: strings.ToUpper(cfg[OrderingColumn]),
+		TrackingPrefix: defaultTrackingPrefix,
+		OrderingColumn: strings.ToUpper(cfgMap[OrderingColumn]),
 		Snapshot:       defaultSnapshot,
 		BatchSize:      defaultBatchSize,
 	}
 
-	if cfg[KeyColumns] != "" {
-		keyColumns := strings.Split(strings.ReplaceAll(cfg[KeyColumns], " ", ""), ",")
+	if cfgMap[KeyColumns] != "" {
+		keyColumns := strings.Split(strings.ReplaceAll(cfgMap[KeyColumns], " ", ""), ",")
 		for i := range keyColumns {
 			if keyColumns[i] == "" {
 				return Source{}, fmt.Errorf("invalid %q", KeyColumns)
 			}
 
-			sourceConfig.KeyColumns = append(sourceConfig.KeyColumns, strings.ToUpper(keyColumns[i]))
+			cfg.KeyColumns = append(cfg.KeyColumns, strings.ToUpper(keyColumns[i]))
 		}
 	}
 
-	if cfg[Snapshot] != "" {
-		snapshot, err := strconv.ParseBool(cfg[Snapshot])
+	if cfgMap[Snapshot] != "" {
+		snapshot, err := strconv.ParseBool(cfgMap[Snapshot])
 		if err != nil {
 			return Source{}, fmt.Errorf("parse %q: %w", Snapshot, err)
 		}
 
-		sourceConfig.Snapshot = snapshot
+		cfg.Snapshot = snapshot
 	}
 
-	if cfg[Columns] != "" {
-		columnsSl := strings.Split(strings.ReplaceAll(cfg[Columns], " ", ""), ",")
+	if cfgMap[Columns] != "" {
+		columnsSl := strings.Split(strings.ReplaceAll(cfgMap[Columns], " ", ""), ",")
 		for i := range columnsSl {
 			if columnsSl[i] == "" {
 				return Source{}, fmt.Errorf("invalid %q", Columns)
 			}
 
-			sourceConfig.Columns = append(sourceConfig.Columns, strings.ToUpper(columnsSl[i]))
+			cfg.Columns = append(cfg.Columns, strings.ToUpper(columnsSl[i]))
 		}
 	}
 
-	if cfg[BatchSize] != "" {
-		sourceConfig.BatchSize, err = strconv.Atoi(cfg[BatchSize])
+	if cfgMap[BatchSize] != "" {
+		cfg.BatchSize, err = strconv.Atoi(cfgMap[BatchSize])
 		if err != nil {
 			return Source{}, fmt.Errorf("parse BatchSize: %w", err)
 		}
 	}
 
-	err = validate(sourceConfig)
+	if cfgMap[TrackingPrefix] != "" {
+		cfg.TrackingPrefix = cfgMap[TrackingPrefix]
+	}
+
+	err = validate(cfg)
 	if err != nil {
 		return Source{}, err
 	}
 
-	if len(sourceConfig.Columns) == 0 {
-		return sourceConfig, nil
+	if len(cfg.Columns) == 0 {
+		return cfg, nil
 	}
 
-	columnsMap := make(map[string]struct{}, len(sourceConfig.Columns))
-	for i := 0; i < len(sourceConfig.Columns); i++ {
-		columnsMap[sourceConfig.Columns[i]] = struct{}{}
+	columnsMap := make(map[string]struct{}, len(cfg.Columns))
+	for i := 0; i < len(cfg.Columns); i++ {
+		columnsMap[cfg.Columns[i]] = struct{}{}
 	}
 
-	if _, ok := columnsMap[sourceConfig.OrderingColumn]; !ok {
+	if _, ok := columnsMap[cfg.OrderingColumn]; !ok {
 		return Source{}, fmt.Errorf("columns must include %q", OrderingColumn)
 	}
 
-	for i := range sourceConfig.KeyColumns {
-		if _, ok := columnsMap[sourceConfig.KeyColumns[i]]; !ok {
+	for i := range cfg.KeyColumns {
+		if _, ok := columnsMap[cfg.KeyColumns[i]]; !ok {
 			return Source{}, fmt.Errorf("columns must include all %q", KeyColumns)
 		}
 	}
 
-	return sourceConfig, nil
+	return cfg, nil
 }

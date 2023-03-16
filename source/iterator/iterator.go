@@ -107,6 +107,7 @@ type Params struct {
 	Position       *Position
 	URL            string
 	Table          string
+	TrackingPrefix string
 	OrderingColumn string
 	KeyColumns     []string
 	Snapshot       bool
@@ -127,9 +128,9 @@ func (p Params) HelperObjects() (string, string, string) {
 		id = -id
 	}
 
-	snapshot := fmt.Sprintf("CONDUIT_SNAPSHOT_%d", id)
-	tracking := fmt.Sprintf("CONDUIT_TRACKING_%d", id)
-	trigger := fmt.Sprintf("CONDUIT_%d", id)
+	snapshot := fmt.Sprintf("%s_SNAPSHOT_%d", id)
+	tracking := fmt.Sprintf("%s_TRACKING_%d", id)
+	trigger := fmt.Sprintf("%s_TRIGGER_%d", id)
 
 	return snapshot, tracking, trigger
 }

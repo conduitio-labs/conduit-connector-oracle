@@ -112,6 +112,7 @@ func (s *Source) Open(ctx context.Context, position sdk.Position) error {
 		Position:       pos,
 		URL:            s.config.URL,
 		Table:          s.config.Table,
+		TrackingPrefix: s.config.TrackingPrefix,
 		OrderingColumn: s.config.OrderingColumn,
 		KeyColumns:     s.config.KeyColumns,
 		Snapshot:       s.config.Snapshot,
