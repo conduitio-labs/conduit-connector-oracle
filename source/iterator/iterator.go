@@ -128,9 +128,9 @@ func (p Params) HelperObjects() (string, string, string) {
 		id = -id
 	}
 
-	snapshot := fmt.Sprintf("%s_SNAPSHOT_%d", id)
-	tracking := fmt.Sprintf("%s_TRACKING_%d", id)
-	trigger := fmt.Sprintf("%s_TRIGGER_%d", id)
+	snapshot := fmt.Sprintf("%s_SNAPSHOT_%d", p.TrackingPrefix, id)
+	tracking := fmt.Sprintf("%s_TRACKING_%d", p.TrackingPrefix, id)
+	trigger := fmt.Sprintf("%s_TRIGGER_%d", p.TrackingPrefix, id)
 
 	return snapshot, tracking, trigger
 }
