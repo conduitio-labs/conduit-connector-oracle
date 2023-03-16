@@ -52,7 +52,8 @@ type CDC struct {
 	table string
 	// trackingTable represents a tracking table name
 	trackingTable string
-	trigger       string
+	// trigger represents a trigger name for a trackingTable.
+	trigger string
 	// orderingColumn represents a name of column what iterator use for sorting data
 	orderingColumn string
 	// keyColumns represents a name of the columns that iterator will use for setting key in record
@@ -60,7 +61,6 @@ type CDC struct {
 	// columns represents a list of table's columns for record payload.
 	// if empty - will get all columns
 	columns []string
-
 	// batchSize represents a size of batch
 	batchSize int
 	rows      *sqlx.Rows
