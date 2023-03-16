@@ -168,7 +168,7 @@ func (iter *CDC) Next(ctx context.Context) (sdk.Record, error) {
 		Trigger:          iter.trigger,
 	}
 
-	convertedPosition, err := position.marshal()
+	convertedPosition, err := position.ToSDK()
 	if err != nil {
 		return sdk.Record{}, fmt.Errorf("convert position %w", err)
 	}
