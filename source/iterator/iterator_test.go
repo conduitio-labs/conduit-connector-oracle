@@ -32,11 +32,6 @@ func TestParams_HelperTables_NoPosition(t *testing.T) {
 	checkHelperObject(is, trigger, "CONDUIT_")
 }
 
-func checkHelperObject(is *is.I, s string, prefix string) {
-	is.True(strings.HasPrefix(s, prefix))
-	is.True(len(s) < 30)
-}
-
 func TestParams_HelperObject_WithPosition(t *testing.T) {
 	is := is.New(t)
 	underTest := Params{Position: &Position{
@@ -49,4 +44,9 @@ func TestParams_HelperObject_WithPosition(t *testing.T) {
 	is.Equal(underTest.Position.SnapshotTable, snapshot)
 	is.Equal(underTest.Position.TrackingTable, tracking)
 	is.Equal(underTest.Position.Trigger, trigger)
+}
+
+func checkHelperObject(is *is.I, s string, prefix string) {
+	is.True(strings.HasPrefix(s, prefix))
+	is.True(len(s) < 30)
 }
