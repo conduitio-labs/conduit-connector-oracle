@@ -33,11 +33,11 @@ const (
 	// BatchSize is a config name for a batch size.
 	BatchSize = "batchSize"
 
-	defaultTrackingPrefix = "CONDUIT"
-	// defaultBatchSize is the default value of the BatchSize field.
-	defaultBatchSize = 1000
-	// defaultSnapshot is a default value for the Snapshot field.
-	defaultSnapshot = true
+	DefaultTrackingPrefix = "CONDUIT"
+	// DefaultBatchSize is the default value of the BatchSize field.
+	DefaultBatchSize = 1000
+	// DefaultSnapshot is a default value for the Snapshot field.
+	DefaultSnapshot = true
 )
 
 // A Source represents a source configuration.
@@ -68,10 +68,10 @@ func ParseSource(cfgMap map[string]string) (Source, error) {
 
 	cfg := Source{
 		Configuration:  config,
-		TrackingPrefix: defaultTrackingPrefix,
+		TrackingPrefix: DefaultTrackingPrefix,
 		OrderingColumn: strings.ToUpper(cfgMap[OrderingColumn]),
-		Snapshot:       defaultSnapshot,
-		BatchSize:      defaultBatchSize,
+		Snapshot:       DefaultSnapshot,
+		BatchSize:      DefaultBatchSize,
 	}
 
 	if cfgMap[KeyColumns] != "" {
