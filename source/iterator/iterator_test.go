@@ -22,7 +22,7 @@ import (
 	"github.com/matryer/is"
 )
 
-func TestParams_HelperTables_NoPosition(t *testing.T) {
+func TestParams_New_NoPosition(t *testing.T) {
 	is := is.New(t)
 
 	underTest := NewParams(nil, config.Source{TrackingPrefix: config.DefaultTrackingPrefix})
@@ -32,7 +32,7 @@ func TestParams_HelperTables_NoPosition(t *testing.T) {
 	checkHelperObject(is, underTest.Trigger, "CONDUIT_")
 }
 
-func TestParams_HelperObject_WithPosition(t *testing.T) {
+func TestParams_New_WithPosition(t *testing.T) {
 	is := is.New(t)
 
 	pos := &Position{
