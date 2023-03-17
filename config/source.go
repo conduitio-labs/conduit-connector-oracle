@@ -45,6 +45,7 @@ type Source struct {
 	Configuration
 	// TrackingPrefix is the prefix added to the snapshot table, the tracking table
 	// and the trigger. Default value is "CONDUIT_"
+	// Oracle names must not be longer than 30-128, depending on version.
 	TrackingPrefix string `validate:"lte=128,oracle"`
 	// OrderingColumn is a name of a column that the connector will use for ordering rows.
 	OrderingColumn string `validate:"required,lte=128,oracle"`
