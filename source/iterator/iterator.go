@@ -137,7 +137,7 @@ func NewParams(pos *Position, config config.Source) *Params {
 	return p
 }
 
-// HelperObjects returns the helper tables and triggers we use:
+// setHelperObjects sets the names of the helper tables and triggers we use:
 // the snapshot table, the tracking table and the trigger name.
 func (p *Params) setHelperObjects(prefix string) {
 	if p.Position != nil {
