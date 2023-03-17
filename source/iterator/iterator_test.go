@@ -15,10 +15,10 @@
 package iterator
 
 import (
-	"github.com/conduitio-labs/conduit-connector-oracle/config"
 	"strings"
 	"testing"
 
+	"github.com/conduitio-labs/conduit-connector-oracle/config"
 	"github.com/matryer/is"
 )
 

@@ -18,11 +18,11 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/conduitio-labs/conduit-connector-oracle/config"
 	"math/rand"
 	"strings"
 
 	"github.com/conduitio-labs/conduit-connector-oracle/columntypes"
+	"github.com/conduitio-labs/conduit-connector-oracle/config"
 	"github.com/conduitio-labs/conduit-connector-oracle/repository"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 	"go.uber.org/multierr"
