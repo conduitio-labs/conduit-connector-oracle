@@ -51,6 +51,7 @@ func TestSource_Configure_success(t *testing.T) {
 			URL:   testURL,
 			Table: strings.ToUpper(testTable),
 		},
+		TrackingPrefix: config.DefaultTrackingPrefix,
 		OrderingColumn: strings.ToUpper("created_at"),
 		KeyColumns:     []string{strings.ToUpper("id")},
 		Snapshot:       true,
