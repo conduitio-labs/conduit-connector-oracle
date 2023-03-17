@@ -427,6 +427,18 @@ func TestParseSource(t *testing.T) {
 			},
 			err: fmt.Errorf("%q is out of range", BatchSize),
 		},
+		{
+			name: "failure_tracking_prefix_too_long",
+			in: map[string]string{
+				URL:            testURL,
+				Table:          testTable,
+				OrderingColumn: "ID",
+				TrackingPrefix: "Conduit is a data streaming tool written in Go. " +
+					"It aims to provide the best user experience for building and running real-time data pipelines.",
+			},
+			want: Source{},
+			err:  fmt.Errorf("%q is out of range", TrackingPrefix),
+		},
 	}
 
 	for _, tt := range tests {
