@@ -15,6 +15,7 @@
 package iterator
 
 import (
+	"github.com/conduitio-labs/conduit-connector-oracle/config"
 	"strings"
 	"testing"
 
@@ -24,26 +25,26 @@ import (
 func TestParams_HelperTables_NoPosition(t *testing.T) {
 	is := is.New(t)
 
-	underTest := Params{}
-	snapshot, tracking, trigger := underTest.HelperObjects()
+	underTest := NewParams(nil, config.Source{TrackingPrefix: config.DefaultTrackingPrefix})
 
-	checkHelperObject(is, snapshot, "CONDUIT_SNAPSHOT_")
-	checkHelperObject(is, tracking, "CONDUIT_TRACKING_")
-	checkHelperObject(is, trigger, "CONDUIT_")
+	checkHelperObject(is, underTest.SnapshotTable, "CONDUIT_SNAPSHOT_")
+	checkHelperObject(is, underTest.TrackingTable, "CONDUIT_TRACKING_")
+	checkHelperObject(is, underTest.Trigger, "CONDUIT_")
 }
 
 func TestParams_HelperObject_WithPosition(t *testing.T) {
 	is := is.New(t)
-	underTest := Params{Position: &Position{
+
+	pos := &Position{
 		SnapshotTable: "table3",
 		TrackingTable: "table1",
 		Trigger:       "trigger2",
-	}}
+	}
+	underTest := NewParams(pos, config.Source{})
 
-	snapshot, tracking, trigger := underTest.HelperObjects()
-	is.Equal(underTest.Position.SnapshotTable, snapshot)
-	is.Equal(underTest.Position.TrackingTable, tracking)
-	is.Equal(underTest.Position.Trigger, trigger)
+	is.Equal(pos.SnapshotTable, underTest.SnapshotTable)
+	is.Equal(pos.TrackingTable, underTest.TrackingTable)
+	is.Equal(pos.Trigger, underTest.Trigger)
 }
 
 func checkHelperObject(is *is.I, s string, prefix string) {

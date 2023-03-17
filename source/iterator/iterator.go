@@ -18,6 +18,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/conduitio-labs/conduit-connector-oracle/config"
 	"math/rand"
 	"strings"
 
@@ -104,22 +105,47 @@ type Iterator struct {
 
 // Params represents an incoming iterator params for the New function.
 type Params struct {
-	Position       *Position
-	URL            string
-	Table          string
-	TrackingPrefix string
+	Position *Position
+	URL      string
+	Table    string
+
+	SnapshotTable string
+	TrackingTable string
+	Trigger       string
+
 	OrderingColumn string
 	KeyColumns     []string
 	Snapshot       bool
 	Columns        []string
-	BatchSize      int
+
+	BatchSize int
+}
+
+func NewParams(pos *Position, config config.Source) *Params {
+	p := &Params{
+		Position:       pos,
+		URL:            config.URL,
+		Table:          config.Table,
+		OrderingColumn: config.OrderingColumn,
+		KeyColumns:     config.KeyColumns,
+		Snapshot:       config.Snapshot,
+		Columns:        config.Columns,
+		BatchSize:      config.BatchSize,
+	}
+	p.setHelperObjects(config.TrackingPrefix)
+
+	return p
 }
 
 // HelperObjects returns the helper tables and triggers we use:
 // the snapshot table, the tracking table and the trigger name.
-func (p Params) HelperObjects() (string, string, string) {
+func (p *Params) setHelperObjects(prefix string) {
 	if p.Position != nil {
-		return p.Position.SnapshotTable, p.Position.TrackingTable, p.Position.Trigger
+		p.SnapshotTable = p.Position.SnapshotTable
+		p.TrackingTable = p.Position.TrackingTable
+		p.Trigger = p.Position.Trigger
+
+		return
 	}
 	// There's a limit on the length of names in Oracle.
 	// Depending on the version, it might be between 30 and 128 bytes.
@@ -129,28 +155,25 @@ func (p Params) HelperObjects() (string, string, string) {
 		id = -id
 	}
 
-	snapshot := fmt.Sprintf("%s_SNAPSHOT_%d", p.TrackingPrefix, id)
-	tracking := fmt.Sprintf("%s_TRACKING_%d", p.TrackingPrefix, id)
-	trigger := fmt.Sprintf("%s_TRIGGER_%d", p.TrackingPrefix, id)
-
-	return snapshot, tracking, trigger
+	p.SnapshotTable = fmt.Sprintf("%s_SNAPSHOT_%d", prefix, id)
+	p.TrackingTable = fmt.Sprintf("%s_TRACKING_%d", prefix, id)
+	p.Trigger = fmt.Sprintf("%s_TRIGGER_%d", prefix, id)
 }
 
 // New creates a new instance of the iterator.
-func New(ctx context.Context, params Params) (*Iterator, error) {
+func New(ctx context.Context, params *Params) (*Iterator, error) {
 	var err error
 
-	snapshotTable, trackingTable, trigger := params.HelperObjects()
 	sdk.Logger(ctx).Debug().
-		Str("snapshot_table", snapshotTable).
-		Str("tracking_table", trackingTable).
-		Str("trigger_name", trigger).
+		Str("snapshot_table", params.SnapshotTable).
+		Str("tracking_table", params.TrackingTable).
+		Str("trigger_name", params.Trigger).
 		Msg("creating new iterator")
 
 	iterator := &Iterator{
 		table:          params.Table,
-		trackingTable:  trackingTable,
-		trigger:        trigger,
+		trackingTable:  params.TrackingTable,
+		trigger:        params.Trigger,
 		orderingColumn: params.OrderingColumn,
 		keyColumns:     params.KeyColumns,
 		columns:        params.Columns,
@@ -183,9 +206,9 @@ func New(ctx context.Context, params Params) (*Iterator, error) {
 			Repo:           iterator.repo,
 			Position:       params.Position,
 			Table:          params.Table,
-			SnapshotTable:  snapshotTable,
-			TrackingTable:  trackingTable,
-			Trigger:        trigger,
+			SnapshotTable:  params.SnapshotTable,
+			TrackingTable:  params.TrackingTable,
+			Trigger:        params.Trigger,
 			OrderingColumn: params.OrderingColumn,
 			KeyColumns:     iterator.keyColumns,
 			Columns:        params.Columns,
@@ -200,8 +223,8 @@ func New(ctx context.Context, params Params) (*Iterator, error) {
 			Repo:           iterator.repo,
 			Position:       params.Position,
 			Table:          params.Table,
-			TrackingTable:  trackingTable,
-			Trigger:        trigger,
+			TrackingTable:  params.TrackingTable,
+			Trigger:        params.Trigger,
 			OrderingColumn: params.OrderingColumn,
 			KeyColumns:     iterator.keyColumns,
 			Columns:        params.Columns,

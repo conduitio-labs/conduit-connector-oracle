@@ -114,17 +114,7 @@ func (s *Source) Open(ctx context.Context, position sdk.Position) error {
 		return fmt.Errorf("parse position: %w", err)
 	}
 
-	s.iterator, err = iterator.New(ctx, iterator.Params{
-		Position:       pos,
-		URL:            s.config.URL,
-		Table:          s.config.Table,
-		TrackingPrefix: s.config.TrackingPrefix,
-		OrderingColumn: s.config.OrderingColumn,
-		KeyColumns:     s.config.KeyColumns,
-		Snapshot:       s.config.Snapshot,
-		Columns:        s.config.Columns,
-		BatchSize:      s.config.BatchSize,
-	})
+	s.iterator, err = iterator.New(ctx, iterator.NewParams(pos, s.config))
 	if err != nil {
 		return fmt.Errorf("new iterator: %w", err)
 	}
