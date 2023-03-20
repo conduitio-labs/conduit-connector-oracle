@@ -166,7 +166,7 @@ func (iter *Snapshot) Next(_ context.Context) (sdk.Record, error) {
 
 	transformedRowBytes, err := json.Marshal(transformedRow)
 	if err != nil {
-		return sdk.Record{}, fmt.Errorf("ToSDK row: %w", err)
+		return sdk.Record{}, fmt.Errorf("marshal row: %w", err)
 	}
 
 	// set a new position into the variable,
