@@ -24,7 +24,7 @@ import (
 func TestParams_New_NoPosition(t *testing.T) {
 	is := is.New(t)
 
-	cfg, err := config.ParseSource(map[string]string{
+	cfgMap := map[string]string{
 		config.URL:            "url",
 		config.Table:          "table",
 		config.OrderingColumn: "column",
@@ -32,12 +32,13 @@ func TestParams_New_NoPosition(t *testing.T) {
 		config.SnapshotTable: "TABLE_S",
 		config.TrackingTable: "TABLE_T",
 		config.Trigger:       "TRIGGER",
-	})
+	}
+	cfg, err := config.ParseSource(cfgMap)
 	is.NoErr(err)
 	underTest := NewParams(nil, cfg)
-	is.Equal(config.SnapshotTable, underTest.SnapshotTable)
-	is.Equal(config.TrackingTable, underTest.TrackingTable)
-	is.Equal(config.Trigger, underTest.Trigger)
+	is.Equal(cfgMap[config.SnapshotTable], underTest.SnapshotTable)
+	is.Equal(cfgMap[config.TrackingTable], underTest.TrackingTable)
+	is.Equal(cfgMap[config.Trigger], underTest.Trigger)
 }
 
 func TestParams_New_WithPosition(t *testing.T) {
