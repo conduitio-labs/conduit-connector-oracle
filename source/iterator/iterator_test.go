@@ -15,7 +15,6 @@
 package iterator
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/conduitio-labs/conduit-connector-oracle/config"
@@ -25,11 +24,20 @@ import (
 func TestParams_New_NoPosition(t *testing.T) {
 	is := is.New(t)
 
-	underTest := NewParams(nil, config.Source{TrackingPrefix: config.DefaultTrackingPrefix})
+	cfg, err := config.ParseSource(map[string]string{
+		config.URL:            "url",
+		config.Table:          "table",
+		config.OrderingColumn: "column",
 
-	checkHelperObject(is, underTest.SnapshotTable, "CONDUIT_SNAPSHOT_")
-	checkHelperObject(is, underTest.TrackingTable, "CONDUIT_TRACKING_")
-	checkHelperObject(is, underTest.Trigger, "CONDUIT_")
+		config.SnapshotTable: "TABLE_S",
+		config.TrackingTable: "TABLE_T",
+		config.Trigger:       "TRIGGER",
+	})
+	is.NoErr(err)
+	underTest := NewParams(nil, cfg)
+	is.Equal(config.SnapshotTable, underTest.SnapshotTable)
+	is.Equal(config.TrackingTable, underTest.TrackingTable)
+	is.Equal(config.Trigger, underTest.Trigger)
 }
 
 func TestParams_New_WithPosition(t *testing.T) {
@@ -40,14 +48,19 @@ func TestParams_New_WithPosition(t *testing.T) {
 		TrackingTable: "table1",
 		Trigger:       "trigger2",
 	}
-	underTest := NewParams(pos, config.Source{})
+	cfg, err := config.ParseSource(map[string]string{
+		config.URL:            "url",
+		config.Table:          "table",
+		config.OrderingColumn: "column",
+
+		config.SnapshotTable: "table_s",
+		config.TrackingTable: "table_t",
+		config.Trigger:       "trigger",
+	})
+	is.NoErr(err)
+	underTest := NewParams(pos, cfg)
 
 	is.Equal(pos.SnapshotTable, underTest.SnapshotTable)
 	is.Equal(pos.TrackingTable, underTest.TrackingTable)
 	is.Equal(pos.Trigger, underTest.Trigger)
-}
-
-func checkHelperObject(is *is.I, s string, prefix string) {
-	is.True(strings.HasPrefix(s, prefix))
-	is.True(len(s) < 30)
 }

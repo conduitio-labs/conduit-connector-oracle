@@ -17,6 +17,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"github.com/matryer/is"
 	"reflect"
 	"strings"
 	"testing"
@@ -427,18 +428,6 @@ func TestParseSource(t *testing.T) {
 			},
 			err: fmt.Errorf("%q is out of range", BatchSize),
 		},
-		{
-			name: "failure_tracking_prefix_too_long",
-			in: map[string]string{
-				URL:            testURL,
-				Table:          testTable,
-				OrderingColumn: "ID",
-				TrackingPrefix: "Conduit is a data streaming tool written in Go. " +
-					"It aims to provide the best user experience for building and running real-time data pipelines.",
-			},
-			want: Source{},
-			err:  fmt.Errorf("%q is out of range", TrackingPrefix),
-		},
 	}
 
 	for _, tt := range tests {
@@ -460,9 +449,125 @@ func TestParseSource(t *testing.T) {
 				return
 			}
 
+			got.SnapshotTable = ""
+			got.TrackingTable = ""
+			got.Trigger = ""
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("got: %v, want: %v", got, tt.want)
 			}
 		})
 	}
+}
+
+func TestParseSource_HelperObjects_AllSpecified(t *testing.T) {
+	is := is.New(t)
+
+	cfgMap := map[string]string{
+		URL:            "test_url",
+		Table:          "test_table",
+		OrderingColumn: "test_column",
+
+		SnapshotTable: "table_1",
+		TrackingTable: "table_2",
+		Trigger:       "trigger_3",
+	}
+	underTest, err := ParseSource(cfgMap)
+	is.NoErr(err)
+	is.Equal(strings.ToUpper(cfgMap[SnapshotTable]), underTest.SnapshotTable)
+	is.Equal(strings.ToUpper(cfgMap[TrackingTable]), underTest.TrackingTable)
+	is.Equal(strings.ToUpper(cfgMap[Trigger]), underTest.Trigger)
+}
+
+func TestParseSource_HelperObjects_PartiallySpecified(t *testing.T) {
+	is := is.New(t)
+
+	cfgMap := map[string]string{
+		URL:            "test_url",
+		Table:          "test_table",
+		OrderingColumn: "test_column",
+
+		SnapshotTable: "table_1",
+		TrackingTable: "table_2",
+	}
+	underTest, err := ParseSource(cfgMap)
+	is.NoErr(err)
+	is.Equal(strings.ToUpper(cfgMap[SnapshotTable]), underTest.SnapshotTable)
+	is.Equal(strings.ToUpper(cfgMap[TrackingTable]), underTest.TrackingTable)
+	checkHelperObject(is, underTest.Trigger, DefaultTrackingPrefix)
+}
+
+func TestParseSource_HelperObjects_Prefix(t *testing.T) {
+	testCases := []struct {
+		name       string
+		in         map[string]string
+		wantPrefix string
+		wantErr    error
+	}{
+		{
+			name: "default prefix",
+			in: map[string]string{
+				URL:            "test_url",
+				Table:          "test_table",
+				OrderingColumn: "test_column",
+			},
+			wantPrefix: DefaultTrackingPrefix,
+		},
+		{
+			name: "custom prefix",
+			in: map[string]string{
+				URL:            "test_url",
+				Table:          "test_table",
+				OrderingColumn: "test_column",
+				TrackingPrefix: "custom_",
+			},
+			wantPrefix: "CUSTOM_",
+		},
+		{
+			name: "custom prefix too long",
+			in: map[string]string{
+				URL:            "test_url",
+				Table:          "test_table",
+				OrderingColumn: "test_column",
+				TrackingPrefix: "prefix_prefix_prefix_prefix_prefix_prefix_prefix_prefix_prefix_prefix_prefix_prefix_" +
+					"prefix_prefix_prefix_prefix_prefix_prefix_prefix_prefix_prefix_",
+			},
+			wantPrefix: "",
+			// includes error messages for the helper objects
+			// as they are not generated at all
+			wantErr: errors.New(`"trackingPrefix" is out of range; "" is out of range; "" is out of range; "" is out of range`),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			is := is.New(t)
+
+			underTest, err := ParseSource(tc.in)
+			if tc.wantErr != nil {
+				if err == nil {
+					t.Errorf("error expected, but got none: %s", tc.wantErr.Error())
+
+					return
+				}
+				if err.Error() != tc.wantErr.Error() {
+					t.Errorf("unexpected error, got: %s, want: %s", err.Error(), tc.wantErr.Error())
+
+					return
+				}
+
+				return
+			}
+
+			is.NoErr(err)
+			is.Equal(tc.wantPrefix, underTest.TrackingPrefix)
+			checkHelperObject(is, underTest.SnapshotTable, tc.wantPrefix)
+			checkHelperObject(is, underTest.TrackingTable, tc.wantPrefix)
+			checkHelperObject(is, underTest.Trigger, tc.wantPrefix)
+		})
+	}
+}
+
+func checkHelperObject(is *is.I, s string, prefix string) {
+	is.True(strings.HasPrefix(s, prefix))
+	is.True(len(s) < 30)
 }

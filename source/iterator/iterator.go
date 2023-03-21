@@ -132,7 +132,15 @@ func NewParams(pos *Position, config config.Source) *Params {
 		Columns:        config.Columns,
 		BatchSize:      config.BatchSize,
 	}
-	p.setHelperObjects(config.TrackingPrefix)
+	if p.Position != nil {
+		p.SnapshotTable = p.Position.SnapshotTable
+		p.TrackingTable = p.Position.TrackingTable
+		p.Trigger = p.Position.Trigger
+	} else {
+		p.SnapshotTable = config.SnapshotTable
+		p.TrackingTable = config.TrackingTable
+		p.Trigger = config.Trigger
+	}
 
 	return p
 }

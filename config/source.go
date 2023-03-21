@@ -16,12 +16,16 @@ package config
 
 import (
 	"fmt"
+	"math/rand"
 	"strconv"
 	"strings"
 )
 
 const (
 	TrackingPrefix = "trackingPrefix"
+	SnapshotTable  = "snapshotTable"
+	TrackingTable  = "trackingTable"
+	Trigger        = "trigger"
 	// OrderingColumn is a config name for an ordering column.
 	OrderingColumn = "orderingColumn"
 	// KeyColumns is the configuration name of the names of the columns to build the record.Key, separated by commas.
@@ -47,6 +51,13 @@ type Source struct {
 	// and the trigger. Default value is "CONDUIT_"
 	// Oracle names must not be longer than 30-128, depending on version.
 	TrackingPrefix string `validate:"lte=128,oracle"`
+	// SnapshotTable is the snapshot table to be used.
+	SnapshotTable string `validate:"lte=128,oracle"`
+	// TrackingTable is the tracking table to be used in CDC.
+	TrackingTable string `validate:"lte=128,oracle"`
+	// Trigger is the trigger to be used in CDC.
+	Trigger string `validate:"lte=128,oracle"`
+
 	// OrderingColumn is a name of a column that the connector will use for ordering rows.
 	OrderingColumn string `validate:"required,lte=128,oracle"`
 	// KeyColumns is the configuration of key column names, separated by commas.
@@ -60,7 +71,8 @@ type Source struct {
 	BatchSize int `validate:"gte=1,lte=100000"`
 }
 
-// ParseSource parses source configuration.
+// ParseSource parses a map with source configuration values.
+// A new config.Source should always be constructed using this function.
 func ParseSource(cfgMap map[string]string) (Source, error) {
 	config, err := parseConfiguration(cfgMap)
 	if err != nil {
@@ -113,8 +125,20 @@ func ParseSource(cfgMap map[string]string) (Source, error) {
 		}
 	}
 
+	cfg.TrackingPrefix = DefaultTrackingPrefix
 	if cfgMap[TrackingPrefix] != "" {
 		cfg.TrackingPrefix = strings.ToUpper(cfgMap[TrackingPrefix])
+	}
+
+	cfg.setDefaultHelperObjects()
+	if cfgMap[SnapshotTable] != "" {
+		cfg.SnapshotTable = strings.ToUpper(cfgMap[SnapshotTable])
+	}
+	if cfgMap[TrackingTable] != "" {
+		cfg.TrackingTable = strings.ToUpper(cfgMap[TrackingTable])
+	}
+	if cfgMap[Trigger] != "" {
+		cfg.Trigger = strings.ToUpper(cfgMap[Trigger])
 	}
 
 	err = validate(cfg)
@@ -142,4 +166,18 @@ func ParseSource(cfgMap map[string]string) (Source, error) {
 	}
 
 	return cfg, nil
+}
+
+func (s *Source) setDefaultHelperObjects() {
+	// There's a limit on the length of names in Oracle.
+	// Depending on the version, it might be between 30 and 128 bytes.
+	// We're going with the safer (lower) limit here.
+	id := rand.Int31() //nolint:gosec // no need for a strong random generator here
+	if id < 0 {
+		id = -id
+	}
+
+	s.SnapshotTable = fmt.Sprintf("%s_SNAPSHOT_%d", s.TrackingPrefix, id)
+	s.TrackingTable = fmt.Sprintf("%s_TRACKING_%d", s.TrackingPrefix, id)
+	s.Trigger = fmt.Sprintf("%s_TRIGGER_%d", s.TrackingPrefix, id)
 }
