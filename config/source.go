@@ -125,21 +125,7 @@ func ParseSource(cfgMap map[string]string) (Source, error) {
 		}
 	}
 
-	cfg.TrackingPrefix = DefaultTrackingPrefix
-	if cfgMap[TrackingPrefix] != "" {
-		cfg.TrackingPrefix = strings.ToUpper(cfgMap[TrackingPrefix])
-	}
-
-	cfg.setDefaultHelperObjects()
-	if cfgMap[SnapshotTable] != "" {
-		cfg.SnapshotTable = strings.ToUpper(cfgMap[SnapshotTable])
-	}
-	if cfgMap[TrackingTable] != "" {
-		cfg.TrackingTable = strings.ToUpper(cfgMap[TrackingTable])
-	}
-	if cfgMap[Trigger] != "" {
-		cfg.Trigger = strings.ToUpper(cfgMap[Trigger])
-	}
+	cfg.setHelperObjects(cfgMap)
 
 	err = validate(cfg)
 	if err != nil {
@@ -180,4 +166,22 @@ func (s *Source) setDefaultHelperObjects() {
 	s.SnapshotTable = fmt.Sprintf("%s_SNAPSHOT_%d", s.TrackingPrefix, id)
 	s.TrackingTable = fmt.Sprintf("%s_TRACKING_%d", s.TrackingPrefix, id)
 	s.Trigger = fmt.Sprintf("%s_TRIGGER_%d", s.TrackingPrefix, id)
+}
+
+func (s *Source) setHelperObjects(cfgMap map[string]string) {
+	s.TrackingPrefix = DefaultTrackingPrefix
+	if cfgMap[TrackingPrefix] != "" {
+		s.TrackingPrefix = strings.ToUpper(cfgMap[TrackingPrefix])
+	}
+
+	s.setDefaultHelperObjects()
+	if cfgMap[SnapshotTable] != "" {
+		s.SnapshotTable = strings.ToUpper(cfgMap[SnapshotTable])
+	}
+	if cfgMap[TrackingTable] != "" {
+		s.TrackingTable = strings.ToUpper(cfgMap[TrackingTable])
+	}
+	if cfgMap[Trigger] != "" {
+		s.Trigger = strings.ToUpper(cfgMap[Trigger])
+	}
 }

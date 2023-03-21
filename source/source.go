@@ -64,6 +64,21 @@ func (s *Source) Parameters() map[string]sdk.Parameter {
 			Description: "A prefix added to the snapshot table, the tracking table and trigger name. " +
 				"The prefix will be upper-cased before being used.",
 		},
+		config.SnapshotTable: {
+			Default:     "generated based upon the prefix",
+			Required:    false,
+			Description: "Snapshot table to be used.",
+		},
+		config.TrackingTable: {
+			Default:     "generated based upon the prefix",
+			Required:    false,
+			Description: "Tracking table to be used.",
+		},
+		config.Trigger: {
+			Default:     "generated based upon the prefix",
+			Required:    false,
+			Description: "Trigger to be used.",
+		},
 		config.OrderingColumn: {
 			Default:  "",
 			Required: true,

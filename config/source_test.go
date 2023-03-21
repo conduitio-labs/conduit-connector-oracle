@@ -17,10 +17,11 @@ package config
 import (
 	"errors"
 	"fmt"
-	"github.com/matryer/is"
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/matryer/is"
 )
 
 func TestParseSource(t *testing.T) {

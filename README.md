@@ -104,6 +104,10 @@ The `last_processed_val` field represents the last processed element value, and 
 | `snapshot`       | Whether the connector will take a snapshot of the entire table before starting cdc mode. The default is `true`.                                                     | false    | `false`                                     |
 | `columns`        | List of column names that should be included in each Record's payload, by default includes all columns.                                                             | false    | `id,name,age`                               |
 | `batchSize`      | Size of rows batch. Min is 1 and max is 100000. The default is 1000.                                                                                                | false    | `100`                                       |
+| `trackingPrefix` | A prefix added to the snapshot table, the tracking table and trigger name. The prefix will be upper-cased before being used. Default: `CONDUIT_`                    | false    | `custom_prefix_`                            |
+| `snapshotTable`  | Snapshot table. Default: generated based on the prefix.                                                                                                             | false    | `custom_snapshot_table_`                    |
+| `trackingTable`  | Name of the tracking table to be used in CDC. Default: generated based on the prefix.                                                                               | false    | `custom_tracking_table_`                    |
+| `trigger`        | Name of the trigger to be used in CDC. Default: generated based on the prefix.                                                                                      | false    | `custom_trigger_`                           |
 
 #### Key handling
 

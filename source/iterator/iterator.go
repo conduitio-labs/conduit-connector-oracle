@@ -18,7 +18,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"math/rand"
 	"strings"
 
 	"github.com/conduitio-labs/conduit-connector-oracle/columntypes"
@@ -143,29 +142,6 @@ func NewParams(pos *Position, config config.Source) *Params {
 	}
 
 	return p
-}
-
-// setHelperObjects sets the names of the helper tables and triggers we use:
-// the snapshot table, the tracking table and the trigger name.
-func (p *Params) setHelperObjects(prefix string) {
-	if p.Position != nil {
-		p.SnapshotTable = p.Position.SnapshotTable
-		p.TrackingTable = p.Position.TrackingTable
-		p.Trigger = p.Position.Trigger
-
-		return
-	}
-	// There's a limit on the length of names in Oracle.
-	// Depending on the version, it might be between 30 and 128 bytes.
-	// We're going with the safer (lower) limit here.
-	id := rand.Int31() //nolint:gosec // no need for a strong random generator here
-	if id < 0 {
-		id = -id
-	}
-
-	p.SnapshotTable = fmt.Sprintf("%s_SNAPSHOT_%d", prefix, id)
-	p.TrackingTable = fmt.Sprintf("%s_TRACKING_%d", prefix, id)
-	p.Trigger = fmt.Sprintf("%s_TRIGGER_%d", prefix, id)
 }
 
 // New creates a new instance of the iterator.
