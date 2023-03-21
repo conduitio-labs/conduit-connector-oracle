@@ -450,6 +450,8 @@ func TestParseSource(t *testing.T) {
 				return
 			}
 
+			// removing to simplify these tests
+			// we're focusing on these in TestParseSource_HelperObjects_*
 			got.SnapshotTable = ""
 			got.TrackingTable = ""
 			got.Trigger = ""
