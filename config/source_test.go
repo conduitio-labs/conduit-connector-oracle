@@ -483,6 +483,21 @@ func TestParseSource_HelperObjects_PartiallySpecified(t *testing.T) {
 	checkHelperObject(is, underTest.Trigger, "CONDUIT_TRIGGER_")
 }
 
+func TestParseSource_HelperObjects_NoneSpecified(t *testing.T) {
+	is := is.New(t)
+
+	cfgMap := map[string]string{
+		URL:            "test_url",
+		Table:          "test_table",
+		OrderingColumn: "test_column",
+	}
+	underTest, err := ParseSource(cfgMap)
+	is.NoErr(err)
+	checkHelperObject(is, underTest.SnapshotTable, "CONDUIT_SNAPSHOT_")
+	checkHelperObject(is, underTest.TrackingTable, "CONDUIT_TRACKING_")
+	checkHelperObject(is, underTest.Trigger, "CONDUIT_TRIGGER_")
+}
+
 func checkHelperObject(is *is.I, s string, prefix string) {
 	is.True(strings.HasPrefix(s, prefix))
 	is.True(len(s) < 30)
