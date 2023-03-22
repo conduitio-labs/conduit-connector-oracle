@@ -109,6 +109,5 @@ func getKeyName(fieldName string) string {
 		"Snapshot":       Snapshot,
 		"Columns":        Columns,
 		"BatchSize":      BatchSize,
-		"TrackingPrefix": TrackingPrefix,
 	}[fieldName]
 }

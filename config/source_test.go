@@ -44,7 +44,6 @@ func TestParseSource(t *testing.T) {
 					Table: strings.ToUpper(testTable),
 				},
 				OrderingColumn: "ID",
-				TrackingPrefix: DefaultTrackingPrefix,
 				Snapshot:       DefaultSnapshot,
 				BatchSize:      DefaultBatchSize,
 			},
@@ -64,7 +63,6 @@ func TestParseSource(t *testing.T) {
 				},
 				OrderingColumn: "ID",
 				KeyColumns:     []string{"ID"},
-				TrackingPrefix: DefaultTrackingPrefix,
 				Snapshot:       DefaultSnapshot,
 				BatchSize:      DefaultBatchSize,
 			},
@@ -84,7 +82,6 @@ func TestParseSource(t *testing.T) {
 				},
 				OrderingColumn: "ID",
 				KeyColumns:     []string{"ID", "NAME"},
-				TrackingPrefix: DefaultTrackingPrefix,
 				Snapshot:       DefaultSnapshot,
 				BatchSize:      DefaultBatchSize,
 			},
@@ -103,7 +100,6 @@ func TestParseSource(t *testing.T) {
 					Table: strings.ToUpper(testTable),
 				},
 				OrderingColumn: "ID",
-				TrackingPrefix: DefaultTrackingPrefix,
 				KeyColumns:     []string{"ID", "NAME"},
 				Snapshot:       DefaultSnapshot,
 				BatchSize:      DefaultBatchSize,
@@ -124,7 +120,6 @@ func TestParseSource(t *testing.T) {
 				},
 				OrderingColumn: "ID",
 				KeyColumns:     []string{"ID", "NAME"},
-				TrackingPrefix: DefaultTrackingPrefix,
 				Snapshot:       DefaultSnapshot,
 				BatchSize:      DefaultBatchSize,
 			},
@@ -144,7 +139,6 @@ func TestParseSource(t *testing.T) {
 				},
 				OrderingColumn: "ID",
 				KeyColumns:     []string{"ID", "NAME"},
-				TrackingPrefix: DefaultTrackingPrefix,
 				Snapshot:       DefaultSnapshot,
 				BatchSize:      DefaultBatchSize,
 			},
@@ -164,7 +158,6 @@ func TestParseSource(t *testing.T) {
 				},
 				OrderingColumn: "ID",
 				KeyColumns:     []string{"ID", "NAME"},
-				TrackingPrefix: DefaultTrackingPrefix,
 				Snapshot:       DefaultSnapshot,
 				BatchSize:      DefaultBatchSize,
 			},
@@ -184,7 +177,6 @@ func TestParseSource(t *testing.T) {
 				},
 				OrderingColumn: "ID",
 				KeyColumns:     []string{"ID", "NAME"},
-				TrackingPrefix: DefaultTrackingPrefix,
 				Snapshot:       DefaultSnapshot,
 				BatchSize:      DefaultBatchSize,
 			},
@@ -204,7 +196,6 @@ func TestParseSource(t *testing.T) {
 				},
 				OrderingColumn: "ID",
 				Snapshot:       false,
-				TrackingPrefix: DefaultTrackingPrefix,
 				BatchSize:      DefaultBatchSize,
 			},
 		},
@@ -224,7 +215,6 @@ func TestParseSource(t *testing.T) {
 				},
 				OrderingColumn: "ID",
 				KeyColumns:     []string{"ID"},
-				TrackingPrefix: DefaultTrackingPrefix,
 				Snapshot:       DefaultSnapshot,
 				BatchSize:      100,
 			},
@@ -245,7 +235,6 @@ func TestParseSource(t *testing.T) {
 				},
 				OrderingColumn: "ID",
 				KeyColumns:     []string{"ID"},
-				TrackingPrefix: DefaultTrackingPrefix,
 				Snapshot:       DefaultSnapshot,
 				BatchSize:      100000,
 			},
@@ -266,7 +255,6 @@ func TestParseSource(t *testing.T) {
 				},
 				OrderingColumn: "ID",
 				KeyColumns:     []string{"ID"},
-				TrackingPrefix: DefaultTrackingPrefix,
 				Snapshot:       DefaultSnapshot,
 				BatchSize:      1,
 			},
@@ -287,7 +275,6 @@ func TestParseSource(t *testing.T) {
 				},
 				OrderingColumn: "ID",
 				KeyColumns:     []string{"ID"},
-				TrackingPrefix: DefaultTrackingPrefix,
 				Snapshot:       DefaultSnapshot,
 				BatchSize:      DefaultBatchSize,
 				Columns:        []string{"ID", "NAME", "AGE"},
@@ -306,7 +293,6 @@ func TestParseSource(t *testing.T) {
 					Table: strings.ToUpper(testTable),
 				},
 				OrderingColumn: "ID",
-				TrackingPrefix: DefaultTrackingPrefix,
 				Snapshot:       DefaultSnapshot,
 				BatchSize:      DefaultBatchSize,
 			},
@@ -318,7 +304,6 @@ func TestParseSource(t *testing.T) {
 				URL:            testURL,
 				Table:          testTable,
 				OrderingColumn: "ID",
-				TrackingPrefix: "MEROXA",
 			},
 			want: Source{
 				Configuration: Configuration{
@@ -326,7 +311,6 @@ func TestParseSource(t *testing.T) {
 					Table: strings.ToUpper(testTable),
 				},
 				OrderingColumn: "ID",
-				TrackingPrefix: "MEROXA",
 				Snapshot:       DefaultSnapshot,
 				BatchSize:      DefaultBatchSize,
 			},
@@ -496,78 +480,7 @@ func TestParseSource_HelperObjects_PartiallySpecified(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(strings.ToUpper(cfgMap[SnapshotTable]), underTest.SnapshotTable)
 	is.Equal(strings.ToUpper(cfgMap[TrackingTable]), underTest.TrackingTable)
-	checkHelperObject(is, underTest.Trigger, DefaultTrackingPrefix)
-}
-
-func TestParseSource_HelperObjects_Prefix(t *testing.T) {
-	testCases := []struct {
-		name       string
-		in         map[string]string
-		wantPrefix string
-		wantErr    error
-	}{
-		{
-			name: "default prefix",
-			in: map[string]string{
-				URL:            "test_url",
-				Table:          "test_table",
-				OrderingColumn: "test_column",
-			},
-			wantPrefix: DefaultTrackingPrefix,
-		},
-		{
-			name: "custom prefix",
-			in: map[string]string{
-				URL:            "test_url",
-				Table:          "test_table",
-				OrderingColumn: "test_column",
-				TrackingPrefix: "custom_",
-			},
-			wantPrefix: "CUSTOM_",
-		},
-		{
-			name: "custom prefix too long",
-			in: map[string]string{
-				URL:            "test_url",
-				Table:          "test_table",
-				OrderingColumn: "test_column",
-				TrackingPrefix: "prefix_prefix_prefix_prefix_prefix_prefix_prefix_prefix_prefix_prefix_prefix_prefix_" +
-					"prefix_prefix_prefix_prefix_prefix_prefix_prefix_prefix_prefix_",
-			},
-			wantPrefix: "",
-			// includes error messages for the helper objects
-			// as they are not generated at all
-			wantErr: errors.New(`"trackingPrefix" is out of range; "" is out of range; "" is out of range; "" is out of range`),
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			is := is.New(t)
-
-			underTest, err := ParseSource(tc.in)
-			if tc.wantErr != nil {
-				if err == nil {
-					t.Errorf("error expected, but got none: %s", tc.wantErr.Error())
-
-					return
-				}
-				if err.Error() != tc.wantErr.Error() {
-					t.Errorf("unexpected error, got: %s, want: %s", err.Error(), tc.wantErr.Error())
-
-					return
-				}
-
-				return
-			}
-
-			is.NoErr(err)
-			is.Equal(tc.wantPrefix, underTest.TrackingPrefix)
-			checkHelperObject(is, underTest.SnapshotTable, tc.wantPrefix)
-			checkHelperObject(is, underTest.TrackingTable, tc.wantPrefix)
-			checkHelperObject(is, underTest.Trigger, tc.wantPrefix)
-		})
-	}
+	checkHelperObject(is, underTest.Trigger, "CONDUIT_TRIGGER_")
 }
 
 func checkHelperObject(is *is.I, s string, prefix string) {

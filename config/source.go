@@ -22,10 +22,9 @@ import (
 )
 
 const (
-	TrackingPrefix = "trackingPrefix"
-	SnapshotTable  = "snapshotTable"
-	TrackingTable  = "trackingTable"
-	Trigger        = "trigger"
+	SnapshotTable = "snapshotTable"
+	TrackingTable = "trackingTable"
+	Trigger       = "trigger"
 	// OrderingColumn is a config name for an ordering column.
 	OrderingColumn = "orderingColumn"
 	// KeyColumns is the configuration name of the names of the columns to build the record.Key, separated by commas.
@@ -37,7 +36,6 @@ const (
 	// BatchSize is a config name for a batch size.
 	BatchSize = "batchSize"
 
-	DefaultTrackingPrefix = "CONDUIT"
 	// DefaultBatchSize is the default value of the BatchSize field.
 	DefaultBatchSize = 1000
 	// DefaultSnapshot is a default value for the Snapshot field.
@@ -47,10 +45,6 @@ const (
 // A Source represents a source configuration.
 type Source struct {
 	Configuration
-	// TrackingPrefix is the prefix added to the snapshot table, the tracking table
-	// and the trigger. Default value is "CONDUIT_"
-	// Oracle names must not be longer than 30-128, depending on version.
-	TrackingPrefix string `validate:"lte=128,oracle"`
 	// SnapshotTable is the snapshot table to be used.
 	SnapshotTable string `validate:"lte=128,oracle"`
 	// TrackingTable is the tracking table to be used in CDC.
@@ -81,7 +75,6 @@ func ParseSource(cfgMap map[string]string) (Source, error) {
 
 	cfg := Source{
 		Configuration:  config,
-		TrackingPrefix: DefaultTrackingPrefix,
 		OrderingColumn: strings.ToUpper(cfgMap[OrderingColumn]),
 		Snapshot:       DefaultSnapshot,
 		BatchSize:      DefaultBatchSize,
@@ -154,26 +147,7 @@ func ParseSource(cfgMap map[string]string) (Source, error) {
 	return cfg, nil
 }
 
-func (s *Source) setDefaultHelperObjects() {
-	// There's a limit on the length of names in Oracle.
-	// Depending on the version, it might be between 30 and 128 bytes.
-	// We're going with the safer (lower) limit here.
-	id := rand.Int31() //nolint:gosec // no need for a strong random generator here
-	if id < 0 {
-		id = -id
-	}
-
-	s.SnapshotTable = fmt.Sprintf("%s_SNAPSHOT_%d", s.TrackingPrefix, id)
-	s.TrackingTable = fmt.Sprintf("%s_TRACKING_%d", s.TrackingPrefix, id)
-	s.Trigger = fmt.Sprintf("%s_TRIGGER_%d", s.TrackingPrefix, id)
-}
-
 func (s *Source) setHelperObjects(cfgMap map[string]string) {
-	s.TrackingPrefix = DefaultTrackingPrefix
-	if cfgMap[TrackingPrefix] != "" {
-		s.TrackingPrefix = strings.ToUpper(cfgMap[TrackingPrefix])
-	}
-
 	s.setDefaultHelperObjects()
 	if cfgMap[SnapshotTable] != "" {
 		s.SnapshotTable = strings.ToUpper(cfgMap[SnapshotTable])
@@ -184,4 +158,18 @@ func (s *Source) setHelperObjects(cfgMap map[string]string) {
 	if cfgMap[Trigger] != "" {
 		s.Trigger = strings.ToUpper(cfgMap[Trigger])
 	}
+}
+
+func (s *Source) setDefaultHelperObjects() {
+	// There's a limit on the length of names in Oracle.
+	// Depending on the version, it might be between 30 and 128 bytes.
+	// We're going with the safer (lower) limit here.
+	id := rand.Int31() //nolint:gosec // no need for a strong random generator here
+	if id < 0 {
+		id = -id
+	}
+
+	s.SnapshotTable = fmt.Sprintf("CONDUIT_SNAPSHOT_%d", id)
+	s.TrackingTable = fmt.Sprintf("CONDUIT_TRACKING_%d", id)
+	s.Trigger = fmt.Sprintf("CONDUIT_TRIGGER_%d", id)
 }

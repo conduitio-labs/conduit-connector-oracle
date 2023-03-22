@@ -55,7 +55,6 @@ func TestSource_Configure_success(t *testing.T) {
 			URL:   testURL,
 			Table: strings.ToUpper(testTable),
 		},
-		TrackingPrefix: config.DefaultTrackingPrefix,
 		SnapshotTable:  strings.ToUpper(cfgMap[config.SnapshotTable]),
 		TrackingTable:  strings.ToUpper(cfgMap[config.TrackingTable]),
 		Trigger:        strings.ToUpper(cfgMap[config.Trigger]),
