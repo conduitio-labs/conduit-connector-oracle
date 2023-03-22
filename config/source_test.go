@@ -281,42 +281,6 @@ func TestParseSource(t *testing.T) {
 			},
 		},
 		{
-			name: "success_default_tracking_prefix",
-			in: map[string]string{
-				URL:            testURL,
-				Table:          testTable,
-				OrderingColumn: "ID",
-			},
-			want: Source{
-				Configuration: Configuration{
-					URL:   testURL,
-					Table: strings.ToUpper(testTable),
-				},
-				OrderingColumn: "ID",
-				Snapshot:       DefaultSnapshot,
-				BatchSize:      DefaultBatchSize,
-			},
-			err: nil,
-		},
-		{
-			name: "success_custom_tracking_prefix",
-			in: map[string]string{
-				URL:            testURL,
-				Table:          testTable,
-				OrderingColumn: "ID",
-			},
-			want: Source{
-				Configuration: Configuration{
-					URL:   testURL,
-					Table: strings.ToUpper(testTable),
-				},
-				OrderingColumn: "ID",
-				Snapshot:       DefaultSnapshot,
-				BatchSize:      DefaultBatchSize,
-			},
-			err: nil,
-		},
-		{
 			name: "failure_required_orderingColumn",
 			in: map[string]string{
 				URL:        testURL,
