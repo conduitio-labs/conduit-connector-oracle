@@ -131,6 +131,14 @@ func NewParams(pos *Position, config config.Source) *Params {
 		Columns:        config.Columns,
 		BatchSize:      config.BatchSize,
 	}
+	// Reading the helper object names from the position
+	// helps when those have not been set through the configuration
+	// (i.e. the names have been generated).
+	// This obviously means that changes in configuration
+	// won't be respected. However, currently we're discouraging
+	// such changes.
+	// Also see: https://github.com/conduitio-labs/conduit-connector-oracle/issues/76
+	// and
 	if p.Position != nil {
 		p.SnapshotTable = p.Position.SnapshotTable
 		p.TrackingTable = p.Position.TrackingTable
