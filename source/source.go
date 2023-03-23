@@ -86,7 +86,7 @@ func (s *Source) Parameters() map[string]sdk.Parameter {
 				"Column names are the keys of the sdk.Record.Key map, and the values are taken from the row.",
 		},
 		config.Snapshot: {
-			Default:     fmt.Sprintf("%v", config.DefaultSnapshot),
+			Default:     "true",
 			Required:    false,
 			Description: "Whether the connector will take a snapshot of the entire table before starting cdc mode.",
 		},
@@ -97,7 +97,7 @@ func (s *Source) Parameters() map[string]sdk.Parameter {
 				"by default includes all columns.",
 		},
 		config.BatchSize: {
-			Default:     fmt.Sprintf("%v", config.DefaultBatchSize),
+			Default:     "1000",
 			Required:    false,
 			Description: "Size of rows batch. Min is 1 and max is 100000.",
 		},
