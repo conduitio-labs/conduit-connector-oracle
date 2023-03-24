@@ -138,7 +138,6 @@ func NewParams(pos *Position, config config.Source) *Params {
 	// won't be respected. However, currently we're discouraging
 	// such changes.
 	// Also see: https://github.com/conduitio-labs/conduit-connector-oracle/issues/76
-	// and
 	if p.Position != nil {
 		p.SnapshotTable = p.Position.SnapshotTable
 		p.TrackingTable = p.Position.TrackingTable
