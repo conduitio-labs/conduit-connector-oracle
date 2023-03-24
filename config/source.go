@@ -16,11 +16,15 @@ package config
 
 import (
 	"fmt"
+	"math/rand"
 	"strconv"
 	"strings"
 )
 
 const (
+	SnapshotTable = "snapshotTable"
+	TrackingTable = "trackingTable"
+	Trigger       = "trigger"
 	// OrderingColumn is a config name for an ordering column.
 	OrderingColumn = "orderingColumn"
 	// KeyColumns is the configuration name of the names of the columns to build the record.Key, separated by commas.
@@ -41,6 +45,12 @@ const (
 // A Source represents a source configuration.
 type Source struct {
 	Configuration
+	// SnapshotTable is the snapshot table to be used.
+	SnapshotTable string `validate:"lte=128,oracle"`
+	// TrackingTable is the tracking table to be used in CDC.
+	TrackingTable string `validate:"lte=128,oracle"`
+	// Trigger is the trigger to be used in CDC.
+	Trigger string `validate:"lte=128,oracle"`
 
 	// OrderingColumn is a name of a column that the connector will use for ordering rows.
 	OrderingColumn string `validate:"required,lte=128,oracle"`
@@ -55,81 +65,111 @@ type Source struct {
 	BatchSize int `validate:"gte=1,lte=100000"`
 }
 
-// ParseSource parses source configuration.
-func ParseSource(cfg map[string]string) (Source, error) {
-	config, err := parseConfiguration(cfg)
+// ParseSource parses a map with source configuration values.
+// A new config.Source should always be constructed using this function.
+func ParseSource(cfgMap map[string]string) (Source, error) {
+	config, err := parseConfiguration(cfgMap)
 	if err != nil {
 		return Source{}, err
 	}
 
-	sourceConfig := Source{
+	cfg := Source{
 		Configuration:  config,
-		OrderingColumn: strings.ToUpper(cfg[OrderingColumn]),
+		OrderingColumn: strings.ToUpper(cfgMap[OrderingColumn]),
 		Snapshot:       defaultSnapshot,
 		BatchSize:      defaultBatchSize,
 	}
 
-	if cfg[KeyColumns] != "" {
-		keyColumns := strings.Split(strings.ReplaceAll(cfg[KeyColumns], " ", ""), ",")
+	if cfgMap[KeyColumns] != "" {
+		keyColumns := strings.Split(strings.ReplaceAll(cfgMap[KeyColumns], " ", ""), ",")
 		for i := range keyColumns {
 			if keyColumns[i] == "" {
 				return Source{}, fmt.Errorf("invalid %q", KeyColumns)
 			}
 
-			sourceConfig.KeyColumns = append(sourceConfig.KeyColumns, strings.ToUpper(keyColumns[i]))
+			cfg.KeyColumns = append(cfg.KeyColumns, strings.ToUpper(keyColumns[i]))
 		}
 	}
 
-	if cfg[Snapshot] != "" {
-		snapshot, err := strconv.ParseBool(cfg[Snapshot])
+	if cfgMap[Snapshot] != "" {
+		snapshot, err := strconv.ParseBool(cfgMap[Snapshot])
 		if err != nil {
 			return Source{}, fmt.Errorf("parse %q: %w", Snapshot, err)
 		}
 
-		sourceConfig.Snapshot = snapshot
+		cfg.Snapshot = snapshot
 	}
 
-	if cfg[Columns] != "" {
-		columnsSl := strings.Split(strings.ReplaceAll(cfg[Columns], " ", ""), ",")
+	if cfgMap[Columns] != "" {
+		columnsSl := strings.Split(strings.ReplaceAll(cfgMap[Columns], " ", ""), ",")
 		for i := range columnsSl {
 			if columnsSl[i] == "" {
 				return Source{}, fmt.Errorf("invalid %q", Columns)
 			}
 
-			sourceConfig.Columns = append(sourceConfig.Columns, strings.ToUpper(columnsSl[i]))
+			cfg.Columns = append(cfg.Columns, strings.ToUpper(columnsSl[i]))
 		}
 	}
 
-	if cfg[BatchSize] != "" {
-		sourceConfig.BatchSize, err = strconv.Atoi(cfg[BatchSize])
+	if cfgMap[BatchSize] != "" {
+		cfg.BatchSize, err = strconv.Atoi(cfgMap[BatchSize])
 		if err != nil {
 			return Source{}, fmt.Errorf("parse BatchSize: %w", err)
 		}
 	}
 
-	err = validate(sourceConfig)
+	cfg.setHelperObjects(cfgMap)
+
+	err = validate(cfg)
 	if err != nil {
 		return Source{}, err
 	}
 
-	if len(sourceConfig.Columns) == 0 {
-		return sourceConfig, nil
+	if len(cfg.Columns) == 0 {
+		return cfg, nil
 	}
 
-	columnsMap := make(map[string]struct{}, len(sourceConfig.Columns))
-	for i := 0; i < len(sourceConfig.Columns); i++ {
-		columnsMap[sourceConfig.Columns[i]] = struct{}{}
+	columnsMap := make(map[string]struct{}, len(cfg.Columns))
+	for i := 0; i < len(cfg.Columns); i++ {
+		columnsMap[cfg.Columns[i]] = struct{}{}
 	}
 
-	if _, ok := columnsMap[sourceConfig.OrderingColumn]; !ok {
+	if _, ok := columnsMap[cfg.OrderingColumn]; !ok {
 		return Source{}, fmt.Errorf("columns must include %q", OrderingColumn)
 	}
 
-	for i := range sourceConfig.KeyColumns {
-		if _, ok := columnsMap[sourceConfig.KeyColumns[i]]; !ok {
+	for i := range cfg.KeyColumns {
+		if _, ok := columnsMap[cfg.KeyColumns[i]]; !ok {
 			return Source{}, fmt.Errorf("columns must include all %q", KeyColumns)
 		}
 	}
 
-	return sourceConfig, nil
+	return cfg, nil
+}
+
+func (s *Source) setHelperObjects(cfgMap map[string]string) {
+	s.setDefaultHelperObjects()
+	if cfgMap[SnapshotTable] != "" {
+		s.SnapshotTable = strings.ToUpper(cfgMap[SnapshotTable])
+	}
+	if cfgMap[TrackingTable] != "" {
+		s.TrackingTable = strings.ToUpper(cfgMap[TrackingTable])
+	}
+	if cfgMap[Trigger] != "" {
+		s.Trigger = strings.ToUpper(cfgMap[Trigger])
+	}
+}
+
+func (s *Source) setDefaultHelperObjects() {
+	// There's a limit on the length of names in Oracle.
+	// Depending on the version, it might be between 30 and 128 bytes.
+	// We're going with the safer (lower) limit here.
+	id := rand.Int31() //nolint:gosec // no need for a strong random generator here
+	if id < 0 {
+		id = -id
+	}
+
+	s.SnapshotTable = fmt.Sprintf("CONDUIT_SNAPSHOT_%d", id)
+	s.TrackingTable = fmt.Sprintf("CONDUIT_TRACKING_%d", id)
+	s.Trigger = fmt.Sprintf("CONDUIT_TRIGGER_%d", id)
 }

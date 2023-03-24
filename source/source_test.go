@@ -39,20 +39,27 @@ func TestSource_Configure_success(t *testing.T) {
 
 	s := Source{}
 
-	err := s.Configure(context.Background(), map[string]string{
+	cfgMap := map[string]string{
 		config.URL:            testURL,
 		config.Table:          testTable,
 		config.KeyColumns:     "id",
 		config.OrderingColumn: "created_at",
-	})
+		config.SnapshotTable:  "table_s",
+		config.TrackingTable:  "table_t",
+		config.Trigger:        "trigger",
+	}
+	err := s.Configure(context.Background(), cfgMap)
 	is.NoErr(err)
 	is.Equal(s.config, config.Source{
 		Configuration: config.Configuration{
 			URL:   testURL,
 			Table: strings.ToUpper(testTable),
 		},
-		OrderingColumn: strings.ToUpper("created_at"),
-		KeyColumns:     []string{strings.ToUpper("id")},
+		SnapshotTable:  strings.ToUpper(cfgMap[config.SnapshotTable]),
+		TrackingTable:  strings.ToUpper(cfgMap[config.TrackingTable]),
+		Trigger:        strings.ToUpper(cfgMap[config.Trigger]),
+		OrderingColumn: strings.ToUpper(cfgMap[config.OrderingColumn]),
+		KeyColumns:     []string{strings.ToUpper(cfgMap[config.KeyColumns])},
 		Snapshot:       true,
 		BatchSize:      1000,
 	})

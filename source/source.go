@@ -58,6 +58,21 @@ func (s *Source) Parameters() map[string]sdk.Parameter {
 			Required:    true,
 			Description: "The name of a table in the database that the connector should write to.",
 		},
+		config.SnapshotTable: {
+			Default:     "",
+			Required:    false,
+			Description: "Snapshot table to be used.",
+		},
+		config.TrackingTable: {
+			Default:     "",
+			Required:    false,
+			Description: "Tracking table to be used.",
+		},
+		config.Trigger: {
+			Default:     "",
+			Required:    false,
+			Description: "Trigger to be used.",
+		},
 		config.OrderingColumn: {
 			Default:  "",
 			Required: true,
@@ -108,16 +123,7 @@ func (s *Source) Open(ctx context.Context, position sdk.Position) error {
 		return fmt.Errorf("parse position: %w", err)
 	}
 
-	s.iterator, err = iterator.New(ctx, iterator.Params{
-		Position:       pos,
-		URL:            s.config.URL,
-		Table:          s.config.Table,
-		OrderingColumn: s.config.OrderingColumn,
-		KeyColumns:     s.config.KeyColumns,
-		Snapshot:       s.config.Snapshot,
-		Columns:        s.config.Columns,
-		BatchSize:      s.config.BatchSize,
-	})
+	s.iterator, err = iterator.New(ctx, iterator.NewParams(pos, s.config))
 	if err != nil {
 		return fmt.Errorf("new iterator: %w", err)
 	}

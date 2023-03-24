@@ -17,17 +17,18 @@ package config
 import (
 	"errors"
 	"fmt"
-	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/matryer/is"
 )
 
 func TestParseSource(t *testing.T) {
 	tests := []struct {
-		name string
-		in   map[string]string
-		want Source
-		err  error
+		name    string
+		in      map[string]string
+		want    Source
+		wantErr error
 	}{
 		{
 			name: "success_required_values",
@@ -286,7 +287,7 @@ func TestParseSource(t *testing.T) {
 				KeyColumns: "id",
 				Columns:    "id,name,age",
 			},
-			err: errors.New(`"orderingColumn" value must be set`),
+			wantErr: errors.New(`"orderingColumn" value must be set`),
 		},
 		{
 			name: "failure_invalid_snapshot",
@@ -296,7 +297,7 @@ func TestParseSource(t *testing.T) {
 				OrderingColumn: "id",
 				Snapshot:       "test",
 			},
-			err: errors.New(`parse "snapshot": strconv.ParseBool: parsing "test": invalid syntax`),
+			wantErr: errors.New(`parse "snapshot": strconv.ParseBool: parsing "test": invalid syntax`),
 		},
 		{
 			name: "failure_invalid_batchSize",
@@ -307,7 +308,7 @@ func TestParseSource(t *testing.T) {
 				KeyColumns:     "id",
 				BatchSize:      "a",
 			},
-			err: errors.New(`parse BatchSize: strconv.Atoi: parsing "a": invalid syntax`),
+			wantErr: errors.New(`parse BatchSize: strconv.Atoi: parsing "a": invalid syntax`),
 		},
 		{
 			name: "failure_missed_orderingColumn_in_columns",
@@ -318,7 +319,7 @@ func TestParseSource(t *testing.T) {
 				KeyColumns:     "name",
 				Columns:        "name,age",
 			},
-			err: fmt.Errorf("columns must include %q", OrderingColumn),
+			wantErr: fmt.Errorf("columns must include %q", OrderingColumn),
 		},
 		{
 			name: "failure_missed_keyColumn_in_columns",
@@ -329,7 +330,7 @@ func TestParseSource(t *testing.T) {
 				KeyColumns:     "name",
 				Columns:        "id,age",
 			},
-			err: fmt.Errorf("columns must include all %q", KeyColumns),
+			wantErr: fmt.Errorf("columns must include all %q", KeyColumns),
 		},
 		{
 			name: "failure_keyColumn_is_too_big",
@@ -340,7 +341,7 @@ func TestParseSource(t *testing.T) {
 				KeyColumns: "CREZSK8VR1LM5F0RZ5NA7FGJ0CNNVTTFNZDJKCWD8KKCU7UKZAW0NRNCZRQNM4EIAMEG0K7BGV2GX8UTDL" +
 					"RLM8HGNFEYSSEXAL7V8GVFKWU8PQABQ1FH6LHEVFVGZ9XUF",
 			},
-			err: fmt.Errorf("%q is out of range", KeyColumns),
+			wantErr: fmt.Errorf("%q is out of range", KeyColumns),
 		},
 		{
 			name: "failure_batchSize_is_too_big",
@@ -351,7 +352,7 @@ func TestParseSource(t *testing.T) {
 				KeyColumns:     "id",
 				BatchSize:      "100001",
 			},
-			err: fmt.Errorf("%q is out of range", BatchSize),
+			wantErr: fmt.Errorf("%q is out of range", BatchSize),
 		},
 		{
 			name: "failure_batchSize_is_zero",
@@ -362,7 +363,7 @@ func TestParseSource(t *testing.T) {
 				KeyColumns:     "id",
 				BatchSize:      "0",
 			},
-			err: fmt.Errorf("%q is out of range", BatchSize),
+			wantErr: fmt.Errorf("%q is out of range", BatchSize),
 		},
 		{
 			name: "failure_batchSize_is_negative",
@@ -373,32 +374,85 @@ func TestParseSource(t *testing.T) {
 				KeyColumns:     "id",
 				BatchSize:      "-1",
 			},
-			err: fmt.Errorf("%q is out of range", BatchSize),
+			wantErr: fmt.Errorf("%q is out of range", BatchSize),
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			is := is.New(t)
+
 			got, err := ParseSource(tt.in)
 			if err != nil {
-				if tt.err == nil {
-					t.Errorf("unexpected error: %s", err.Error())
-
-					return
-				}
-
-				if err.Error() != tt.err.Error() {
-					t.Errorf("unexpected error, got: %s, want: %s", err.Error(), tt.err.Error())
-
-					return
-				}
+				is.True(tt.wantErr != nil)
+				is.Equal(err.Error(), tt.wantErr.Error())
 
 				return
 			}
 
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("got: %v, want: %v", got, tt.want)
-			}
+			// removing to simplify these tests
+			// we're focusing on these in TestParseSource_HelperObjects_*
+			got.SnapshotTable = ""
+			got.TrackingTable = ""
+			got.Trigger = ""
+			is.Equal(got, tt.want)
 		})
 	}
+}
+
+func TestParseSource_HelperObjects_AllSpecified(t *testing.T) {
+	is := is.New(t)
+
+	cfgMap := map[string]string{
+		URL:            "test_url",
+		Table:          "test_table",
+		OrderingColumn: "test_column",
+
+		SnapshotTable: "table_1",
+		TrackingTable: "table_2",
+		Trigger:       "trigger_3",
+	}
+	underTest, err := ParseSource(cfgMap)
+	is.NoErr(err)
+	is.Equal(strings.ToUpper(cfgMap[SnapshotTable]), underTest.SnapshotTable)
+	is.Equal(strings.ToUpper(cfgMap[TrackingTable]), underTest.TrackingTable)
+	is.Equal(strings.ToUpper(cfgMap[Trigger]), underTest.Trigger)
+}
+
+func TestParseSource_HelperObjects_PartiallySpecified(t *testing.T) {
+	is := is.New(t)
+
+	cfgMap := map[string]string{
+		URL:            "test_url",
+		Table:          "test_table",
+		OrderingColumn: "test_column",
+
+		SnapshotTable: "table_1",
+		TrackingTable: "table_2",
+	}
+	underTest, err := ParseSource(cfgMap)
+	is.NoErr(err)
+	is.Equal(strings.ToUpper(cfgMap[SnapshotTable]), underTest.SnapshotTable)
+	is.Equal(strings.ToUpper(cfgMap[TrackingTable]), underTest.TrackingTable)
+	checkHelperObject(is, underTest.Trigger, "CONDUIT_TRIGGER_")
+}
+
+func TestParseSource_HelperObjects_NoneSpecified(t *testing.T) {
+	is := is.New(t)
+
+	cfgMap := map[string]string{
+		URL:            "test_url",
+		Table:          "test_table",
+		OrderingColumn: "test_column",
+	}
+	underTest, err := ParseSource(cfgMap)
+	is.NoErr(err)
+	checkHelperObject(is, underTest.SnapshotTable, "CONDUIT_SNAPSHOT_")
+	checkHelperObject(is, underTest.TrackingTable, "CONDUIT_TRACKING_")
+	checkHelperObject(is, underTest.Trigger, "CONDUIT_TRIGGER_")
+}
+
+func checkHelperObject(is *is.I, s string, prefix string) {
+	is.True(strings.HasPrefix(s, prefix))
+	is.True(len(s) < 30)
 }

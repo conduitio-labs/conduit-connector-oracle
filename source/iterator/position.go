@@ -35,7 +35,10 @@ type Position struct {
 	Mode Mode `json:"mode"`
 
 	// LastProcessedVal represents the last processed value from ordering column.
-	LastProcessedVal any `json:"last_processed_val"`
+	LastProcessedVal any    `json:"last_processed_val"`
+	TrackingTable    string `json:"tracking_table"`
+	Trigger          string `json:"trigger"`
+	SnapshotTable    string `json:"snapshot_table"`
 }
 
 // ParseSDKPosition parses sdk.Position and returns Position.
@@ -53,12 +56,12 @@ func ParseSDKPosition(position sdk.Position) (*Position, error) {
 	return &pos, nil
 }
 
-// marshal marshals Position and returns sdk.Position or an error.
-func (p Position) marshal() (sdk.Position, error) {
-	positionBytes, err := json.Marshal(p)
+// ToSDK marshals Position and returns sdk.Position or an error.
+func (p Position) ToSDK() (sdk.Position, error) {
+	bytes, err := json.Marshal(p)
 	if err != nil {
 		return nil, fmt.Errorf("marshal position: %w", err)
 	}
 
-	return positionBytes, nil
+	return bytes, nil
 }

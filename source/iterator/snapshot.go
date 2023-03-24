@@ -63,13 +63,13 @@ type SnapshotParams struct {
 	Repo           *repository.Oracle
 	Position       *Position
 	Table          string
+	SnapshotTable  string
 	TrackingTable  string
 	Trigger        string
 	OrderingColumn string
 	KeyColumns     []string
 	Columns        []string
 	BatchSize      int
-	HashedTable    uint32
 	ColumnTypes    map[string]columntypes.ColumnDescription
 }
 
@@ -81,7 +81,7 @@ func NewSnapshot(ctx context.Context, params SnapshotParams) (*Snapshot, error) 
 		repo:           params.Repo,
 		position:       params.Position,
 		table:          params.Table,
-		snapshotTable:  fmt.Sprintf("CONDUIT_SNAPSHOT_%d", params.HashedTable),
+		snapshotTable:  params.SnapshotTable,
 		trackingTable:  params.TrackingTable,
 		trigger:        params.Trigger,
 		orderingColumn: params.OrderingColumn,
@@ -175,9 +175,12 @@ func (iter *Snapshot) Next(_ context.Context) (sdk.Record, error) {
 		Mode: ModeSnapshot,
 		// set the value from iter.orderingColumn column you chose
 		LastProcessedVal: transformedRow[iter.orderingColumn],
+		SnapshotTable:    iter.snapshotTable,
+		TrackingTable:    iter.trackingTable,
+		Trigger:          iter.trigger,
 	}
 
-	convertedPosition, err := position.marshal()
+	convertedPosition, err := position.ToSDK()
 	if err != nil {
 		return sdk.Record{}, fmt.Errorf("convert position %w", err)
 	}

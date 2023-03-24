@@ -18,10 +18,10 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"hash/fnv"
 	"strings"
 
 	"github.com/conduitio-labs/conduit-connector-oracle/columntypes"
+	"github.com/conduitio-labs/conduit-connector-oracle/config"
 	"github.com/conduitio-labs/conduit-connector-oracle/repository"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 	"go.uber.org/multierr"
@@ -104,30 +104,67 @@ type Iterator struct {
 
 // Params represents an incoming iterator params for the New function.
 type Params struct {
-	Position       *Position
-	URL            string
-	Table          string
+	Position *Position
+	URL      string
+	Table    string
+
+	SnapshotTable string
+	TrackingTable string
+	Trigger       string
+
 	OrderingColumn string
 	KeyColumns     []string
 	Snapshot       bool
 	Columns        []string
-	BatchSize      int
+
+	BatchSize int
+}
+
+func NewParams(pos *Position, config config.Source) *Params {
+	p := &Params{
+		Position:       pos,
+		URL:            config.URL,
+		Table:          config.Table,
+		OrderingColumn: config.OrderingColumn,
+		KeyColumns:     config.KeyColumns,
+		Snapshot:       config.Snapshot,
+		Columns:        config.Columns,
+		BatchSize:      config.BatchSize,
+	}
+	// Reading the helper object names from the position
+	// helps when those have not been set through the configuration
+	// (i.e. the names have been generated).
+	// This obviously means that changes in configuration
+	// won't be respected. However, currently we're discouraging
+	// such changes.
+	// Also see: https://github.com/conduitio-labs/conduit-connector-oracle/issues/76
+	if p.Position != nil {
+		p.SnapshotTable = p.Position.SnapshotTable
+		p.TrackingTable = p.Position.TrackingTable
+		p.Trigger = p.Position.Trigger
+	} else {
+		p.SnapshotTable = config.SnapshotTable
+		p.TrackingTable = config.TrackingTable
+		p.Trigger = config.Trigger
+	}
+
+	return p
 }
 
 // New creates a new instance of the iterator.
-func New(ctx context.Context, params Params) (*Iterator, error) {
+func New(ctx context.Context, params *Params) (*Iterator, error) {
 	var err error
 
-	// hash the table name to use it as a postfix in the tracking table and snapshot,
-	// because the maximum length of names (tables, triggers, etc.) is 30 characters
-	h := fnv.New32a()
-	h.Write([]byte(params.Table))
-	hashedTable := h.Sum32()
+	sdk.Logger(ctx).Debug().
+		Str("snapshot_table", params.SnapshotTable).
+		Str("tracking_table", params.TrackingTable).
+		Str("trigger_name", params.Trigger).
+		Msg("creating new iterator")
 
 	iterator := &Iterator{
 		table:          params.Table,
-		trackingTable:  fmt.Sprintf("CONDUIT_TRACKING_%d", hashedTable),
-		trigger:        fmt.Sprintf("CONDUIT_%d", hashedTable),
+		trackingTable:  params.TrackingTable,
+		trigger:        params.Trigger,
 		orderingColumn: params.OrderingColumn,
 		keyColumns:     params.KeyColumns,
 		columns:        params.Columns,
@@ -160,13 +197,13 @@ func New(ctx context.Context, params Params) (*Iterator, error) {
 			Repo:           iterator.repo,
 			Position:       params.Position,
 			Table:          params.Table,
-			TrackingTable:  iterator.trackingTable,
-			Trigger:        iterator.trigger,
+			SnapshotTable:  params.SnapshotTable,
+			TrackingTable:  params.TrackingTable,
+			Trigger:        params.Trigger,
 			OrderingColumn: params.OrderingColumn,
 			KeyColumns:     iterator.keyColumns,
 			Columns:        params.Columns,
 			BatchSize:      params.BatchSize,
-			HashedTable:    hashedTable,
 			ColumnTypes:    iterator.columnTypes,
 		})
 		if err != nil {
@@ -177,7 +214,8 @@ func New(ctx context.Context, params Params) (*Iterator, error) {
 			Repo:           iterator.repo,
 			Position:       params.Position,
 			Table:          params.Table,
-			TrackingTable:  iterator.trackingTable,
+			TrackingTable:  params.TrackingTable,
+			Trigger:        params.Trigger,
 			OrderingColumn: params.OrderingColumn,
 			KeyColumns:     iterator.keyColumns,
 			Columns:        params.Columns,
@@ -273,6 +311,7 @@ func (iter *Iterator) switchToCDCIterator(ctx context.Context) error {
 		Repo:           iter.repo,
 		Table:          iter.table,
 		TrackingTable:  iter.trackingTable,
+		Trigger:        iter.trigger,
 		OrderingColumn: iter.orderingColumn,
 		KeyColumns:     iter.keyColumns,
 		Columns:        iter.columns,

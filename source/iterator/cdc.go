@@ -52,6 +52,8 @@ type CDC struct {
 	table string
 	// trackingTable represents a tracking table name
 	trackingTable string
+	// trigger represents a trigger name for a trackingTable.
+	trigger string
 	// orderingColumn represents a name of column what iterator use for sorting data
 	orderingColumn string
 	// keyColumns represents a name of the columns that iterator will use for setting key in record
@@ -61,8 +63,7 @@ type CDC struct {
 	columns []string
 	// batchSize represents a size of batch
 	batchSize int
-
-	rows *sqlx.Rows
+	rows      *sqlx.Rows
 	// columnTypes represents a columns' description from table
 	columnTypes map[string]columntypes.ColumnDescription
 }
@@ -73,6 +74,7 @@ type CDCParams struct {
 	Position       *Position
 	Table          string
 	TrackingTable  string
+	Trigger        string
 	OrderingColumn string
 	KeyColumns     []string
 	Columns        []string
@@ -102,6 +104,7 @@ func NewCDC(ctx context.Context, params CDCParams) (*CDC, error) {
 		tableSrv:       newTrackingTableService(),
 		table:          params.Table,
 		trackingTable:  params.TrackingTable,
+		trigger:        params.Trigger,
 		orderingColumn: params.OrderingColumn,
 		keyColumns:     params.KeyColumns,
 		columns:        params.Columns,
@@ -161,9 +164,11 @@ func (iter *CDC) Next(ctx context.Context) (sdk.Record, error) {
 		Mode: ModeCDC,
 		// set the value from columnTrackingID column of the tracking table
 		LastProcessedVal: transformedRow[columnTrackingID],
+		TrackingTable:    iter.trackingTable,
+		Trigger:          iter.trigger,
 	}
 
-	convertedPosition, err := position.marshal()
+	convertedPosition, err := position.ToSDK()
 	if err != nil {
 		return sdk.Record{}, fmt.Errorf("convert position %w", err)
 	}
