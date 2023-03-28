@@ -55,21 +55,22 @@ the CDC mode.
 ### Change Data Capture
 
 This connector implements CDC features for Oracle by adding a tracking table and a trigger to populate it. The tracking
-table and trigger name have the same names as a source table with the prefix `CONDUIT`. The tracking table has all the
-same columns as the source table plus three additional columns:
+table and trigger name have the same names as a source table with the prefix `CONDUIT` by default. See configuration options `trackingTable`, `trigger`, and `snapshotTable` if you would like to customize the naming.
 
-| name                          | description                                         |
-|-------------------------------|-----------------------------------------------------|
-| `CONDUIT_TRACKING_ID`         | Autoincrement index for the position.               |
-| `CONDUIT_OPERATION_TYPE`      | Operation type: `insert`, `update`, or `delete`.    |
-| `CONDUIT_TRACKING_CREATED_AT` | Date when the event was added to the tacking table. |
+The tracking table has all the same columns as the source table plus three additional columns:
+
+| name                           | description                                        |
+|--------------------------------|----------------------------------------------------|
+| `CONNECTOR_TRACKING_ID`        | Autoincrement index for the position.              |
+| `CONNECTOR_OPERATION_TYPE`     | Operation type: `insert`, `update`, or `delete`.   |
+| `CONNECTOR_TRACKING_CREATED_AT`| Date when the event was added to the tacking table.|
 
 Every time data is added, changed, or deleted from the source table, this event will be written to the tracking table.
 
 Queries to retrieve change data from a tracking table are very similar to queries in a Snapshot mode, but
-with `CONDUIT_TRACKING_ID` ordering column.
+with `CONNECTOR_TRACKING_ID` ordering column.
 
-The Ack method collects the `CONDUIT_TRACKING_ID` of those records that have been successfully applied, in order to
+The Ack method collects the `CONNECTOR_TRACKING_ID` of those records that have been successfully applied, in order to
 remove them later in a batch from the tracking table (every 5 seconds or when the connector is closed).
 
 ### Position

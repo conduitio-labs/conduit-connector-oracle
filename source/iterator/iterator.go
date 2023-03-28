@@ -30,9 +30,9 @@ import (
 const (
 	metadataTable = "oracle.table"
 
-	columnTrackingID    = "CONDUIT_TRACKING_ID"
-	columnOperationType = "CONDUIT_OPERATION_TYPE"
-	columnTimeCreatedAt = "CONDUIT_TRACKING_CREATED_AT"
+	columnTrackingID    = "CONNECTOR_TRACKING_ID"
+	columnOperationType = "CONNECTOR_OPERATION_TYPE"
+	columnTimeCreatedAt = "CONNECTOR_TRACKING_CREATED_AT"
 
 	queryIfTableExists     = "SELECT * FROM user_tables WHERE table_name='%s'"
 	querySelectRowsFmt     = "SELECT %s FROM %s%s ORDER BY %s ASC FETCH NEXT %d ROWS ONLY"
