@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/conduitio/conduit-connector-sdk v0.5.2
 	github.com/go-playground/validator/v10 v10.12.0
-	github.com/godror/godror v0.36.0
+	github.com/godror/godror v0.37.0
 	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.3.0
 	github.com/jmoiron/sqlx v1.3.5
