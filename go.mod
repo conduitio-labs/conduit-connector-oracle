@@ -3,7 +3,7 @@ module github.com/conduitio-labs/conduit-connector-oracle
 go 1.20
 
 require (
-	github.com/conduitio/conduit-connector-sdk v0.5.2
+	github.com/conduitio/conduit-connector-sdk v0.6.0
 	github.com/go-playground/validator/v10 v10.12.0
 	github.com/godror/godror v0.37.0
 	github.com/golang/mock v1.6.0
@@ -17,7 +17,7 @@ require (
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.2.0 // indirect
 	github.com/Masterminds/sprig/v3 v3.2.3 // indirect
-	github.com/conduitio/conduit-connector-protocol v0.4.1 // indirect
+	github.com/conduitio/conduit-connector-protocol v0.5.0 // indirect
 	github.com/fatih/color v1.7.0 // indirect
 	github.com/go-logfmt/logfmt v0.5.1 // indirect
 	github.com/go-logr/logr v1.2.3 // indirect
