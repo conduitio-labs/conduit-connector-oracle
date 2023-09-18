@@ -34,8 +34,8 @@ github.com/go-playground/validator/v10 v10.15.4/go.mod h1:9iXMNT7sEkjXb0I+enO7QX
 github.com/go-sql-driver/mysql v1.6.0 h1:BCTh4TKNUYmOmMUcQ3IipzF5prigylS7XXjEkfCHuOE=
 github.com/go-sql-driver/mysql v1.6.0/go.mod h1:DCzpHaOWr8IXmIStZouvnhqoel9Qv2LBy8hT2VhHyBg=
 github.com/godbus/dbus/v5 v5.0.4/go.mod h1:xhWf0FNVPg57R7Z0UbKHbJfkEywrmjJnf7w5xrFpKfA=
-github.com/godror/godror v0.39.2 h1:Hj27TRhsW3+xCNL6acx8j5Rrkvk/XS50ph6XQdU+x1U=
-github.com/godror/godror v0.39.2/go.mod h1:1zxzPh0ECu0FtlSuVF7WhB2wRyWyGoJyLHwkuULydq4=
+github.com/godror/godror v0.39.3 h1:39t0/KnmzkYZWgzcT1RwW6cgofz1s/b1fBR3NYcjx0c=
+github.com/godror/godror v0.39.3/go.mod h1:WoiPqkjCGtKxZ5gJtB64kmOUy6O2h7dR4dxdsnxjgCA=
 github.com/godror/knownpb v0.1.1 h1:A4J7jdx7jWBhJm18NntafzSC//iZDHkDi1+juwQ5pTI=
 github.com/godror/knownpb v0.1.1/go.mod h1:4nRFbQo1dDuwKnblRXDxrfCFYeT4hjg3GjMqef58eRE=
 github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b/go.mod h1:SBH7ygxi8pfUlaOkMMuAQtPIUF8ecWP5IEl/CR7VP2Q=
