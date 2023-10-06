@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/conduitio/conduit-connector-sdk v0.7.2
 	github.com/go-playground/validator/v10 v10.15.5
-	github.com/godror/godror v0.39.3
+	github.com/godror/godror v0.40.3
 	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.3.1
 	github.com/jmoiron/sqlx v1.3.5
@@ -44,9 +44,9 @@ require (
 	github.com/spf13/cast v1.3.1 // indirect
 	go.uber.org/goleak v1.2.1 // indirect
 	golang.org/x/crypto v0.7.0 // indirect
-	golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63 // indirect
+	golang.org/x/exp v0.0.0-20230905200255-921286631fa9 // indirect
 	golang.org/x/net v0.8.0 // indirect
-	golang.org/x/sys v0.11.0 // indirect
+	golang.org/x/sys v0.12.0 // indirect
 	golang.org/x/text v0.8.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	google.golang.org/genproto v0.0.0-20230110181048-76db0878b65f // indirect
