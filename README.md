@@ -10,7 +10,7 @@ installed. See [Godror Installation](https://godror.github.io/godror/doc/install
 
 ## Prerequisites
 
-- [Go](https://go.dev/) 1.20
+- [Go](https://go.dev/) 1.21
 - (optional) [golangci-lint](https://github.com/golangci/golangci-lint) 1.50.1
 
 ## How to build it
