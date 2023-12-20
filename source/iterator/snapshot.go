@@ -219,7 +219,13 @@ func (iter *Snapshot) checkIfTableExists(ctx context.Context, tx *sql.Tx, table 
 	}
 	defer rows.Close()
 
-	return rows.Next(), nil
+	exists := rows.Next()
+
+	if rows.Err() != nil {
+		return false, fmt.Errorf("table exists: %w", err)
+	}
+
+	return exists, nil
 }
 
 // initSnapshotTable creates a new snapshot table, if id does not exist.

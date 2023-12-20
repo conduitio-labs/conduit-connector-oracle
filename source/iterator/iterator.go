@@ -264,7 +264,7 @@ func (iter *Iterator) Next(ctx context.Context) (sdk.Record, error) {
 		return iter.snapshot.Next(ctx)
 
 	case iter.cdc != nil:
-		return iter.cdc.Next(ctx)
+		return iter.cdc.Next()
 
 	default:
 		return sdk.Record{}, errNoInitializedIterator
@@ -407,6 +407,10 @@ func (iter *Iterator) initTrackingTable(ctx context.Context, tx *sql.Tx) error {
 		columnTrackingID))
 	if err != nil {
 		return fmt.Errorf("expand tracking table with conduit columns: %w", err)
+	}
+
+	if rows.Err() != nil {
+		return fmt.Errorf("create tracking table: %w", err)
 	}
 
 	return nil
