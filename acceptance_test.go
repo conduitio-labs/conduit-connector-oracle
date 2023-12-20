@@ -38,7 +38,7 @@ type driver struct {
 }
 
 // GenerateRecord generates a random sdk.Record.
-func (d *driver) GenerateRecord(t *testing.T, operation sdk.Operation) sdk.Record {
+func (d *driver) GenerateRecord(_ *testing.T, operation sdk.Operation) sdk.Record {
 	atomic.AddInt32(&d.counter, 1)
 
 	return sdk.Record{

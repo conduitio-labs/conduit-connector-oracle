@@ -142,7 +142,7 @@ func (iter *CDC) HasNext(ctx context.Context) (bool, error) {
 }
 
 // Next returns the next record.
-func (iter *CDC) Next(ctx context.Context) (sdk.Record, error) {
+func (iter *CDC) Next() (sdk.Record, error) {
 	row := make(map[string]any)
 	if err := iter.rows.MapScan(row); err != nil {
 		return sdk.Record{}, fmt.Errorf("scan rows: %w", err)
