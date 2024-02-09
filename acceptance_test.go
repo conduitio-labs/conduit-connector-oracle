@@ -67,11 +67,11 @@ func TestAcceptance(t *testing.T) {
 				Connector:         Connector,
 				SourceConfig:      cfg,
 				DestinationConfig: cfg,
-				BeforeTest: func(t *testing.T) {
+				BeforeTest: func(*testing.T) {
 					err := createTable(cfg[config.URL], cfg[config.Table])
 					is.NoErr(err)
 				},
-				AfterTest: func(t *testing.T) {
+				AfterTest: func(*testing.T) {
 					err := dropTables(cfg[config.URL], cfg[config.Table])
 					is.NoErr(err)
 				},
