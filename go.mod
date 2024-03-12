@@ -7,7 +7,7 @@ toolchain go1.21.1
 require (
 	github.com/conduitio/conduit-connector-sdk v0.8.0
 	github.com/go-playground/validator/v10 v10.19.0
-	github.com/godror/godror v0.41.1
+	github.com/godror/godror v0.42.0
 	github.com/golang/mock v1.6.0
 	github.com/golangci/golangci-lint v1.56.2
 	github.com/google/uuid v1.6.0
