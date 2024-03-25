@@ -7,7 +7,7 @@ toolchain go1.21.1
 require (
 	github.com/conduitio/conduit-connector-sdk v0.8.0
 	github.com/go-playground/validator/v10 v10.19.0
-	github.com/godror/godror v0.42.0
+	github.com/godror/godror v0.42.1
 	github.com/golang/mock v1.6.0
 	github.com/golangci/golangci-lint v1.57.1
 	github.com/google/uuid v1.6.0
@@ -204,7 +204,7 @@ require (
 	go.uber.org/goleak v1.3.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/crypto v0.21.0 // indirect
-	golang.org/x/exp v0.0.0-20240103183307-be819d1f06fc // indirect
+	golang.org/x/exp v0.0.0-20240318143956-a85f2c67cd81 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20240314144324-c7f7c6466f7f // indirect
 	golang.org/x/mod v0.16.0 // indirect
 	golang.org/x/net v0.22.0 // indirect
