@@ -11,7 +11,7 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/golangci/golangci-lint v1.57.2
 	github.com/google/uuid v1.6.0
-	github.com/jmoiron/sqlx v1.3.5
+	github.com/jmoiron/sqlx v1.4.0
 	github.com/matryer/is v1.4.1
 	go.uber.org/multierr v1.11.0
 )
