@@ -26,8 +26,8 @@ import (
 // Iterator interface.
 type Iterator interface {
 	HasNext(context.Context) (bool, error)
-	Next(context.Context) (sdk.Record, error)
-	PushValueToDelete(sdk.Position) error
+	Next(context.Context) (opencdc.Record, error)
+	PushValueToDelete(opencdc.Position) error
 	Close() error
 }
 
@@ -81,8 +81,8 @@ func (s *Source) Parameters() map[string]sdk.Parameter {
 		config.KeyColumns: {
 			Default:  "",
 			Required: false,
-			Description: "Comma-separated list of column names to build the sdk.Record.Key. " +
-				"Column names are the keys of the sdk.Record.Key map, and the values are taken from the row.",
+			Description: "Comma-separated list of column names to build the opencdc.Record.Key. " +
+				"Column names are the keys of the opencdc.Record.Key map, and the values are taken from the row.",
 		},
 		config.Snapshot: {
 			Default:     "true",
@@ -116,7 +116,7 @@ func (s *Source) Configure(_ context.Context, cfgRaw map[string]string) error {
 }
 
 // Open prepare the plugin to start sending records from the given position.
-func (s *Source) Open(ctx context.Context, position sdk.Position) error {
+func (s *Source) Open(ctx context.Context, position opencdc.Position) error {
 	pos, err := iterator.ParseSDKPosition(position)
 	if err != nil {
 		return fmt.Errorf("parse position: %w", err)
@@ -131,26 +131,26 @@ func (s *Source) Open(ctx context.Context, position sdk.Position) error {
 }
 
 // Read returns the next record.
-func (s *Source) Read(ctx context.Context) (sdk.Record, error) {
+func (s *Source) Read(ctx context.Context) (opencdc.Record, error) {
 	hasNext, err := s.iterator.HasNext(ctx)
 	if err != nil {
-		return sdk.Record{}, fmt.Errorf("has next: %w", err)
+		return opencdc.Record{}, fmt.Errorf("has next: %w", err)
 	}
 
 	if !hasNext {
-		return sdk.Record{}, sdk.ErrBackoffRetry
+		return opencdc.Record{}, sdk.ErrBackoffRetry
 	}
 
 	r, err := s.iterator.Next(ctx)
 	if err != nil {
-		return sdk.Record{}, fmt.Errorf("next: %w", err)
+		return opencdc.Record{}, fmt.Errorf("next: %w", err)
 	}
 
 	return r, nil
 }
 
 // Ack appends the last processed value to the slice to clear the tracking table in the future.
-func (s *Source) Ack(ctx context.Context, position sdk.Position) error {
+func (s *Source) Ack(ctx context.Context, position opencdc.Position) error {
 	sdk.Logger(ctx).Debug().Str("position", string(position)).Msg("got ack")
 
 	return s.iterator.PushValueToDelete(position)

@@ -58,10 +58,10 @@ func TestDestination_upsert(t *testing.T) {
 	err = dest.Open(ctx)
 	is.NoErr(err)
 
-	n, err := dest.Write(ctx, []sdk.Record{
+	n, err := dest.Write(ctx, []opencdc.Record{
 		{
 			Operation: sdk.OperationUpdate,
-			Payload: sdk.Change{After: sdk.StructuredData{
+			Payload: sdk.Change{After: opencdc.StructuredData{
 				"id":   42,
 				"name": "Jane",
 			}},
@@ -116,10 +116,10 @@ func TestDestination_delete(t *testing.T) {
 	err = dest.Open(ctx)
 	is.NoErr(err)
 
-	n, err := dest.Write(ctx, []sdk.Record{
+	n, err := dest.Write(ctx, []opencdc.Record{
 		{
-			Operation: sdk.OperationDelete,
-			Key:       sdk.RawData(`{"id":42}`),
+			Operation: opencdc.OperationDelete,
+			Key:       opencdc.RawData(`{"id":42}`),
 		},
 	})
 	is.NoErr(err)
@@ -163,10 +163,10 @@ func TestDestination_wrongColumn(t *testing.T) {
 	err = dest.Open(ctx)
 	is.NoErr(err)
 
-	_, err = dest.Write(ctx, []sdk.Record{
+	_, err = dest.Write(ctx, []opencdc.Record{
 		{
 			Operation: sdk.OperationSnapshot,
-			Payload: sdk.Change{After: sdk.StructuredData{
+			Payload: sdk.Change{After: opencdc.StructuredData{
 				"id":           43,
 				"wrong_column": "test",
 			}},

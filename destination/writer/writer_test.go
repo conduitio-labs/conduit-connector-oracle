@@ -19,7 +19,6 @@ import (
 	"time"
 
 	"github.com/conduitio-labs/conduit-connector-oracle/columntypes"
-	sdk "github.com/conduitio/conduit-connector-sdk"
 	"github.com/matryer/is"
 )
 
@@ -42,7 +41,7 @@ func TestWriter_buildUpsertQuery(t *testing.T) {
 		},
 	}
 
-	payload := sdk.StructuredData{
+	payload := opencdc.StructuredData{
 		"id":      42,
 		"name":    "John",
 		"ts":      time.Unix(1257894000, 0).UTC(),

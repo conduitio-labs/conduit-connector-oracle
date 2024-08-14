@@ -21,12 +21,13 @@ import (
 	"github.com/conduitio-labs/conduit-connector-oracle/config"
 	"github.com/conduitio-labs/conduit-connector-oracle/destination/writer"
 	"github.com/conduitio-labs/conduit-connector-oracle/repository"
+	"github.com/conduitio/conduit-commons/opencdc"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 )
 
 // Writer defines a writer interface needed for the Destination.
 type Writer interface {
-	Write(context.Context, sdk.Record) error
+	Write(context.Context, opencdc.Record) error
 }
 
 // A Destination represents the destination connector.
@@ -96,7 +97,7 @@ func (d *Destination) Open(ctx context.Context) (err error) {
 }
 
 // Write writes records into a Destination.
-func (d *Destination) Write(ctx context.Context, records []sdk.Record) (int, error) {
+func (d *Destination) Write(ctx context.Context, records []opencdc.Record) (int, error) {
 	for i, r := range records {
 		err := d.writer.Write(ctx, r)
 		if err != nil {

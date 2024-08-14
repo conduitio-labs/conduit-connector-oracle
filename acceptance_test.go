@@ -37,20 +37,20 @@ type driver struct {
 	counter int32
 }
 
-// GenerateRecord generates a random sdk.Record.
-func (d *driver) GenerateRecord(_ *testing.T, operation sdk.Operation) sdk.Record {
+// GenerateRecord generates a random opencdc.Record.
+func (d *driver) GenerateRecord(_ *testing.T, operation sdk.Operation) opencdc.Record {
 	atomic.AddInt32(&d.counter, 1)
 
-	return sdk.Record{
+	return opencdc.Record{
 		Position:  nil,
 		Operation: operation,
 		Metadata: map[string]string{
 			"oracle.table": strings.ToUpper(d.Config.SourceConfig[config.Table]),
 		},
-		Key: sdk.RawData(
+		Key: opencdc.RawData(
 			fmt.Sprintf(`{"ID":%d}`, d.counter),
 		),
-		Payload: sdk.Change{After: sdk.RawData(
+		Payload: sdk.Change{After: opencdc.RawData(
 			fmt.Sprintf(`{"ID":%d,"NAME":"%s"}`, d.counter, uuid.NewString()),
 		)},
 	}

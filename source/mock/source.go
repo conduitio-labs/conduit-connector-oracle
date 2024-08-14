@@ -65,10 +65,10 @@ func (mr *MockIteratorMockRecorder) HasNext(arg0 interface{}) *gomock.Call {
 }
 
 // Next mocks base method.
-func (m *MockIterator) Next(arg0 context.Context) (sdk.Record, error) {
+func (m *MockIterator) Next(arg0 context.Context) (opencdc.Record, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Next", arg0)
-	ret0, _ := ret[0].(sdk.Record)
+	ret0, _ := ret[0].(opencdc.Record)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -80,7 +80,7 @@ func (mr *MockIteratorMockRecorder) Next(arg0 interface{}) *gomock.Call {
 }
 
 // PushValueToDelete mocks base method.
-func (m *MockIterator) PushValueToDelete(arg0 sdk.Position) error {
+func (m *MockIterator) PushValueToDelete(arg0 opencdc.Position) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PushValueToDelete", arg0)
 	ret0, _ := ret[0].(error)

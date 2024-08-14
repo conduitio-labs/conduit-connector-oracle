@@ -88,11 +88,11 @@ func TestSource_Read_success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	ctx := context.Background()
 
-	st := make(sdk.StructuredData)
+	st := make(opencdc.StructuredData)
 	st["key"] = "value"
 
-	record := sdk.Record{
-		Position: sdk.Position(`{"last_processed_element_value": 1}`),
+	record := opencdc.Record{
+		Position: opencdc.Position(`{"last_processed_element_value": 1}`),
 		Metadata: nil,
 		Key:      st,
 		Payload:  sdk.Change{After: st},
@@ -141,7 +141,7 @@ func TestSource_Read_failureNext(t *testing.T) {
 
 	it := mock.NewMockIterator(ctrl)
 	it.EXPECT().HasNext(ctx).Return(true, nil)
-	it.EXPECT().Next(ctx).Return(sdk.Record{}, errors.New("key is not exist"))
+	it.EXPECT().Next(ctx).Return(opencdc.Record{}, errors.New("key is not exist"))
 
 	s := Source{
 		iterator: it,

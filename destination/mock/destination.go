@@ -36,7 +36,7 @@ func (m *MockWriter) EXPECT() *MockWriterMockRecorder {
 }
 
 // Write mocks base method.
-func (m *MockWriter) Write(arg0 context.Context, arg1 sdk.Record) error {
+func (m *MockWriter) Write(arg0 context.Context, arg1 opencdc.Record) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Write", arg0, arg1)
 	ret0, _ := ret[0].(error)

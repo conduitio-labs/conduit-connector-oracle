@@ -18,7 +18,6 @@ import (
 	"testing"
 	"time"
 
-	sdk "github.com/conduitio/conduit-connector-sdk"
 	"github.com/matryer/is"
 )
 
@@ -30,7 +29,7 @@ func TestFormatData(t *testing.T) {
 	const expectedTime = "1989-10-04 13:14:15"
 
 	columnTypes := make(map[string]ColumnDescription)
-	payload := make(sdk.StructuredData)
+	payload := make(opencdc.StructuredData)
 	expectedPlaceholder := make(map[string]interface{})
 	expectedArg := map[string]any{}
 

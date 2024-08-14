@@ -17,7 +17,6 @@ package iterator
 import (
 	"testing"
 
-	sdk "github.com/conduitio/conduit-connector-sdk"
 	"github.com/matryer/is"
 )
 
@@ -30,7 +29,7 @@ func TestPosition_ParseSDKPosition(t *testing.T) {
 
 func TestPosition_ParseSDKPosition_Invalid(t *testing.T) {
 	is := is.New(t)
-	pos, err := ParseSDKPosition(sdk.Position("nil"))
+	pos, err := ParseSDKPosition(opencdc.Position("nil"))
 	is.True(err != nil)
 	is.True(pos == nil)
 }

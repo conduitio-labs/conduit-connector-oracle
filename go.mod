@@ -1,6 +1,7 @@
 module github.com/conduitio-labs/conduit-connector-oracle
 
-go 1.22.2
+go 1.22.6
+
 require (
 	github.com/conduitio/conduit-connector-sdk v0.10.0
 	github.com/go-playground/validator/v10 v10.22.0
