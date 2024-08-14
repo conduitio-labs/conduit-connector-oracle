@@ -25,7 +25,7 @@ import (
 
 	"github.com/conduitio-labs/conduit-connector-oracle/config"
 	"github.com/conduitio-labs/conduit-connector-oracle/repository"
-	sdk "github.com/conduitio/conduit-connector-sdk"
+	"github.com/conduitio/conduit-commons/opencdc"
 	"github.com/matryer/is"
 )
 
@@ -60,8 +60,8 @@ func TestDestination_upsert(t *testing.T) {
 
 	n, err := dest.Write(ctx, []opencdc.Record{
 		{
-			Operation: sdk.OperationUpdate,
-			Payload: sdk.Change{After: opencdc.StructuredData{
+			Operation: opencdc.OperationUpdate,
+			Payload: opencdc.Change{After: opencdc.StructuredData{
 				"id":   42,
 				"name": "Jane",
 			}},
@@ -165,8 +165,8 @@ func TestDestination_wrongColumn(t *testing.T) {
 
 	_, err = dest.Write(ctx, []opencdc.Record{
 		{
-			Operation: sdk.OperationSnapshot,
-			Payload: sdk.Change{After: opencdc.StructuredData{
+			Operation: opencdc.OperationSnapshot,
+			Payload: opencdc.Change{After: opencdc.StructuredData{
 				"id":           43,
 				"wrong_column": "test",
 			}},

@@ -50,7 +50,7 @@ func (d *driver) GenerateRecord(_ *testing.T, operation sdk.Operation) opencdc.R
 		Key: opencdc.RawData(
 			fmt.Sprintf(`{"ID":%d}`, d.counter),
 		),
-		Payload: sdk.Change{After: opencdc.RawData(
+		Payload: opencdc.Change{After: opencdc.RawData(
 			fmt.Sprintf(`{"ID":%d,"NAME":"%s"}`, d.counter, uuid.NewString()),
 		)},
 	}
