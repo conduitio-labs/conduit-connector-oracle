@@ -27,9 +27,11 @@ const (
 
 // A Configuration represents a general configuration needed to connect to Oracle database.
 type Configuration struct {
-	// URL is the configuration of the connection string to connect to Oracle database.
+	// URL is the connection string to connect to Oracle database.
+	// default = ""
 	URL string `json:"url" validate:"required"`
-	// Table is the configuration of the table name.
+	// Table is table name of the table in Oracle that the connector should write to.
+	// default = '""
 	Table string `json:"table" validate:"required,lte=128,oracle"`
 }
 

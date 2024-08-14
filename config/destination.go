@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:generate paramgen -output=paramgen.go Destination
+
 package config
 
 import (
@@ -27,6 +29,7 @@ type Destination struct {
 	Configuration
 
 	// KeyColumn is the column name uses to detect if the target table already contains the record.
+	// required = true, default = ""
 	KeyColumn string `validate:"required,lte=128,oracle"`
 }
 

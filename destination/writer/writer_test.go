@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/conduitio-labs/conduit-connector-oracle/columntypes"
+	"github.com/conduitio/conduit-commons/opencdc"
 	"github.com/matryer/is"
 )
 

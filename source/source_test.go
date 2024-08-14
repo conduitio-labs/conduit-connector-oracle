@@ -22,7 +22,7 @@ import (
 
 	"github.com/conduitio-labs/conduit-connector-oracle/config"
 	"github.com/conduitio-labs/conduit-connector-oracle/source/mock"
-	sdk "github.com/conduitio/conduit-connector-sdk"
+	"github.com/conduitio/conduit-commons/opencdc"
 	"github.com/golang/mock/gomock"
 	"github.com/matryer/is"
 )
@@ -95,7 +95,7 @@ func TestSource_Read_success(t *testing.T) {
 		Position: opencdc.Position(`{"last_processed_element_value": 1}`),
 		Metadata: nil,
 		Key:      st,
-		Payload:  sdk.Change{After: st},
+		Payload:  opencdc.Change{After: st},
 	}
 
 	it := mock.NewMockIterator(ctrl)

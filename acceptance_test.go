@@ -26,6 +26,7 @@ import (
 
 	"github.com/conduitio-labs/conduit-connector-oracle/config"
 	"github.com/conduitio-labs/conduit-connector-oracle/repository"
+	"github.com/conduitio/conduit-commons/opencdc"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 	"github.com/google/uuid"
 	"github.com/matryer/is"
@@ -38,7 +39,7 @@ type driver struct {
 }
 
 // GenerateRecord generates a random opencdc.Record.
-func (d *driver) GenerateRecord(_ *testing.T, operation sdk.Operation) opencdc.Record {
+func (d *driver) GenerateRecord(_ *testing.T, operation opencdc.Operation) opencdc.Record {
 	atomic.AddInt32(&d.counter, 1)
 
 	return opencdc.Record{

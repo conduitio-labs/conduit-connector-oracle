@@ -8,7 +8,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	sdk "github.com/conduitio/conduit-connector-sdk"
+	opencdc "github.com/conduitio/conduit-commons/opencdc"
 	gomock "github.com/golang/mock/gomock"
 )
 

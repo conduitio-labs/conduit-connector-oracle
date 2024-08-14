@@ -23,7 +23,7 @@ import (
 	"github.com/conduitio-labs/conduit-connector-oracle/config"
 	"github.com/conduitio-labs/conduit-connector-oracle/destination/mock"
 	"github.com/conduitio-labs/conduit-connector-oracle/destination/writer"
-	sdk "github.com/conduitio/conduit-connector-sdk"
+	"github.com/conduitio/conduit-commons/opencdc"
 	"github.com/golang/mock/gomock"
 	"github.com/matryer/is"
 )
@@ -81,12 +81,12 @@ func TestDestination_Write_success(t *testing.T) {
 
 	records := make([]opencdc.Record, 2)
 	records[0] = opencdc.Record{
-		Operation: sdk.OperationSnapshot,
+		Operation: opencdc.OperationSnapshot,
 		Metadata:  metadata,
 		Key: opencdc.StructuredData{
 			"id": 1,
 		},
-		Payload: sdk.Change{
+		Payload: opencdc.Change{
 			After: opencdc.StructuredData{
 				"id":   1,
 				"name": "John",
@@ -95,12 +95,12 @@ func TestDestination_Write_success(t *testing.T) {
 	}
 	records[1] = opencdc.Record{
 		Position:  opencdc.Position("snapshot.1"),
-		Operation: sdk.OperationSnapshot,
+		Operation: opencdc.OperationSnapshot,
 		Metadata:  metadata,
 		Key: opencdc.StructuredData{
 			"id": 2,
 		},
-		Payload: sdk.Change{
+		Payload: opencdc.Change{
 			After: opencdc.StructuredData{
 				"id":   2,
 				"name": "Sam",

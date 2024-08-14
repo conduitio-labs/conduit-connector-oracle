@@ -20,6 +20,7 @@ import (
 
 	"github.com/conduitio-labs/conduit-connector-oracle/config"
 	"github.com/conduitio-labs/conduit-connector-oracle/source/iterator"
+	cConfig "github.com/conduitio/conduit-commons/config"
 	"github.com/conduitio/conduit-commons/opencdc"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 )
@@ -45,75 +46,13 @@ func NewSource() sdk.Source {
 	return sdk.SourceWithMiddleware(&Source{}, sdk.DefaultSourceMiddleware()...)
 }
 
-// Parameters returns a map of named Parameters that describe how to configure the Source.
-func (s *Source) Parameters() map[string]sdk.Parameter {
-	return map[string]sdk.Parameter{
-		config.URL: {
-			Default:     "",
-			Required:    true,
-			Description: "String line for connection to Oracle",
-		},
-		config.Table: {
-			Default:     "",
-			Required:    true,
-			Description: "The name of a table in the database that the connector should write to.",
-		},
-		config.SnapshotTable: {
-			Default:     "",
-			Required:    false,
-			Description: "Snapshot table to be used.",
-		},
-		config.TrackingTable: {
-			Default:     "",
-			Required:    false,
-			Description: "Tracking table to be used.",
-		},
-		config.Trigger: {
-			Default:     "",
-			Required:    false,
-			Description: "Trigger to be used.",
-		},
-		config.OrderingColumn: {
-			Default:  "",
-			Required: true,
-			Description: "Column name that the connector will use for ordering rows. Column must contain unique " +
-				"values and suitable for sorting, otherwise the snapshot won't work correctly.",
-		},
-		config.KeyColumns: {
-			Default:  "",
-			Required: false,
-			Description: "Comma-separated list of column names to build the opencdc.Record.Key. " +
-				"Column names are the keys of the opencdc.Record.Key map, and the values are taken from the row.",
-		},
-		config.Snapshot: {
-			Default:     "true",
-			Required:    false,
-			Description: "Whether the connector will take a snapshot of the entire table before starting cdc mode.",
-		},
-		config.Columns: {
-			Default:  "",
-			Required: false,
-			Description: "List of column names that should be included in each Record's payload, " +
-				"by default includes all columns.",
-		},
-		config.BatchSize: {
-			Default:     "1000",
-			Required:    false,
-			Description: "Size of rows batch. Min is 1 and max is 100000.",
-		},
-	}
+func (s *Source) Parameters() cConfig.Parameters {
+	return NewSource().Parameters()
 }
 
 // Configure parses and stores configurations, returns an error in case of invalid configuration.
-func (s *Source) Configure(_ context.Context, cfgRaw map[string]string) error {
-	cfg, err := config.ParseSource(cfgRaw)
-	if err != nil {
-		return err
-	}
-
-	s.config = cfg
-
-	return nil
+func (s *Source) Configure(ctx context.Context, cfg cConfig.Config) error {
+	return sdk.Util.ParseConfig(ctx, cfg, &s.config, NewSource().Parameters())
 }
 
 // Open prepare the plugin to start sending records from the given position.

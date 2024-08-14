@@ -21,6 +21,7 @@ import (
 	"github.com/conduitio-labs/conduit-connector-oracle/config"
 	"github.com/conduitio-labs/conduit-connector-oracle/destination/writer"
 	"github.com/conduitio-labs/conduit-connector-oracle/repository"
+	cConfig "github.com/conduitio/conduit-commons/config"
 	"github.com/conduitio/conduit-commons/opencdc"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 )
@@ -44,37 +45,13 @@ func NewDestination() sdk.Destination {
 	return sdk.DestinationWithMiddleware(&Destination{}, sdk.DefaultDestinationMiddleware()...)
 }
 
-// Parameters returns a map of named Parameters that describe how to configure the Source.
-func (d *Destination) Parameters() map[string]sdk.Parameter {
-	return map[string]sdk.Parameter{
-		config.URL: {
-			Default:     "",
-			Required:    true,
-			Description: "The connection string to connect to Oracle database.",
-		},
-		config.Table: {
-			Default:     "",
-			Required:    true,
-			Description: "The table name of the table in Oracle that the connector should write to, by default.",
-		},
-		config.KeyColumn: {
-			Default:     "",
-			Required:    true,
-			Description: "A column name uses to detect if the target table already contains the record.",
-		},
-	}
+func (d *Destination) Parameters() cConfig.Parameters {
+	return NewDestination().Parameters()
 }
 
 // Configure parses and stores configurations, returns an error in case of invalid configuration.
-func (d *Destination) Configure(_ context.Context, cfg map[string]string) error {
-	configuration, err := config.ParseDestination(cfg)
-	if err != nil {
-		return err
-	}
-
-	d.cfg = configuration
-
-	return nil
+func (d *Destination) Configure(ctx context.Context, cfg cConfig.Config) error {
+	return sdk.Util.ParseConfig(ctx, cfg, &d.cfg, NewDestination().Parameters())
 }
 
 // Open initializes a publisher client.

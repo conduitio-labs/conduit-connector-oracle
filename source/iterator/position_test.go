@@ -17,6 +17,7 @@ package iterator
 import (
 	"testing"
 
+	"github.com/conduitio/conduit-commons/opencdc"
 	"github.com/matryer/is"
 )
 
