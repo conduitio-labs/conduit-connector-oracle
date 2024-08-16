@@ -29,7 +29,6 @@ type Destination struct {
 	Configuration
 
 	// KeyColumn is the column name uses to detect if the target table already contains the record.
-	// required = true, default = ""
 	KeyColumn string `validate:"required,lte=128,oracle"`
 }
 

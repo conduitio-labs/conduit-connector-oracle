@@ -47,25 +47,21 @@ const (
 // A Source represents a source configuration.
 type Source struct {
 	Configuration
-	// SnapshotTable is the snapshot table to be used. required false, default ""
+	// SnapshotTable is the snapshot table to be used.
 	SnapshotTable string `validate:"lte=128,oracle"`
-	// TrackingTable is the tracking table to be used in CDC. required false, default ""
+	// TrackingTable is the tracking table to be used in CDC.
 	TrackingTable string `validate:"lte=128,oracle"`
-
 	// Trigger is the trigger to be used in CDC.
 	// required false, default ""
 	Trigger string `validate:"lte=128,oracle"`
 
-	// OrderingColumn is Column name that the connector will use for ordering rows.
-	// Column must contain unique values and suitable for sorting, otherwise the snapshot won't work correctly.
+	// OrderingColumn is Column name that the connector will use for ordering rows. Must contain unique values and suitable for sorting, otherwise the snapshot won't work correctly.
 	OrderingColumn string `validate:"required,lte=128,oracle"`
 
 	// KeyColumns is a comma-separated list of column names to build the opencdc.Record.Key.
-	// Column names are the keys of the opencdc.Record.Key map, and the values are taken from the row.
 	KeyColumns []string `validate:"omitempty,dive,lte=128,oracle"`
 
-	// Snapshot is the configuration that determines whether the connector
-	// will take a snapshot of the entire table before starting cdc mode. default = true, required = false
+	// Snapshot is the configuration that determines whether the connector will take a snapshot of the entire table before starting cdc mode
 	Snapshot bool
 
 	// Columns list of column names that should be included in each Record's payload, by default includes all columns.
