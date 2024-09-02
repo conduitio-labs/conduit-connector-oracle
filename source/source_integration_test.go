@@ -26,6 +26,7 @@ import (
 
 	"github.com/conduitio-labs/conduit-connector-oracle/config"
 	"github.com/conduitio-labs/conduit-connector-oracle/repository"
+	"github.com/conduitio/conduit-commons/opencdc"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 	"github.com/matryer/is"
 )
@@ -152,7 +153,7 @@ CREATE TABLE %s (
 	// read records
 	record, err := src.Read(ctx)
 	is.NoErr(err)
-	is.Equal(record.Key, sdk.StructuredData(map[string]interface{}{"INT_TYPE_0": 10}))
+	is.Equal(record.Key, opencdc.StructuredData(map[string]interface{}{"INT_TYPE_0": 10}))
 
 	cancel()
 
@@ -208,7 +209,7 @@ CREATE TABLE %s (
 	// read records
 	record, err := src.Read(ctx)
 	is.NoErr(err)
-	is.Equal(record.Key, sdk.StructuredData(map[string]interface{}{"INT_TYPE_0": 10, "INT_TYPE_1": 20}))
+	is.Equal(record.Key, opencdc.StructuredData(map[string]interface{}{"INT_TYPE_0": 10, "INT_TYPE_1": 20}))
 
 	cancel()
 
@@ -262,7 +263,7 @@ CREATE TABLE %s (
 	// read records
 	record, err := src.Read(ctx)
 	is.NoErr(err)
-	is.Equal(record.Key, sdk.StructuredData(map[string]interface{}{"INT_TYPE_1": 20}))
+	is.Equal(record.Key, opencdc.StructuredData(map[string]interface{}{"INT_TYPE_1": 20}))
 
 	cancel()
 
@@ -325,7 +326,7 @@ CREATE TABLE %s (
 	// read records
 	record, err := src.Read(ctx)
 	is.NoErr(err)
-	is.Equal(record.Key, sdk.StructuredData(map[string]interface{}{"INT_TYPE_0": 20}))
+	is.Equal(record.Key, opencdc.StructuredData(map[string]interface{}{"INT_TYPE_0": 20}))
 
 	cancel()
 
