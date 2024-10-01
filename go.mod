@@ -5,7 +5,7 @@ go 1.22.2
 require (
 	github.com/conduitio/conduit-connector-sdk v0.9.1
 	github.com/go-playground/validator/v10 v10.22.1
-	github.com/godror/godror v0.44.7
+	github.com/godror/godror v0.44.8
 	github.com/golang/mock v1.6.0
 	github.com/golangci/golangci-lint v1.61.0
 	github.com/google/uuid v1.6.0
