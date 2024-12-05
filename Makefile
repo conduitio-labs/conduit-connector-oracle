@@ -7,9 +7,9 @@ build:
 .PHONY: test
 test:
 	go test $(GOTEST_FLAGS) -v -race ./...
-
+	
 .PHONY: generate
-generate: mockgen
+generate:
 	go generate ./...
 
 .PHONY: install-tools
