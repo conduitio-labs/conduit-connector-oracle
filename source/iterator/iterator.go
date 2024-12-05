@@ -21,8 +21,9 @@ import (
 	"strings"
 
 	"github.com/conduitio-labs/conduit-connector-oracle/columntypes"
-	"github.com/conduitio-labs/conduit-connector-oracle/config"
 	"github.com/conduitio-labs/conduit-connector-oracle/repository"
+	"github.com/conduitio-labs/conduit-connector-oracle/source/config"
+	"github.com/conduitio/conduit-commons/opencdc"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 	"go.uber.org/multierr"
 )
@@ -120,7 +121,7 @@ type Params struct {
 	BatchSize int
 }
 
-func NewParams(pos *Position, config config.Source) *Params {
+func NewParams(pos *Position, config config.Config) *Params {
 	p := &Params{
 		Position:       pos,
 		URL:            config.URL,
@@ -258,7 +259,7 @@ func (iter *Iterator) HasNext(ctx context.Context) (bool, error) {
 }
 
 // Next returns the next record.
-func (iter *Iterator) Next(ctx context.Context) (sdk.Record, error) {
+func (iter *Iterator) Next(ctx context.Context) (opencdc.Record, error) {
 	switch {
 	case iter.snapshot != nil:
 		return iter.snapshot.Next(ctx)
@@ -267,12 +268,12 @@ func (iter *Iterator) Next(ctx context.Context) (sdk.Record, error) {
 		return iter.cdc.Next()
 
 	default:
-		return sdk.Record{}, errNoInitializedIterator
+		return opencdc.Record{}, errNoInitializedIterator
 	}
 }
 
 // PushValueToDelete appends the last processed value to the slice to clear the tracking table in the future.
-func (iter *Iterator) PushValueToDelete(position sdk.Position) error {
+func (iter *Iterator) PushValueToDelete(position opencdc.Position) error {
 	pos, err := ParseSDKPosition(position)
 	if err != nil {
 		return fmt.Errorf("parse position: %w", err)

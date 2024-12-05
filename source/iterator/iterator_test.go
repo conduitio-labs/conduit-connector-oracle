@@ -17,28 +17,33 @@ package iterator
 import (
 	"testing"
 
-	"github.com/conduitio-labs/conduit-connector-oracle/config"
+	"github.com/conduitio-labs/conduit-connector-oracle/common"
+	"github.com/conduitio-labs/conduit-connector-oracle/source/config"
 	"github.com/matryer/is"
 )
 
 func TestParams_New_NoPosition(t *testing.T) {
 	is := is.New(t)
 
-	cfgMap := map[string]string{
-		config.URL:            "url",
-		config.Table:          "table",
-		config.OrderingColumn: "column",
-
-		config.SnapshotTable: "TABLE_S",
-		config.TrackingTable: "TABLE_T",
-		config.Trigger:       "TRIGGER",
+	cfg := config.Config{
+		Configuration: common.Configuration{
+			URL:   "url",
+			Table: "table",
+		},
+		OrderingColumn: "column",
+		SnapshotTable:  "TABLE_S",
+		TrackingTable:  "TABLE_T",
+		Trigger:        "TRIGGER",
 	}
-	cfg, err := config.ParseSource(cfgMap)
+	cfg = cfg.Init()
+
+	err := cfg.Validate()
 	is.NoErr(err)
+
 	underTest := NewParams(nil, cfg)
-	is.Equal(cfgMap[config.SnapshotTable], underTest.SnapshotTable)
-	is.Equal(cfgMap[config.TrackingTable], underTest.TrackingTable)
-	is.Equal(cfgMap[config.Trigger], underTest.Trigger)
+	is.Equal(cfg.SnapshotTable, underTest.SnapshotTable)
+	is.Equal(cfg.TrackingTable, underTest.TrackingTable)
+	is.Equal(cfg.Trigger, underTest.Trigger)
 }
 
 func TestParams_New_WithPosition(t *testing.T) {
@@ -49,15 +54,20 @@ func TestParams_New_WithPosition(t *testing.T) {
 		TrackingTable: "table1",
 		Trigger:       "trigger2",
 	}
-	cfg, err := config.ParseSource(map[string]string{
-		config.URL:            "url",
-		config.Table:          "table",
-		config.OrderingColumn: "column",
 
-		config.SnapshotTable: "table_s",
-		config.TrackingTable: "table_t",
-		config.Trigger:       "trigger",
-	})
+	cfg := config.Config{
+		Configuration: common.Configuration{
+			URL:   "url",
+			Table: "table",
+		},
+		OrderingColumn: "column",
+		SnapshotTable:  "table_s",
+		TrackingTable:  "table_t",
+		Trigger:        "trigger",
+	}
+	cfg = cfg.Init()
+
+	err := cfg.Validate()
 	is.NoErr(err)
 	underTest := NewParams(pos, cfg)
 

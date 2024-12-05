@@ -18,16 +18,20 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/conduitio-labs/conduit-connector-oracle/config"
+	"github.com/conduitio-labs/conduit-connector-oracle/source/config"
 	"github.com/conduitio-labs/conduit-connector-oracle/source/iterator"
+	commonsConfig "github.com/conduitio/conduit-commons/config"
+	"github.com/conduitio/conduit-commons/opencdc"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 )
+
+//go:generate mockgen -package mock -source source.go -destination ./mock/source.go
 
 // Iterator interface.
 type Iterator interface {
 	HasNext(context.Context) (bool, error)
-	Next(context.Context) (sdk.Record, error)
-	PushValueToDelete(sdk.Position) error
+	Next(context.Context) (opencdc.Record, error)
+	PushValueToDelete(opencdc.Position) error
 	Close() error
 }
 
@@ -35,7 +39,7 @@ type Iterator interface {
 type Source struct {
 	sdk.UnimplementedSource
 
-	config   config.Source
+	config   config.Config
 	iterator Iterator
 }
 
@@ -45,78 +49,29 @@ func NewSource() sdk.Source {
 }
 
 // Parameters returns a map of named Parameters that describe how to configure the Source.
-func (s *Source) Parameters() map[string]sdk.Parameter {
-	return map[string]sdk.Parameter{
-		config.URL: {
-			Default:     "",
-			Required:    true,
-			Description: "String line for connection to Oracle",
-		},
-		config.Table: {
-			Default:     "",
-			Required:    true,
-			Description: "The name of a table in the database that the connector should write to.",
-		},
-		config.SnapshotTable: {
-			Default:     "",
-			Required:    false,
-			Description: "Snapshot table to be used.",
-		},
-		config.TrackingTable: {
-			Default:     "",
-			Required:    false,
-			Description: "Tracking table to be used.",
-		},
-		config.Trigger: {
-			Default:     "",
-			Required:    false,
-			Description: "Trigger to be used.",
-		},
-		config.OrderingColumn: {
-			Default:  "",
-			Required: true,
-			Description: "Column name that the connector will use for ordering rows. Column must contain unique " +
-				"values and suitable for sorting, otherwise the snapshot won't work correctly.",
-		},
-		config.KeyColumns: {
-			Default:  "",
-			Required: false,
-			Description: "Comma-separated list of column names to build the sdk.Record.Key. " +
-				"Column names are the keys of the sdk.Record.Key map, and the values are taken from the row.",
-		},
-		config.Snapshot: {
-			Default:     "true",
-			Required:    false,
-			Description: "Whether the connector will take a snapshot of the entire table before starting cdc mode.",
-		},
-		config.Columns: {
-			Default:  "",
-			Required: false,
-			Description: "List of column names that should be included in each Record's payload, " +
-				"by default includes all columns.",
-		},
-		config.BatchSize: {
-			Default:     "1000",
-			Required:    false,
-			Description: "Size of rows batch. Min is 1 and max is 100000.",
-		},
-	}
+func (s *Source) Parameters() commonsConfig.Parameters {
+	return s.config.Parameters()
 }
 
 // Configure parses and stores configurations, returns an error in case of invalid configuration.
-func (s *Source) Configure(_ context.Context, cfgRaw map[string]string) error {
-	cfg, err := config.ParseSource(cfgRaw)
+func (s *Source) Configure(ctx context.Context, cfgRaw commonsConfig.Config) error {
+	err := sdk.Util.ParseConfig(ctx, cfgRaw, &s.config, NewSource().Parameters())
 	if err != nil {
 		return err
 	}
 
-	s.config = cfg
+	s.config = s.config.Init()
+
+	err = s.config.Validate()
+	if err != nil {
+		return fmt.Errorf("error validating configuration: %w", err)
+	}
 
 	return nil
 }
 
 // Open prepare the plugin to start sending records from the given position.
-func (s *Source) Open(ctx context.Context, position sdk.Position) error {
+func (s *Source) Open(ctx context.Context, position opencdc.Position) error {
 	pos, err := iterator.ParseSDKPosition(position)
 	if err != nil {
 		return fmt.Errorf("parse position: %w", err)
@@ -131,26 +86,26 @@ func (s *Source) Open(ctx context.Context, position sdk.Position) error {
 }
 
 // Read returns the next record.
-func (s *Source) Read(ctx context.Context) (sdk.Record, error) {
+func (s *Source) Read(ctx context.Context) (opencdc.Record, error) {
 	hasNext, err := s.iterator.HasNext(ctx)
 	if err != nil {
-		return sdk.Record{}, fmt.Errorf("has next: %w", err)
+		return opencdc.Record{}, fmt.Errorf("has next: %w", err)
 	}
 
 	if !hasNext {
-		return sdk.Record{}, sdk.ErrBackoffRetry
+		return opencdc.Record{}, sdk.ErrBackoffRetry
 	}
 
 	r, err := s.iterator.Next(ctx)
 	if err != nil {
-		return sdk.Record{}, fmt.Errorf("next: %w", err)
+		return opencdc.Record{}, fmt.Errorf("next: %w", err)
 	}
 
 	return r, nil
 }
 
 // Ack appends the last processed value to the slice to clear the tracking table in the future.
-func (s *Source) Ack(ctx context.Context, position sdk.Position) error {
+func (s *Source) Ack(ctx context.Context, position opencdc.Position) error {
 	sdk.Logger(ctx).Debug().Str("position", string(position)).Msg("got ack")
 
 	return s.iterator.PushValueToDelete(position)

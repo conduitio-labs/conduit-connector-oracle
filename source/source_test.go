@@ -20,11 +20,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/conduitio-labs/conduit-connector-oracle/config"
+	"github.com/conduitio-labs/conduit-connector-oracle/common"
+	"github.com/conduitio-labs/conduit-connector-oracle/source/config"
 	"github.com/conduitio-labs/conduit-connector-oracle/source/mock"
-	sdk "github.com/conduitio/conduit-connector-sdk"
-	"github.com/golang/mock/gomock"
+	"github.com/conduitio/conduit-commons/opencdc"
 	"github.com/matryer/is"
+	"go.uber.org/mock/gomock"
 )
 
 var (
@@ -40,26 +41,26 @@ func TestSource_Configure_success(t *testing.T) {
 	s := Source{}
 
 	cfgMap := map[string]string{
-		config.URL:            testURL,
-		config.Table:          testTable,
-		config.KeyColumns:     "id",
-		config.OrderingColumn: "created_at",
-		config.SnapshotTable:  "table_s",
-		config.TrackingTable:  "table_t",
-		config.Trigger:        "trigger",
+		config.ConfigUrl:            testURL,
+		config.ConfigTable:          testTable,
+		config.ConfigKeyColumns:     "id",
+		config.ConfigOrderingColumn: "created_at",
+		config.ConfigSnapshotTable:  "table_s",
+		config.ConfigTrackingTable:  "table_t",
+		config.ConfigTrigger:        "trigger",
 	}
 	err := s.Configure(context.Background(), cfgMap)
 	is.NoErr(err)
-	is.Equal(s.config, config.Source{
-		Configuration: config.Configuration{
+	is.Equal(s.config, config.Config{
+		Configuration: common.Configuration{
 			URL:   testURL,
 			Table: strings.ToUpper(testTable),
 		},
-		SnapshotTable:  strings.ToUpper(cfgMap[config.SnapshotTable]),
-		TrackingTable:  strings.ToUpper(cfgMap[config.TrackingTable]),
-		Trigger:        strings.ToUpper(cfgMap[config.Trigger]),
-		OrderingColumn: strings.ToUpper(cfgMap[config.OrderingColumn]),
-		KeyColumns:     []string{strings.ToUpper(cfgMap[config.KeyColumns])},
+		SnapshotTable:  strings.ToUpper(cfgMap[config.ConfigSnapshotTable]),
+		TrackingTable:  strings.ToUpper(cfgMap[config.ConfigTrackingTable]),
+		Trigger:        strings.ToUpper(cfgMap[config.ConfigTrigger]),
+		OrderingColumn: strings.ToUpper(cfgMap[config.ConfigOrderingColumn]),
+		KeyColumns:     []string{strings.ToUpper(cfgMap[config.ConfigKeyColumns])},
 		Snapshot:       true,
 		BatchSize:      1000,
 	})
@@ -73,11 +74,11 @@ func TestSource_Configure_failure(t *testing.T) {
 	s := Source{}
 
 	err := s.Configure(context.Background(), map[string]string{
-		config.URL:        testURL,
-		config.Table:      testTable,
-		config.KeyColumns: "id",
+		config.ConfigUrl:        testURL,
+		config.ConfigTable:      testTable,
+		config.ConfigKeyColumns: "id",
 	})
-	is.Equal(err.Error(), `"orderingColumn" value must be set`)
+	is.Equal(err.Error(), `config invalid: error validating "orderingColumn": required parameter is not provided`)
 }
 
 func TestSource_Read_success(t *testing.T) {
@@ -88,14 +89,14 @@ func TestSource_Read_success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	ctx := context.Background()
 
-	st := make(sdk.StructuredData)
+	st := make(opencdc.StructuredData)
 	st["key"] = "value"
 
-	record := sdk.Record{
-		Position: sdk.Position(`{"last_processed_element_value": 1}`),
+	record := opencdc.Record{
+		Position: opencdc.Position(`{"last_processed_element_value": 1}`),
 		Metadata: nil,
 		Key:      st,
-		Payload:  sdk.Change{After: st},
+		Payload:  opencdc.Change{After: st},
 	}
 
 	it := mock.NewMockIterator(ctrl)
@@ -141,7 +142,7 @@ func TestSource_Read_failureNext(t *testing.T) {
 
 	it := mock.NewMockIterator(ctrl)
 	it.EXPECT().HasNext(ctx).Return(true, nil)
-	it.EXPECT().Next(ctx).Return(sdk.Record{}, errors.New("key is not exist"))
+	it.EXPECT().Next(ctx).Return(opencdc.Record{}, errors.New("key is not exist"))
 
 	s := Source{
 		iterator: it,

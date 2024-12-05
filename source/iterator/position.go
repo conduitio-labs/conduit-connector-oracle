@@ -18,7 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	sdk "github.com/conduitio/conduit-connector-sdk"
+	"github.com/conduitio/conduit-commons/opencdc"
 )
 
 // Mode defines an iterator mode.
@@ -41,8 +41,8 @@ type Position struct {
 	SnapshotTable    string `json:"snapshot_table"`
 }
 
-// ParseSDKPosition parses sdk.Position and returns Position.
-func ParseSDKPosition(position sdk.Position) (*Position, error) {
+// ParseSDKPosition parses opencdc.Position and returns Position.
+func ParseSDKPosition(position opencdc.Position) (*Position, error) {
 	var pos Position
 
 	if position == nil {
@@ -50,14 +50,14 @@ func ParseSDKPosition(position sdk.Position) (*Position, error) {
 	}
 
 	if err := json.Unmarshal(position, &pos); err != nil {
-		return nil, fmt.Errorf("unmarshal sdk.Position into Position: %w", err)
+		return nil, fmt.Errorf("unmarshal opencdc.Position into Position: %w", err)
 	}
 
 	return &pos, nil
 }
 
-// ToSDK marshals Position and returns sdk.Position or an error.
-func (p Position) ToSDK() (sdk.Position, error) {
+// ToSDK marshals Position and returns opencdc.Position or an error.
+func (p Position) ToSDK() (opencdc.Position, error) {
 	bytes, err := json.Marshal(p)
 	if err != nil {
 		return nil, fmt.Errorf("marshal position: %w", err)

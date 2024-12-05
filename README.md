@@ -151,3 +151,5 @@ Type convention describes the conversion between Oracle to Go types.
 ## Known limitations
 
 Updating the configuration can cause completely unexpected results.
+
+![scarf pixel](https://static.scarf.sh/a.png?x-pxid=31b2e0d9-d9b2-479b-a5b5-882da6a00b3b)
