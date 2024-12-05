@@ -24,8 +24,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/conduitio-labs/conduit-connector-oracle/config"
 	"github.com/conduitio-labs/conduit-connector-oracle/repository"
+	"github.com/conduitio-labs/conduit-connector-oracle/source/config"
+	"github.com/conduitio/conduit-commons/opencdc"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 	"github.com/matryer/is"
 )
@@ -46,7 +47,7 @@ func TestSource_noTable(t *testing.T) {
 		is  = is.New(t)
 	)
 
-	repo, err := repository.New(cfg[config.URL])
+	repo, err := repository.New(cfg[config.ConfigUrl])
 	is.NoErr(err)
 	defer repo.Close()
 
@@ -70,16 +71,16 @@ func TestSource_emptyTable(t *testing.T) {
 		is  = is.New(t)
 	)
 
-	repo, err := repository.New(cfg[config.URL])
+	repo, err := repository.New(cfg[config.ConfigUrl])
 	is.NoErr(err)
 	defer repo.Close()
 
 	// create table
-	_, err = repo.DB.Exec(fmt.Sprintf(createTableQueryFmt, cfg[config.Table]))
+	_, err = repo.DB.Exec(fmt.Sprintf(createTableQueryFmt, cfg[config.ConfigTable]))
 	is.NoErr(err)
 
 	defer func() {
-		err = dropTables(repo, cfg[config.Table])
+		err = dropTables(repo, cfg[config.ConfigTable])
 		is.NoErr(err)
 	}()
 
@@ -107,14 +108,14 @@ func TestSource_keyColumns(t *testing.T) {
 	var (
 		is  = is.New(t)
 		cfg = map[string]string{
-			config.URL:            getURL(t),
-			config.Table:          fmt.Sprintf("CONDUIT_SRC_TEST_%s", randString(6)),
-			config.OrderingColumn: "int_type_2",
-			config.KeyColumns:     "int_type_0",
+			config.ConfigUrl:            getURL(t),
+			config.ConfigTable:          fmt.Sprintf("CONDUIT_SRC_TEST_%s", randString(6)),
+			config.ConfigOrderingColumn: "int_type_2",
+			config.ConfigKeyColumns:     "int_type_0",
 		}
 	)
 
-	repo, err := repository.New(cfg[config.URL])
+	repo, err := repository.New(cfg[config.ConfigUrl])
 	is.NoErr(err)
 	defer repo.Close()
 
@@ -126,16 +127,16 @@ CREATE TABLE %s (
   int_type_2 NUMBER(38, 0), 
   PRIMARY KEY (int_type_0, int_type_1)
 )
-`, cfg[config.Table]))
+`, cfg[config.ConfigTable]))
 	is.NoErr(err)
 
 	defer func() {
-		err = dropTables(repo, cfg[config.Table])
+		err = dropTables(repo, cfg[config.ConfigTable])
 		is.NoErr(err)
 	}()
 
 	// insert row
-	_, err = repo.DB.Exec(fmt.Sprintf("INSERT INTO %s VALUES (10, 20, 30)", cfg[config.Table]))
+	_, err = repo.DB.Exec(fmt.Sprintf("INSERT INTO %s VALUES (10, 20, 30)", cfg[config.ConfigTable]))
 	is.NoErr(err)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -152,7 +153,7 @@ CREATE TABLE %s (
 	// read records
 	record, err := src.Read(ctx)
 	is.NoErr(err)
-	is.Equal(record.Key, sdk.StructuredData(map[string]interface{}{"INT_TYPE_0": 10}))
+	is.Equal(record.Key, opencdc.StructuredData(map[string]interface{}{"INT_TYPE_0": 10}))
 
 	cancel()
 
@@ -164,13 +165,13 @@ func TestSource_keyColumnsPrimaryKeys(t *testing.T) {
 	var (
 		is  = is.New(t)
 		cfg = map[string]string{
-			config.URL:            getURL(t),
-			config.Table:          fmt.Sprintf("CONDUIT_SRC_TEST_%s", randString(6)),
-			config.OrderingColumn: "int_type_2",
+			config.ConfigUrl:            getURL(t),
+			config.ConfigTable:          fmt.Sprintf("CONDUIT_SRC_TEST_%s", randString(6)),
+			config.ConfigOrderingColumn: "int_type_2",
 		}
 	)
 
-	repo, err := repository.New(cfg[config.URL])
+	repo, err := repository.New(cfg[config.ConfigUrl])
 	is.NoErr(err)
 	defer repo.Close()
 
@@ -182,16 +183,16 @@ CREATE TABLE %s (
   int_type_2 NUMBER(38, 0), 
   PRIMARY KEY (int_type_0, int_type_1)
 )
-`, cfg[config.Table]))
+`, cfg[config.ConfigTable]))
 	is.NoErr(err)
 
 	defer func() {
-		err = dropTables(repo, cfg[config.Table])
+		err = dropTables(repo, cfg[config.ConfigTable])
 		is.NoErr(err)
 	}()
 
 	// insert row
-	_, err = repo.DB.Exec(fmt.Sprintf("INSERT INTO %s VALUES (10, 20, 30)", cfg[config.Table]))
+	_, err = repo.DB.Exec(fmt.Sprintf("INSERT INTO %s VALUES (10, 20, 30)", cfg[config.ConfigTable]))
 	is.NoErr(err)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -208,7 +209,7 @@ CREATE TABLE %s (
 	// read records
 	record, err := src.Read(ctx)
 	is.NoErr(err)
-	is.Equal(record.Key, sdk.StructuredData(map[string]interface{}{"INT_TYPE_0": 10, "INT_TYPE_1": 20}))
+	is.Equal(record.Key, opencdc.StructuredData(map[string]interface{}{"INT_TYPE_0": 10, "INT_TYPE_1": 20}))
 
 	cancel()
 
@@ -220,13 +221,13 @@ func TestSource_keyColumnsOrderingColumn(t *testing.T) {
 	var (
 		is  = is.New(t)
 		cfg = map[string]string{
-			config.URL:            getURL(t),
-			config.Table:          fmt.Sprintf("CONDUIT_SRC_TEST_%s", randString(6)),
-			config.OrderingColumn: "int_type_1",
+			config.ConfigUrl:            getURL(t),
+			config.ConfigTable:          fmt.Sprintf("CONDUIT_SRC_TEST_%s", randString(6)),
+			config.ConfigOrderingColumn: "int_type_1",
 		}
 	)
 
-	repo, err := repository.New(cfg[config.URL])
+	repo, err := repository.New(cfg[config.ConfigUrl])
 	is.NoErr(err)
 	defer repo.Close()
 
@@ -236,16 +237,16 @@ CREATE TABLE %s (
   int_type_0 NUMBER(38, 0), 
   int_type_1 NUMBER(38, 0)
 )
-`, cfg[config.Table]))
+`, cfg[config.ConfigTable]))
 	is.NoErr(err)
 
 	defer func() {
-		err = dropTables(repo, cfg[config.Table])
+		err = dropTables(repo, cfg[config.ConfigTable])
 		is.NoErr(err)
 	}()
 
 	// insert row
-	_, err = repo.DB.Exec(fmt.Sprintf("INSERT INTO %s VALUES (10, 20)", cfg[config.Table]))
+	_, err = repo.DB.Exec(fmt.Sprintf("INSERT INTO %s VALUES (10, 20)", cfg[config.ConfigTable]))
 	is.NoErr(err)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -262,7 +263,7 @@ CREATE TABLE %s (
 	// read records
 	record, err := src.Read(ctx)
 	is.NoErr(err)
-	is.Equal(record.Key, sdk.StructuredData(map[string]interface{}{"INT_TYPE_1": 20}))
+	is.Equal(record.Key, opencdc.StructuredData(map[string]interface{}{"INT_TYPE_1": 20}))
 
 	cancel()
 
@@ -274,14 +275,14 @@ func TestSource_snapshotIsFalse(t *testing.T) {
 	var (
 		is  = is.New(t)
 		cfg = map[string]string{
-			config.URL:            getURL(t),
-			config.Table:          fmt.Sprintf("CONDUIT_SRC_TEST_%s", randString(6)),
-			config.OrderingColumn: "int_type_0",
-			config.Snapshot:       "false",
+			config.ConfigUrl:            getURL(t),
+			config.ConfigTable:          fmt.Sprintf("CONDUIT_SRC_TEST_%s", randString(6)),
+			config.ConfigOrderingColumn: "int_type_0",
+			config.ConfigSnapshot:       "false",
 		}
 	)
 
-	repo, err := repository.New(cfg[config.URL])
+	repo, err := repository.New(cfg[config.ConfigUrl])
 	is.NoErr(err)
 	defer repo.Close()
 
@@ -291,16 +292,16 @@ CREATE TABLE %s (
   int_type_0 NUMBER(38, 0), 
   int_type_1 NUMBER(38, 0)
 )
-`, cfg[config.Table]))
+`, cfg[config.ConfigTable]))
 	is.NoErr(err)
 
 	defer func() {
-		err = dropTables(repo, cfg[config.Table])
+		err = dropTables(repo, cfg[config.ConfigTable])
 		is.NoErr(err)
 	}()
 
 	// insert row
-	_, err = repo.DB.Exec(fmt.Sprintf("INSERT INTO %s VALUES (10, 20)", cfg[config.Table]))
+	_, err = repo.DB.Exec(fmt.Sprintf("INSERT INTO %s VALUES (10, 20)", cfg[config.ConfigTable]))
 	is.NoErr(err)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -319,13 +320,13 @@ CREATE TABLE %s (
 	is.Equal(err, sdk.ErrBackoffRetry)
 
 	// insert one more row
-	_, err = repo.DB.Exec(fmt.Sprintf("INSERT INTO %s VALUES (20, 30)", cfg[config.Table]))
+	_, err = repo.DB.Exec(fmt.Sprintf("INSERT INTO %s VALUES (20, 30)", cfg[config.ConfigTable]))
 	is.NoErr(err)
 
 	// read records
 	record, err := src.Read(ctx)
 	is.NoErr(err)
-	is.Equal(record.Key, sdk.StructuredData(map[string]interface{}{"INT_TYPE_0": 20}))
+	is.Equal(record.Key, opencdc.StructuredData(map[string]interface{}{"INT_TYPE_0": 20}))
 
 	cancel()
 
@@ -346,10 +347,10 @@ func getURL(t *testing.T) string {
 
 func prepareConfig(t *testing.T) map[string]string {
 	return map[string]string{
-		config.URL:            getURL(t),
-		config.Table:          fmt.Sprintf("CONDUIT_SRC_TEST_%s", randString(6)),
-		config.KeyColumn:      "id",
-		config.OrderingColumn: "id",
+		config.ConfigUrl:            getURL(t),
+		config.ConfigTable:          fmt.Sprintf("CONDUIT_SRC_TEST_%s", randString(6)),
+		config.ConfigKeyColumns:     "id",
+		config.ConfigOrderingColumn: "id",
 	}
 }
 

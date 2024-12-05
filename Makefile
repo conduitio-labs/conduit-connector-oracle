@@ -6,23 +6,22 @@ build:
 
 .PHONY: test
 test:
-	go test $(GOTEST_FLAGS) -count=1 -race ./...
-
-.PHONY: lint
-lint:
-	golangci-lint run -v
+	go test $(GOTEST_FLAGS) -v -race ./...
 
 .PHONY: generate
 generate: mockgen
 	go generate ./...
-
-.PHONY: mockgen
-mockgen:
-	mockgen -package mock -source destination/destination.go -destination destination/mock/destination.go
-	mockgen -package mock -source source/source.go -destination source/mock/source.go
 
 .PHONY: install-tools
 install-tools:
 	@echo Installing tools from tools.go
 	@go list -e -f '{{ join .Imports "\n" }}' tools.go | xargs -tI % go install %
 	@go mod tidy
+
+.PHONY: fmt
+fmt:
+	gofumpt -l -w .
+
+.PHONY: lint
+lint:
+	golangci-lint run -v
