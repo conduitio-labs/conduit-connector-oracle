@@ -21,6 +21,7 @@ import (
 	"github.com/conduitio-labs/conduit-connector-oracle/source/config"
 	"github.com/conduitio-labs/conduit-connector-oracle/source/iterator"
 	commonsConfig "github.com/conduitio/conduit-commons/config"
+	"github.com/conduitio/conduit-commons/lang"
 	"github.com/conduitio/conduit-commons/opencdc"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 )
@@ -45,7 +46,12 @@ type Source struct {
 
 // NewSource initialises a new source.
 func NewSource() sdk.Source {
-	return sdk.SourceWithMiddleware(&Source{}, sdk.DefaultSourceMiddleware()...)
+	return sdk.SourceWithMiddleware(&Source{}, sdk.DefaultSourceMiddleware(
+		// disable schema extraction by default, because the source produces raw payload data
+		sdk.SourceWithSchemaExtractionConfig{
+			PayloadEnabled: lang.Ptr(false),
+		},
+	)...)
 }
 
 // Parameters returns a map of named Parameters that describe how to configure the Source.
