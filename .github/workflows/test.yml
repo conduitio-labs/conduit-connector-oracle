@@ -11,13 +11,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check architecture
-        run: uname -m
-
       - name: Install system dependencies
         run: |
           sudo apt update
-          sudo apt install -y libaio-dev
+          sudo apt install -y libaio1
 
       - name: Set up Go
         uses: actions/setup-go@v5
