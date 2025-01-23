@@ -19,16 +19,15 @@ jobs:
       - name: Install Oracle Instant Client
         run: |
           curl -O https://download.oracle.com/otn_software/linux/instantclient/instantclient-basic-linux-arm64.zip
-          unzip instantclient-basic-linux-arm64.zip -d $(HOME)/oracle
-          echo "$(HOME)/oracle/instantclient_19_25" | sudo tee -a /etc/ld.so.conf.d/oracle-instantclient.conf
+          unzip instantclient-basic-linux-arm64.zip -d $HOME/oracle
+          echo "$HOME/oracle/instantclient_19_25" | sudo tee -a /etc/ld.so.conf.d/oracle-instantclient.conf
           sudo ldconfig
         env:
-          LD_LIBRARY_PATH: /home/runner/oracle/instantclient_19_8:$LD_LIBRARY_PATH
-          CGO_CFLAGS: -I/home/runner/oracle/instantclient_19_8/sdk/include
-          CGO_LDFLAGS: -L/home/runner/oracle/instantclient_19_8
+          LD_LIBRARY_PATH: $HOME/oracle/instantclient_19_25:$LD_LIBRARY_PATH
+          CGO_CFLAGS: -I$HOME/oracle/instantclient_19_25/sdk/include
+          CGO_LDFLAGS: -L$HOME/oracle/instantclient_19_25
 
       - name: Run Tests
         env:
           ORACLE_URL: user="SYSTEM" password="password" connectString="localhost:1521/FREEPDB1"
         run: make test GOTEST_FLAGS="-v -count=1"
-        
