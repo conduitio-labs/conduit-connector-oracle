@@ -14,7 +14,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt update
-          sudo apt install -y libaio
+          sudo apt install -y libaio-dev
 
       - name: Set up Go
         uses: actions/setup-go@v5
