@@ -33,6 +33,11 @@ jobs:
           sudo sh -c "echo /opt/oracle/instantclient_19_25 > /etc/ld.so.conf.d/oracle-instantclient.conf"
           sudo ldconfig
 
+      - name: Set environment variables
+        run: |
+          echo "LD_LIBRARY_PATH=/opt/oracle/instantclient_19_25:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+          echo "/opt/oracle/instantclient_19_25" >> $GITHUB_PATH
+
       - name: Run Tests
         env:
           ORACLE_URL: user="SYSTEM" password="password" connectString="localhost:1521/FREEPDB1" libDir="/opt/oracle/instantclient_19_25"
