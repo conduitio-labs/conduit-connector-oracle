@@ -11,23 +11,29 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install system dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y libaio1
+
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version-file: 'go.mod'
 
-      - name: Install Oracle Instant Client
+      - name: Download Oracle Instant Client
         run: |
-          curl -O https://download.oracle.com/otn_software/linux/instantclient/instantclient-basic-linux-arm64.zip
-          unzip instantclient-basic-linux-arm64.zip -d $HOME/oracle
-          echo "$HOME/oracle/instantclient_19_25" | sudo tee -a /etc/ld.so.conf.d/oracle-instantclient.conf
+          wget https://download.oracle.com/otn_software/linux/instantclient/instantclient-basic-linux-arm64.zip
+          unzip instantclient-basic-linux-arm64.zip
+
+      - name: Set up Oracle Instant Client
+        run: |
+          sudo mkdir -p /opt/oracle/instantclient_19_25
+          sudo mv instantclient*/* /opt/oracle/instantclient_19_25/
+          sudo sh -c "echo /opt/oracle/instantclient_19_25 > /etc/ld.so.conf.d/oracle-instantclient.conf"
           sudo ldconfig
-        env:
-          LD_LIBRARY_PATH: $HOME/oracle/instantclient_19_25:$LD_LIBRARY_PATH
-          CGO_CFLAGS: -I$HOME/oracle/instantclient_19_25/sdk/include
-          CGO_LDFLAGS: -L$HOME/oracle/instantclient_19_25
 
       - name: Run Tests
         env:
-          ORACLE_URL: user="SYSTEM" password="password" connectString="localhost:1521/FREEPDB1" libDir="/home/runner/oracle/instantclient_19_25/lib"
+          ORACLE_URL: user="SYSTEM" password="password" connectString="localhost:1521/FREEPDB1" libDir="/opt/oracle/instantclient_19_25"
         run: make test GOTEST_FLAGS="-v -count=1"
