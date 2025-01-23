@@ -29,5 +29,5 @@ jobs:
 
       - name: Run Tests
         env:
-          ORACLE_URL: user="SYSTEM" password="password" connectString="localhost:1521/FREEPDB1" libDir="$HOME/oracle/instantclient_19_25/lib"
+          ORACLE_URL: user="SYSTEM" password="password" connectString="localhost:1521/FREEPDB1" libDir="/home/runner/oracle/instantclient_19_25/lib"
         run: make test GOTEST_FLAGS="-v -count=1"
