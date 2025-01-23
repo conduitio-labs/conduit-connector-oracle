@@ -13,8 +13,8 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          sudo apt update
-          sudo apt install -y libaio1
+          wget http://launchpadlibrarian.net/646633572/libaio1_0.3.113-4_amd64.deb
+          sudo dpkg -i libaio1_0.3.113-4_amd64.deb
 
       - name: Set up Go
         uses: actions/setup-go@v5
