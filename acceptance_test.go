@@ -24,6 +24,7 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/conduitio-labs/conduit-connector-oracle/destination"
 	"github.com/conduitio-labs/conduit-connector-oracle/repository"
 	"github.com/conduitio-labs/conduit-connector-oracle/source/config"
 	"github.com/conduitio/conduit-commons/opencdc"
@@ -58,16 +59,19 @@ func (d *driver) GenerateRecord(_ *testing.T, operation opencdc.Operation) openc
 }
 
 func TestAcceptance(t *testing.T) {
-	cfg := prepareConfig(t)
-
+	cfg := prepareCommonConfig(t)
 	is := is.New(t)
+
+	// Create source and destination configs.
+	sourceConfig := withConfig(cfg, config.ConfigOrderingColumn, "ID")
+	destinationConfig := withConfig(cfg, destination.ConfigKeyColumn, "ID")
 
 	sdk.AcceptanceTest(t, &driver{
 		ConfigurableAcceptanceTestDriver: sdk.ConfigurableAcceptanceTestDriver{
 			Config: sdk.ConfigurableAcceptanceTestDriverConfig{
 				Connector:         Connector,
-				SourceConfig:      cfg,
-				DestinationConfig: cfg,
+				SourceConfig:      sourceConfig,
+				DestinationConfig: destinationConfig,
 				BeforeTest: func(*testing.T) {
 					err := createTable(cfg[config.ConfigUrl], cfg[config.ConfigTable])
 					is.NoErr(err)
@@ -81,21 +85,28 @@ func TestAcceptance(t *testing.T) {
 	})
 }
 
+// uility to copy the base config and add a specific key-value pair.
+func withConfig(base map[string]string, key, value string) map[string]string {
+	newConfig := make(map[string]string, len(base)+1)
+	for k, v := range base {
+		newConfig[k] = v
+	}
+	newConfig[key] = value
+
+	return newConfig
+}
+
 // receives the connection URL from the environment variable
 // and prepares configuration map.
-func prepareConfig(t *testing.T) map[string]string {
+func prepareCommonConfig(t *testing.T) map[string]string {
 	url := os.Getenv("ORACLE_URL")
 	if url == "" {
 		t.Skip("ORACLE_URL env var must be set")
-
-		return nil
 	}
 
 	return map[string]string{
-		config.ConfigUrl:            url,
-		config.ConfigTable:          fmt.Sprintf("CONDUIT_TEST_%s", randString(6)),
-		config.ConfigKeyColumns:     "ID",
-		config.ConfigOrderingColumn: "ID",
+		config.ConfigUrl:   url,
+		config.ConfigTable: fmt.Sprintf("CONDUIT_TEST_%s", randString(6)),
 	}
 }
 

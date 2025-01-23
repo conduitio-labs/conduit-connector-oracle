@@ -60,7 +60,7 @@ func TestSource_noTable(t *testing.T) {
 	is.NoErr(err)
 
 	err = src.Open(ctx, nil)
-	is.True(strings.Contains(err.Error(), "table or view does not exist"))
+	is.True(strings.Contains(err.Error(), "table or view") && strings.Contains(err.Error(), "does not exist"))
 
 	cancel()
 }
@@ -349,7 +349,6 @@ func prepareConfig(t *testing.T) map[string]string {
 	return map[string]string{
 		config.ConfigUrl:            getURL(t),
 		config.ConfigTable:          fmt.Sprintf("CONDUIT_SRC_TEST_%s", randString(6)),
-		config.ConfigKeyColumns:     "id",
 		config.ConfigOrderingColumn: "id",
 	}
 }

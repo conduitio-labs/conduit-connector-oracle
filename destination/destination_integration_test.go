@@ -23,7 +23,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/conduitio-labs/conduit-connector-oracle/destination/config"
 	"github.com/conduitio-labs/conduit-connector-oracle/repository"
 	"github.com/conduitio/conduit-commons/opencdc"
 	"github.com/matryer/is"
@@ -35,15 +34,15 @@ func TestDestination_upsert(t *testing.T) {
 		is  = is.New(t)
 	)
 
-	repo, err := repository.New(cfg[config.ConfigUrl])
+	repo, err := repository.New(cfg[ConfigUrl])
 	is.NoErr(err)
 	defer repo.Close()
 
-	err = createTable(repo, cfg[config.ConfigTable])
+	err = createTable(repo, cfg[ConfigTable])
 	is.NoErr(err)
 
 	defer func() {
-		err = dropTable(repo, cfg[config.ConfigTable])
+		err = dropTable(repo, cfg[ConfigTable])
 		is.NoErr(err)
 	}()
 
@@ -70,7 +69,7 @@ func TestDestination_upsert(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(n, 1)
 
-	name, err := getNameByID(repo, cfg[config.ConfigTable], 42)
+	name, err := getNameByID(repo, cfg[ConfigTable], 42)
 	is.NoErr(err)
 	is.Equal(name, "Jane")
 
@@ -86,23 +85,23 @@ func TestDestination_delete(t *testing.T) {
 		is  = is.New(t)
 	)
 
-	repo, err := repository.New(cfg[config.ConfigUrl])
+	repo, err := repository.New(cfg[ConfigUrl])
 	is.NoErr(err)
 	defer repo.Close()
 
-	err = createTable(repo, cfg[config.ConfigTable])
+	err = createTable(repo, cfg[ConfigTable])
 	is.NoErr(err)
 
 	defer func() {
-		err = dropTable(repo, cfg[config.ConfigTable])
+		err = dropTable(repo, cfg[ConfigTable])
 		is.NoErr(err)
 	}()
 
-	err = insertData(repo, cfg[config.ConfigTable])
+	err = insertData(repo, cfg[ConfigTable])
 	is.NoErr(err)
 
 	// check if row exists
-	_, err = getNameByID(repo, cfg[config.ConfigTable], 42)
+	_, err = getNameByID(repo, cfg[ConfigTable], 42)
 	is.NoErr(err)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -125,7 +124,7 @@ func TestDestination_delete(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(n, 1)
 
-	_, err = getNameByID(repo, cfg[config.ConfigTable], 42)
+	_, err = getNameByID(repo, cfg[ConfigTable], 42)
 	is.Equal(err.Error(), "scan row: sql: no rows in result set")
 
 	cancel()
@@ -140,15 +139,15 @@ func TestDestination_wrongColumn(t *testing.T) {
 		is  = is.New(t)
 	)
 
-	repo, err := repository.New(cfg[config.ConfigUrl])
+	repo, err := repository.New(cfg[ConfigUrl])
 	is.NoErr(err)
 	defer repo.Close()
 
-	err = createTable(repo, cfg[config.ConfigTable])
+	err = createTable(repo, cfg[ConfigTable])
 	is.NoErr(err)
 
 	defer func() {
-		err = dropTable(repo, cfg[config.ConfigTable])
+		err = dropTable(repo, cfg[ConfigTable])
 		is.NoErr(err)
 	}()
 
@@ -189,9 +188,9 @@ func prepareConfig(t *testing.T) map[string]string {
 	}
 
 	return map[string]string{
-		config.ConfigUrl:       url,
-		config.ConfigTable:     fmt.Sprintf("CONDUIT_DEST_TEST_%s", randString(6)),
-		config.ConfigKeyColumn: "id",
+		ConfigUrl:       url,
+		ConfigTable:     fmt.Sprintf("CONDUIT_DEST_TEST_%s", randString(6)),
+		ConfigKeyColumn: "id",
 	}
 }
 

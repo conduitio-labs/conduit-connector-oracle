@@ -18,7 +18,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/conduitio-labs/conduit-connector-oracle/destination/config"
 	"github.com/conduitio-labs/conduit-connector-oracle/destination/writer"
 	"github.com/conduitio-labs/conduit-connector-oracle/repository"
 	commonsConfig "github.com/conduitio/conduit-commons/config"
@@ -39,7 +38,7 @@ type Destination struct {
 
 	repo   *repository.Oracle
 	writer Writer
-	cfg    config.Config
+	cfg    Config
 }
 
 // NewDestination initialises a new Destination.

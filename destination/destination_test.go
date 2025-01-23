@@ -21,7 +21,6 @@ import (
 	"time"
 
 	"github.com/conduitio-labs/conduit-connector-oracle/common"
-	"github.com/conduitio-labs/conduit-connector-oracle/destination/config"
 	"github.com/conduitio-labs/conduit-connector-oracle/destination/mock"
 	"github.com/conduitio-labs/conduit-connector-oracle/destination/writer"
 	"github.com/conduitio/conduit-commons/opencdc"
@@ -42,12 +41,12 @@ func TestDestination_Configure_success(t *testing.T) {
 	d := Destination{}
 
 	err := d.Configure(context.Background(), map[string]string{
-		config.ConfigUrl:       testURL,
-		config.ConfigTable:     testTable,
-		config.ConfigKeyColumn: "id",
+		ConfigUrl:       testURL,
+		ConfigTable:     testTable,
+		ConfigKeyColumn: "id",
 	})
 	is.NoErr(err)
-	is.Equal(d.cfg, config.Config{
+	is.Equal(d.cfg, Config{
 		Configuration: common.Configuration{
 			URL:   testURL,
 			Table: strings.ToUpper(testTable),
@@ -64,8 +63,8 @@ func TestDestination_Configure_failure(t *testing.T) {
 	d := Destination{}
 
 	err := d.Configure(context.Background(), map[string]string{
-		config.ConfigUrl:   testURL,
-		config.ConfigTable: testTable,
+		ConfigUrl:   testURL,
+		ConfigTable: testTable,
 	})
 
 	is.Equal(err.Error(), `config invalid: error validating "keyColumn": required parameter is not provided`)

@@ -20,8 +20,9 @@ import (
 	"fmt"
 	"strings"
 
+	"math/rand"
+
 	"github.com/conduitio-labs/conduit-connector-oracle/common"
-	"golang.org/x/exp/rand"
 )
 
 // Config represents a source configuration.
@@ -76,6 +77,7 @@ func (c Config) Validate() error {
 		name  string
 		value string
 	}{
+		{ConfigTable, c.Table},
 		{ConfigSnapshotTable, c.SnapshotTable},
 		{ConfigTrackingTable, c.TrackingTable},
 		{ConfigTrigger, c.Trigger},
@@ -169,7 +171,7 @@ func (c *Config) setDefaultHelperObjects() {
 	// There's a limit on the length of names in Oracle.
 	// Depending on the version, it might be between 30 and 128 bytes.
 	// We're going with the safer (lower) limit here.
-	id := rand.Int31()
+	id := rand.Int31() //nolint:gosec // cryptographic security not needed
 	if id < 0 {
 		id = -id
 	}

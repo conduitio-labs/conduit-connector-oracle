@@ -6,7 +6,16 @@ build:
 
 .PHONY: test
 test:
-	go test $(GOTEST_FLAGS) -v -race ./...
+	docker compose -f test/docker-compose.yml up --quiet-pull -d
+	@echo "Waiting for Oracle to become healthy..."
+	@while [ "$$(docker inspect -f '{{.State.Health.Status}}' test-oracle-1)" != "healthy" ]; do \
+		echo "Waiting..."; \
+		sleep 5; \
+	done
+	@echo "Oracle is healthy. Running tests..."
+	go test $(GOTEST_FLAGS) -race ./...; ret=$$?; \
+	docker compose -f test/docker-compose.yml down --volumes; \
+	exit $$ret
 	
 .PHONY: generate
 generate:

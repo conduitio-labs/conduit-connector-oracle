@@ -14,7 +14,7 @@
 
 //go:generate paramgen -output=paramgen.go Config
 
-package config
+package destination
 
 import (
 	"strings"

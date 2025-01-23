@@ -16,16 +16,7 @@ package common
 
 import "regexp"
 
-const (
-	// URL is the configuration name of the url.
-	URL = "url"
-	// Table is the configuration name of the table.
-	Table = "table"
-
-	MaxConfigStringLength = 127
-	MinConfigBatchSize    = 1
-	MaxConfigBatchSize    = 100000
-)
+const MaxConfigStringLength = 127
 
 // Docs: https://docs.oracle.com/cd/A81042_01/DOC/server.816/a76989/ch29.htm
 var IsOracleObjectValid = regexp.MustCompile(`^[a-zA-Z]+[a-zA-Z\d#$_]*$`).MatchString
