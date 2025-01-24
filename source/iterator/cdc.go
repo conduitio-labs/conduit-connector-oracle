@@ -16,7 +16,6 @@ package iterator
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"sync"
@@ -189,11 +188,6 @@ func (iter *CDC) Next() (opencdc.Record, error) {
 	delete(transformedRow, columnTrackingID)
 	delete(transformedRow, columnTimeCreatedAt)
 
-	transformedRowBytes, err := json.Marshal(transformedRow)
-	if err != nil {
-		return opencdc.Record{}, fmt.Errorf("marshal row: %w", err)
-	}
-
 	iter.position = position
 
 	metadata := opencdc.Metadata{
@@ -207,7 +201,7 @@ func (iter *CDC) Next() (opencdc.Record, error) {
 			convertedPosition,
 			metadata,
 			key,
-			opencdc.RawData(transformedRowBytes),
+			opencdc.StructuredData(transformedRow),
 		), nil
 	case actionUpdate:
 		return sdk.Util.Source.NewRecordUpdate(
@@ -215,7 +209,7 @@ func (iter *CDC) Next() (opencdc.Record, error) {
 			metadata,
 			key,
 			nil,
-			opencdc.RawData(transformedRowBytes),
+			opencdc.StructuredData(transformedRow),
 		), nil
 	case actionDelete:
 		return sdk.Util.Source.NewRecordDelete(

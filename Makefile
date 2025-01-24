@@ -14,8 +14,8 @@ test:
 	done
 	@echo "Oracle is healthy. Running tests..."
 	go test $(GOTEST_FLAGS) -race ./...; ret=$$?; \
-	docker compose -f test/docker-compose.yml down --volumes; \
-	exit $$ret
+		docker compose -f test/docker-compose.yml down --volumes; \
+		exit $$ret
 	
 .PHONY: generate
 generate:

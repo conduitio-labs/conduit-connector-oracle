@@ -17,7 +17,6 @@ package iterator
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -165,11 +164,6 @@ func (iter *Snapshot) Next(_ context.Context) (opencdc.Record, error) {
 		key[iter.keyColumns[i]] = val
 	}
 
-	transformedRowBytes, err := json.Marshal(transformedRow)
-	if err != nil {
-		return opencdc.Record{}, fmt.Errorf("marshal row: %w", err)
-	}
-
 	// set a new position into the variable,
 	// to avoid saving position into the struct until we marshal the position
 	position := &Position{
@@ -197,7 +191,7 @@ func (iter *Snapshot) Next(_ context.Context) (opencdc.Record, error) {
 		convertedPosition,
 		metadata,
 		key,
-		opencdc.RawData(transformedRowBytes),
+		opencdc.StructuredData(transformedRow),
 	)
 
 	return r, nil
