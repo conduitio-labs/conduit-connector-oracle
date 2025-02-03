@@ -17,10 +17,9 @@ package repository
 import (
 	"fmt"
 
-	"github.com/jmoiron/sqlx"
-
 	// Go driver for Oracle.
 	_ "github.com/godror/godror"
+	"github.com/jmoiron/sqlx"
 )
 
 // Oracle represents a Oracle repository.

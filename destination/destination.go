@@ -18,15 +18,18 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/conduitio-labs/conduit-connector-oracle/config"
 	"github.com/conduitio-labs/conduit-connector-oracle/destination/writer"
 	"github.com/conduitio-labs/conduit-connector-oracle/repository"
+	commonsConfig "github.com/conduitio/conduit-commons/config"
+	"github.com/conduitio/conduit-commons/opencdc"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 )
 
+//go:generate mockgen -package mock -source destination.go -destination ./mock/destination.go
+
 // Writer defines a writer interface needed for the Destination.
 type Writer interface {
-	Write(context.Context, sdk.Record) error
+	Write(context.Context, opencdc.Record) error
 }
 
 // A Destination represents the destination connector.
@@ -35,7 +38,7 @@ type Destination struct {
 
 	repo   *repository.Oracle
 	writer Writer
-	cfg    config.Destination
+	cfg    Config
 }
 
 // NewDestination initialises a new Destination.
@@ -44,34 +47,23 @@ func NewDestination() sdk.Destination {
 }
 
 // Parameters returns a map of named Parameters that describe how to configure the Source.
-func (d *Destination) Parameters() map[string]sdk.Parameter {
-	return map[string]sdk.Parameter{
-		config.URL: {
-			Default:     "",
-			Required:    true,
-			Description: "The connection string to connect to Oracle database.",
-		},
-		config.Table: {
-			Default:     "",
-			Required:    true,
-			Description: "The table name of the table in Oracle that the connector should write to, by default.",
-		},
-		config.KeyColumn: {
-			Default:     "",
-			Required:    true,
-			Description: "A column name uses to detect if the target table already contains the record.",
-		},
-	}
+func (d *Destination) Parameters() commonsConfig.Parameters {
+	return d.cfg.Parameters()
 }
 
 // Configure parses and stores configurations, returns an error in case of invalid configuration.
-func (d *Destination) Configure(_ context.Context, cfg map[string]string) error {
-	configuration, err := config.ParseDestination(cfg)
+func (d *Destination) Configure(ctx context.Context, cfg commonsConfig.Config) error {
+	err := sdk.Util.ParseConfig(ctx, cfg, &d.cfg, NewDestination().Parameters())
 	if err != nil {
 		return err
 	}
 
-	d.cfg = configuration
+	d.cfg = d.cfg.Init()
+
+	err = d.cfg.Validate()
+	if err != nil {
+		return fmt.Errorf("error validating configuration: %w", err)
+	}
 
 	return nil
 }
@@ -96,7 +88,7 @@ func (d *Destination) Open(ctx context.Context) (err error) {
 }
 
 // Write writes records into a Destination.
-func (d *Destination) Write(ctx context.Context, records []sdk.Record) (int, error) {
+func (d *Destination) Write(ctx context.Context, records []opencdc.Record) (int, error) {
 	for i, r := range records {
 		err := d.writer.Write(ctx, r)
 		if err != nil {

@@ -6,23 +6,31 @@ build:
 
 .PHONY: test
 test:
-	go test $(GOTEST_FLAGS) -count=1 -race ./...
-
-.PHONY: lint
-lint:
-	golangci-lint run -v
-
+	docker compose -f test/docker-compose.yml up --quiet-pull -d
+	@echo "Waiting for Oracle to become healthy..."
+	@while [ "$$(docker inspect -f '{{.State.Health.Status}}' test-oracle-1)" != "healthy" ]; do \
+		echo "Waiting..."; \
+		sleep 5; \
+	done
+	@echo "Oracle is healthy. Running tests..."
+	go test $(GOTEST_FLAGS) -race ./...; ret=$$?; \
+		docker compose -f test/docker-compose.yml down --volumes; \
+		exit $$ret
+	
 .PHONY: generate
-generate: mockgen
+generate:
 	go generate ./...
-
-.PHONY: mockgen
-mockgen:
-	mockgen -package mock -source destination/destination.go -destination destination/mock/destination.go
-	mockgen -package mock -source source/source.go -destination source/mock/source.go
 
 .PHONY: install-tools
 install-tools:
 	@echo Installing tools from tools.go
 	@go list -e -f '{{ join .Imports "\n" }}' tools.go | xargs -tI % go install %
 	@go mod tidy
+
+.PHONY: fmt
+fmt:
+	gofumpt -l -w .
+
+.PHONY: lint
+lint:
+	golangci-lint run -v

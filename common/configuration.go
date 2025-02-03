@@ -12,38 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package config
+package common
 
-import (
-	"strings"
-)
+import "regexp"
 
-const (
-	// URL is the configuration name of the url.
-	URL = "url"
-	// Table is the configuration name of the table.
-	Table = "table"
-)
+const MaxConfigStringLength = 127
+
+// Docs: https://docs.oracle.com/cd/A81042_01/DOC/server.816/a76989/ch29.htm
+var IsOracleObjectValid = regexp.MustCompile(`^[a-zA-Z]+[a-zA-Z\d#$_]*$`).MatchString
 
 // A Configuration represents a general configuration needed to connect to Oracle database.
 type Configuration struct {
 	// URL is the configuration of the connection string to connect to Oracle database.
 	URL string `json:"url" validate:"required"`
 	// Table is the configuration of the table name.
-	Table string `json:"table" validate:"required,lte=128,oracle"`
-}
-
-// parses general configuration.
-func parseConfiguration(cfg map[string]string) (Configuration, error) {
-	config := Configuration{
-		URL:   cfg[URL],
-		Table: strings.ToUpper(cfg[Table]),
-	}
-
-	err := validate(config)
-	if err != nil {
-		return Configuration{}, err
-	}
-
-	return config, nil
+	Table string `json:"table" validate:"required"`
 }

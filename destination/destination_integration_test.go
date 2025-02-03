@@ -23,9 +23,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/conduitio-labs/conduit-connector-oracle/config"
 	"github.com/conduitio-labs/conduit-connector-oracle/repository"
-	sdk "github.com/conduitio/conduit-connector-sdk"
+	"github.com/conduitio/conduit-commons/opencdc"
 	"github.com/matryer/is"
 )
 
@@ -35,15 +34,15 @@ func TestDestination_upsert(t *testing.T) {
 		is  = is.New(t)
 	)
 
-	repo, err := repository.New(cfg[config.URL])
+	repo, err := repository.New(cfg[ConfigUrl])
 	is.NoErr(err)
 	defer repo.Close()
 
-	err = createTable(repo, cfg[config.Table])
+	err = createTable(repo, cfg[ConfigTable])
 	is.NoErr(err)
 
 	defer func() {
-		err = dropTable(repo, cfg[config.Table])
+		err = dropTable(repo, cfg[ConfigTable])
 		is.NoErr(err)
 	}()
 
@@ -58,10 +57,10 @@ func TestDestination_upsert(t *testing.T) {
 	err = dest.Open(ctx)
 	is.NoErr(err)
 
-	n, err := dest.Write(ctx, []sdk.Record{
+	n, err := dest.Write(ctx, []opencdc.Record{
 		{
-			Operation: sdk.OperationUpdate,
-			Payload: sdk.Change{After: sdk.StructuredData{
+			Operation: opencdc.OperationUpdate,
+			Payload: opencdc.Change{After: opencdc.StructuredData{
 				"id":   42,
 				"name": "Jane",
 			}},
@@ -70,7 +69,7 @@ func TestDestination_upsert(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(n, 1)
 
-	name, err := getNameByID(repo, cfg[config.Table], 42)
+	name, err := getNameByID(repo, cfg[ConfigTable], 42)
 	is.NoErr(err)
 	is.Equal(name, "Jane")
 
@@ -86,23 +85,23 @@ func TestDestination_delete(t *testing.T) {
 		is  = is.New(t)
 	)
 
-	repo, err := repository.New(cfg[config.URL])
+	repo, err := repository.New(cfg[ConfigUrl])
 	is.NoErr(err)
 	defer repo.Close()
 
-	err = createTable(repo, cfg[config.Table])
+	err = createTable(repo, cfg[ConfigTable])
 	is.NoErr(err)
 
 	defer func() {
-		err = dropTable(repo, cfg[config.Table])
+		err = dropTable(repo, cfg[ConfigTable])
 		is.NoErr(err)
 	}()
 
-	err = insertData(repo, cfg[config.Table])
+	err = insertData(repo, cfg[ConfigTable])
 	is.NoErr(err)
 
 	// check if row exists
-	_, err = getNameByID(repo, cfg[config.Table], 42)
+	_, err = getNameByID(repo, cfg[ConfigTable], 42)
 	is.NoErr(err)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -116,16 +115,16 @@ func TestDestination_delete(t *testing.T) {
 	err = dest.Open(ctx)
 	is.NoErr(err)
 
-	n, err := dest.Write(ctx, []sdk.Record{
+	n, err := dest.Write(ctx, []opencdc.Record{
 		{
-			Operation: sdk.OperationDelete,
-			Key:       sdk.RawData(`{"id":42}`),
+			Operation: opencdc.OperationDelete,
+			Key:       opencdc.RawData(`{"id":42}`),
 		},
 	})
 	is.NoErr(err)
 	is.Equal(n, 1)
 
-	_, err = getNameByID(repo, cfg[config.Table], 42)
+	_, err = getNameByID(repo, cfg[ConfigTable], 42)
 	is.Equal(err.Error(), "scan row: sql: no rows in result set")
 
 	cancel()
@@ -140,15 +139,15 @@ func TestDestination_wrongColumn(t *testing.T) {
 		is  = is.New(t)
 	)
 
-	repo, err := repository.New(cfg[config.URL])
+	repo, err := repository.New(cfg[ConfigUrl])
 	is.NoErr(err)
 	defer repo.Close()
 
-	err = createTable(repo, cfg[config.Table])
+	err = createTable(repo, cfg[ConfigTable])
 	is.NoErr(err)
 
 	defer func() {
-		err = dropTable(repo, cfg[config.Table])
+		err = dropTable(repo, cfg[ConfigTable])
 		is.NoErr(err)
 	}()
 
@@ -163,10 +162,10 @@ func TestDestination_wrongColumn(t *testing.T) {
 	err = dest.Open(ctx)
 	is.NoErr(err)
 
-	_, err = dest.Write(ctx, []sdk.Record{
+	_, err = dest.Write(ctx, []opencdc.Record{
 		{
-			Operation: sdk.OperationSnapshot,
-			Payload: sdk.Change{After: sdk.StructuredData{
+			Operation: opencdc.OperationSnapshot,
+			Payload: opencdc.Change{After: opencdc.StructuredData{
 				"id":           43,
 				"wrong_column": "test",
 			}},
@@ -189,9 +188,9 @@ func prepareConfig(t *testing.T) map[string]string {
 	}
 
 	return map[string]string{
-		config.URL:       url,
-		config.Table:     fmt.Sprintf("CONDUIT_DEST_TEST_%s", randString(6)),
-		config.KeyColumn: "id",
+		ConfigUrl:       url,
+		ConfigTable:     fmt.Sprintf("CONDUIT_DEST_TEST_%s", randString(6)),
+		ConfigKeyColumn: "id",
 	}
 }
 

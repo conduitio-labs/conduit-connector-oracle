@@ -24,6 +24,7 @@ import (
 
 	"github.com/conduitio-labs/conduit-connector-oracle/columntypes"
 	"github.com/conduitio-labs/conduit-connector-oracle/repository"
+	"github.com/conduitio/conduit-commons/opencdc"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 )
 
@@ -69,10 +70,10 @@ func New(ctx context.Context, params Params) (*Writer, error) {
 	return writer, nil
 }
 
-// Write writes a sdk.Record into a Destination.
-func (w *Writer) Write(ctx context.Context, record sdk.Record) error {
+// Write writes a opencdc.Record into a Destination.
+func (w *Writer) Write(ctx context.Context, record opencdc.Record) error {
 	switch record.Operation {
-	case sdk.OperationDelete:
+	case opencdc.OperationDelete:
 		return w.delete(ctx, record)
 	default:
 		return w.upsert(ctx, record)
@@ -80,7 +81,7 @@ func (w *Writer) Write(ctx context.Context, record sdk.Record) error {
 }
 
 // insert or update a record.
-func (w *Writer) upsert(ctx context.Context, record sdk.Record) error {
+func (w *Writer) upsert(ctx context.Context, record opencdc.Record) error {
 	tableName := w.getTableName(record.Metadata)
 
 	payload, err := w.structurizeData(record.Payload.After)
@@ -125,9 +126,9 @@ func (w *Writer) upsert(ctx context.Context, record sdk.Record) error {
 	return nil
 }
 
-// deletes records by a key. First it looks in the sdk.Record.Key,
+// deletes records by a key. First it looks in the opencdc.Record.Key,
 // if it doesn't find a key there it will use the default configured value for a key.
-func (w *Writer) delete(ctx context.Context, record sdk.Record) error {
+func (w *Writer) delete(ctx context.Context, record opencdc.Record) error {
 	tableName := w.getTableName(record.Metadata)
 
 	key, err := w.structurizeData(record.Key)
@@ -159,7 +160,7 @@ func (w *Writer) delete(ctx context.Context, record sdk.Record) error {
 // generates an SQL INSERT or UPDATE statement query via MERGE.
 func (w *Writer) buildUpsertQuery(
 	table, keyColumn string,
-	payload sdk.StructuredData,
+	payload opencdc.StructuredData,
 ) (string, []any, error) {
 	columns, placeholdersMap, argsMap, err := w.extractPayload(payload)
 	if err != nil {
@@ -219,7 +220,7 @@ func (w *Writer) getTableName(metadata map[string]string) string {
 
 // returns either the first key within the Key structured data
 // or the default key configured value for key.
-func (w *Writer) getKeyColumn(key sdk.StructuredData) (string, error) {
+func (w *Writer) getKeyColumn(key opencdc.StructuredData) (string, error) {
 	if len(key) > 1 {
 		return "", errCompositeKeysNotSupported
 	}
@@ -231,18 +232,18 @@ func (w *Writer) getKeyColumn(key sdk.StructuredData) (string, error) {
 	return w.keyColumn, nil
 }
 
-// converts sdk.Data to sdk.StructuredData.
-func (w *Writer) structurizeData(data sdk.Data) (sdk.StructuredData, error) {
+// converts opencdc.Data to opencdc.StructuredData.
+func (w *Writer) structurizeData(data opencdc.Data) (opencdc.StructuredData, error) {
 	if data == nil || len(data.Bytes()) == 0 {
 		return nil, nil
 	}
 
-	unmarshalledData := make(sdk.StructuredData)
+	unmarshalledData := make(opencdc.StructuredData)
 	if err := json.Unmarshal(data.Bytes(), &unmarshalledData); err != nil {
 		return nil, fmt.Errorf("unmarshal %q into structured data: %w", string(data.Bytes()), err)
 	}
 
-	structuredData := make(sdk.StructuredData, len(unmarshalledData))
+	structuredData := make(opencdc.StructuredData, len(unmarshalledData))
 	for k, v := range unmarshalledData {
 		structuredData[strings.ToUpper(k)] = v
 	}
@@ -251,7 +252,7 @@ func (w *Writer) structurizeData(data sdk.Data) (sdk.StructuredData, error) {
 }
 
 // turns the payload into slice of columns, a map of placeholders, and a map of arguments.
-func (w *Writer) extractPayload(payload sdk.StructuredData) ([]string, map[string]string, map[string]any, error) {
+func (w *Writer) extractPayload(payload opencdc.StructuredData) ([]string, map[string]string, map[string]any, error) {
 	var (
 		i               = 0
 		columns         = make([]string, len(payload))

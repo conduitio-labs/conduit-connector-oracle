@@ -24,8 +24,10 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/conduitio-labs/conduit-connector-oracle/config"
+	"github.com/conduitio-labs/conduit-connector-oracle/destination"
 	"github.com/conduitio-labs/conduit-connector-oracle/repository"
+	"github.com/conduitio-labs/conduit-connector-oracle/source/config"
+	"github.com/conduitio/conduit-commons/opencdc"
 	sdk "github.com/conduitio/conduit-connector-sdk"
 	"github.com/google/uuid"
 	"github.com/matryer/is"
@@ -37,42 +39,45 @@ type driver struct {
 	counter int32
 }
 
-// GenerateRecord generates a random sdk.Record.
-func (d *driver) GenerateRecord(_ *testing.T, operation sdk.Operation) sdk.Record {
+// GenerateRecord generates a random opencdc.Record.
+func (d *driver) GenerateRecord(_ *testing.T, operation opencdc.Operation) opencdc.Record {
 	atomic.AddInt32(&d.counter, 1)
 
-	return sdk.Record{
+	return opencdc.Record{
 		Position:  nil,
 		Operation: operation,
 		Metadata: map[string]string{
-			"oracle.table": strings.ToUpper(d.Config.SourceConfig[config.Table]),
+			"oracle.table": strings.ToUpper(d.Config.SourceConfig[config.ConfigTable]),
 		},
-		Key: sdk.RawData(
+		Key: opencdc.RawData(
 			fmt.Sprintf(`{"ID":%d}`, d.counter),
 		),
-		Payload: sdk.Change{After: sdk.RawData(
+		Payload: opencdc.Change{After: opencdc.RawData(
 			fmt.Sprintf(`{"ID":%d,"NAME":"%s"}`, d.counter, uuid.NewString()),
 		)},
 	}
 }
 
 func TestAcceptance(t *testing.T) {
-	cfg := prepareConfig(t)
-
+	cfg := prepareCommonConfig(t)
 	is := is.New(t)
+
+	// Create source and destination configs.
+	sourceConfig := withConfig(cfg, config.ConfigOrderingColumn, "ID")
+	destinationConfig := withConfig(cfg, destination.ConfigKeyColumn, "ID")
 
 	sdk.AcceptanceTest(t, &driver{
 		ConfigurableAcceptanceTestDriver: sdk.ConfigurableAcceptanceTestDriver{
 			Config: sdk.ConfigurableAcceptanceTestDriverConfig{
 				Connector:         Connector,
-				SourceConfig:      cfg,
-				DestinationConfig: cfg,
+				SourceConfig:      sourceConfig,
+				DestinationConfig: destinationConfig,
 				BeforeTest: func(*testing.T) {
-					err := createTable(cfg[config.URL], cfg[config.Table])
+					err := createTable(cfg[config.ConfigUrl], cfg[config.ConfigTable])
 					is.NoErr(err)
 				},
 				AfterTest: func(*testing.T) {
-					err := dropTables(cfg[config.URL], cfg[config.Table])
+					err := dropTables(cfg[config.ConfigUrl], cfg[config.ConfigTable])
 					is.NoErr(err)
 				},
 			},
@@ -80,21 +85,28 @@ func TestAcceptance(t *testing.T) {
 	})
 }
 
+// uility to copy the base config and add a specific key-value pair.
+func withConfig(base map[string]string, key, value string) map[string]string {
+	newConfig := make(map[string]string, len(base)+1)
+	for k, v := range base {
+		newConfig[k] = v
+	}
+	newConfig[key] = value
+
+	return newConfig
+}
+
 // receives the connection URL from the environment variable
 // and prepares configuration map.
-func prepareConfig(t *testing.T) map[string]string {
+func prepareCommonConfig(t *testing.T) map[string]string {
 	url := os.Getenv("ORACLE_URL")
 	if url == "" {
 		t.Skip("ORACLE_URL env var must be set")
-
-		return nil
 	}
 
 	return map[string]string{
-		config.URL:            url,
-		config.Table:          fmt.Sprintf("CONDUIT_TEST_%s", randString(6)),
-		config.KeyColumn:      "ID",
-		config.OrderingColumn: "ID",
+		config.ConfigUrl:   url,
+		config.ConfigTable: fmt.Sprintf("CONDUIT_TEST_%s", randString(6)),
 	}
 }
 
